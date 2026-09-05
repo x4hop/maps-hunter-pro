@@ -1,0 +1,1 @@
+document.getElementById('year').textContent=new Date().getFullYear();document.querySelectorAll('details').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)document.querySelectorAll('details').forEach(x=>{if(x!==d)x.open=false})}));
