@@ -158,3 +158,16 @@ The backend moved from scaffold status to a persistent Cloudflare system.
 4. Affiliate dashboard and payout request creation.
 5. Cloudflare rate limiting / abuse protection.
 6. Replace temporary Admin Token login with Cloudflare Access or another stronger admin identity layer before production launch.
+
+### Live deployment URLs
+- API Worker: `https://maps-hunter-pro-api.salahaseel82.workers.dev`
+- Admin Worker: `https://maps-hunter-pro-admin.salahaseel82.workers.dev`
+- API health route: `/api/health`
+- Admin UI is served from the Admin Worker root.
+- The temporary `ADMIN_TOKEN` is stored only as a Cloudflare Worker secret and must never be written to this file or committed to GitHub.
+
+### Deployment verification
+- Cloudflare confirms the API Worker has both bindings: `DB` (D1) and `ADMIN_TOKEN` (secret_text).
+- Cloudflare confirms the API deployment is active at 100%.
+- Cloudflare confirms the Admin Worker deployment is active at 100%.
+- Both workers.dev subdomains are enabled.
