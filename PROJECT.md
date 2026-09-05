@@ -1,113 +1,191 @@
-# Maps Hunter Pro — Project Map & Change Log
+# Maps Hunter Pro — Project Map
 
-Last updated: 2026-09-05
+## Purpose
+Maps Hunter Pro is a Chrome extension + web platform for extracting, organizing, and exporting business leads from Google Maps.
 
-## 1. Purpose
-Maps Hunter Pro is a Chrome extension and web system for discovering, organizing, and exporting business leads from Google Maps. The website is the commercial entry point for pricing, renewals, affiliate onboarding, and future license/account management.
+## Product direction
+- Chrome extension focused on local business lead extraction.
+- Website handles marketing, plans, renewals, affiliate/referral flow, account/license operations, and future checkout.
+- Admin dashboard manages users, subscriptions, licenses, devices, payments, affiliates, payouts, usage, logs, and settings.
 
-## 2. Current commercial rules
-- Monthly plan: **$20 / month**.
-- Monthly daily limit: **1,500 leads/day**.
-- Annual plan: **$100 / year**.
-- Annual daily extraction: **Unlimited**.
-- Payment methods currently planned: **USDT** and **REDOTPAY**.
-- Affiliate commission: **50% on first purchase** and **20% on renewals**.
-- Renewals are intended to use the customer's existing Maps Hunter Pro email.
-
-## 3. Design system
-The landing page and admin dashboard share the same warm visual identity:
-- Background: `#fbf6ee`
+## Brand / UI
+- Primary background: `#fbf6ee`
 - Surface: `#fffdfa`
-- Primary text: `#2f2a23`
-- Primary orange: `#d97745`
-- Dark orange: `#b85f38`
+- Soft surface: `#f6eadb`
+- Main text: `#2f2a23`
+- Muted: `#776f66`
+- Brand orange: `#d97745`
+- Brand dark: `#b85f38`
 - Accent: `#efb170`
-- Soft cream: `#f6eadb`
-- Border: `#eadfce`
-- Font: **Tajawal**
+- Line: `#eadfce`
+- Success: `#2f9d65`
+- Font: Tajawal
+- UI style: warm cream + dark brown + orange accents, rounded cards, subtle shadows, clean SaaS layout.
 
-Do not replace this visual system with a generic SaaS theme without an explicit decision.
+## Landing page baseline
+The official landing-page baseline is the user-provided HTML page (`صفحة هبوط.html`). Do not replace the visual language with a generic SaaS template.
 
-## 4. Landing page decisions
-The approved landing-page structure is:
-1. Sticky header.
-2. Chrome-extension hero with a Maps + extension mockup.
-3. Feature section.
-4. Professional Excel preview.
-5. Pricing.
-6. Success Partner / affiliate section.
-7. Payment methods.
-8. FAQ.
-9. Footer policies.
+Current landing sections:
+1. Sticky header
+2. Hero with Chrome extension visual
+3. Features / “Everything you need…”
+4. Excel output preview
+5. Pricing
+6. Success Partner / referral
+7. Payment methods
+8. FAQ
+9. Footer policies
 
-### Feature section compacting
-The section headed **“Everything you need to collect leads faster”** was intentionally reduced in vertical size on 2026-09-05. Cards, icons, gaps, and heading sizes were reduced so this section does not dominate the landing page. This is currently the best interpretation of the user's phrase “قسم الاغري ثينك”. If a different section was intended, update this note when corrected.
+### Current copy direction
+Primary positioning:
+- Turn Google Maps searches into clean, export-ready business data.
+- Export: Excel / CSV / JSON / Google Sheets.
+- International phone formatting by search country.
+- One phone number per business result.
+- Facebook / Instagram columns at the end of exported datasets.
 
-## 5. Language system
-Supported languages:
-- English (`en`)
-- Arabic (`ar`)
+## Pricing rules
+### Monthly
+- Price: `$20 / month`
+- Limit: up to `1,500 leads per day`
+
+### Annual
+- Price: `$100 / year`
+- Limit: unlimited daily lead extraction
+
+## Payment methods
+Current planned methods:
+- USDT
+- REDOTPAY
+
+## Affiliate / Success Partner Program
+Current commercial rules:
+- First purchase commission: `50%`
+- Renewal commission: `20%`
+- Future partner dashboard should show:
+  - referral link/code
+  - clicks
+  - conversions
+  - commissions
+  - pending balance
+  - paid balance
+  - payout history
+
+## Languages
+Supported website languages:
+- English (`en`) — default/fallback
+- Arabic (`ar`) — RTL
 - Russian (`ru`)
 - German (`de`)
 - Spanish (`es`)
 
-Rules:
-- Use the standard **globe SVG icon** in the header; do not show `AR`/`EN` as the main language button.
-- Language choices open in a dropdown.
-- Arabic uses `dir="rtl"`; all other languages use `ltr`.
-- The selected language is stored in `localStorage` under `mhp_lang`.
-- On first visit, browser language is used when it matches a supported language; otherwise English is the fallback.
-- All visible landing-page UI strings should use `data-i18n` keys.
-- Locale content lives in `assets/locales/` and switcher logic lives in `assets/i18n.js`.
+### Language implementation
+- Language UI uses the conventional globe icon.
+- Locale files are separated under `assets/locales/`.
+- `assets/i18n.js` is the single translation controller.
+- Do not keep multiple competing translation scripts in `index.html`.
+- Selected language is persisted locally in the browser.
+- On the first visit, the site may use the browser language when supported.
+- Only Arabic uses RTL; all other current languages use LTR.
 
-## 6. Frontend structure
-- `index.html` — landing-page markup and SEO/schema.
-- `assets/styles.css` — visual styling and responsive behavior.
-- `assets/i18n.js` — language switching logic.
-- `assets/locales/en.js`, `ar.js`, `ru.js`, `de.js`, `es.js` — translation dictionaries.
-- `assets/app.js` — frontend behavior and API integration.
-- `privacy.html` — privacy page.
-- `terms.html` — terms page.
+## Frontend file structure
+```text
+/
+├── index.html
+├── privacy.html
+├── terms.html
+├── PROJECT.md
+├── README.md
+├── assets/
+│   ├── styles.css
+│   ├── app.js
+│   ├── i18n.js
+│   └── locales/
+│       ├── en.js
+│       ├── ar.js
+│       ├── ru.js
+│       ├── de.js
+│       └── es.js
+└── backend/
+    ├── package.json
+    ├── wrangler.toml
+    └── src/
+        └── index.js
+```
 
-The frontend remains framework-free for now: HTML/CSS/vanilla JS.
+## Frontend behavior
+- Header navigation scrolls to sections.
+- Globe button opens the language menu.
+- Language choice updates all elements using `data-i18n`.
+- External-style controls and placeholder links that are not yet connected must not pretend to complete checkout.
+- Pricing cards and feature cards should remain visually compact; avoid excessively tall sections.
 
-## 7. Backend structure
-Initial Cloudflare Worker scaffold:
-- `backend/src/index.js`
-- `backend/wrangler.toml`
-- `backend/package.json`
+## Features-section visual decision (2026-09-05)
+The user asked to make the “Everything…” section smaller and cleaner.
+Current interpretation: this refers to `Everything you need to collect leads faster`.
+Changes:
+- reduced section vertical padding
+- smaller heading
+- smaller cards
+- smaller feature icons
+- tighter gaps and descriptions
+If a future conversation confirms another section was intended, update this note instead of losing this decision history.
 
-Initial API endpoints:
-- `GET /api/health` — health check.
-- `GET /api/plans` — canonical plan/payment/affiliate configuration.
-- `POST /api/checkout` — validates email + plan and returns an integration-pending checkout response.
-- `POST /api/affiliate/register` — validates affiliate registration; persistence is not connected yet.
-- `POST /api/license/validate` — endpoint scaffold; persistent license database is not connected yet.
+## Backend baseline
+Backend is currently a Cloudflare Worker starter under `/backend`.
 
-Important: the backend does **not** pretend that payments, accounts, affiliates, or licenses are fully operational. Responses explicitly say `integration_required` until storage and payment verification are added.
+Initial routes:
+- `GET /api/health`
+- `GET /api/plans`
+- `POST /api/checkout`
+- `POST /api/affiliate/register`
+- `POST /api/license/validate`
 
-## 8. Next backend integrations
-Priority order:
-1. Cloudflare D1 schema for users, subscriptions, licenses, devices, payments, affiliates, commissions, payouts, and audit logs.
-2. Email/account lookup and renewal flow.
-3. USDT and REDOTPAY payment verification workflow.
-4. License generation/validation and device binding.
-5. Affiliate referral attribution and commission ledger.
-6. Admin dashboard connected to real API data.
-7. Rate limiting, anti-abuse checks, and audit logging.
+Current backend status:
+- health and plans are usable starter JSON endpoints
+- checkout / affiliate registration / license validation are placeholders only
+- no real payment processing yet
+- no real database yet
+- no secrets should be committed to GitHub
 
-## 9. Working rule for future agents
-Before changing the site or backend, read this file first. After any material decision or architecture/design change, update this file in the same commit. Keep implementation and documentation synchronized.
+## Planned backend architecture
+Recommended next phase:
+1. Cloudflare Worker API
+2. Cloudflare D1 database
+3. Users table
+4. Subscriptions table
+5. Payments table
+6. Licenses table
+7. Devices table
+8. Affiliates table
+9. Referral events / commissions table
+10. Payouts table
+11. Audit logs table
+12. Admin authentication
 
-## 10. Change log
-### 2026-09-05
-- Adopted the user's supplied landing page as the canonical design base.
-- Preserved warm cream/orange Maps Hunter Pro design identity.
-- Replaced text language button with a standard globe SVG dropdown.
-- Added/fixed English, Arabic, Russian, German, and Spanish language switching.
-- Added browser-language detection and persisted selection.
-- Added translation coverage for hero mockup, feature section, pricing, affiliate section, FAQ, footer, Excel labels, and other visible UI labels.
-- Compacted the “Everything you need to collect leads faster” feature section.
-- Split frontend into `index.html`, `assets/styles.css`, `assets/i18n.js`, locale files, and `assets/app.js`.
-- Added initial Cloudflare Worker backend scaffold and API routes.
-- Added this project map/change log as the source of truth for future work.
+## Account / renewal direction
+Current intended flow:
+- customer uses the email registered on the Maps Hunter Pro website
+- renewal returns through the website
+- backend identifies the customer by account/email and active subscription/license records
+- do not rely on email alone for sensitive authorization once the real account system is implemented
+
+## Security rules
+- Never commit API tokens, payment secrets, admin passwords, or private keys.
+- Payment confirmation must be verified server-side.
+- License validation must be server-side.
+- Device reset/revoke operations must require authenticated admin/user authorization.
+- Add rate limiting before production.
+- Add audit logs for sensitive admin operations.
+
+## Repository rule for future agents
+Whenever a meaningful product decision, system architecture change, pricing rule, affiliate rule, language change, deployment decision, or folder-structure change is made, update this `PROJECT.md` in the same work session.
+
+## 2026-09-05 — Preview hosting fix
+- The first Cloudflare preview deployment was broken because the Worker script existed but frontend static assets were not actually attached/served.
+- Symptom: HTML endpoint responded, but the page appeared without the intended frontend styling and interactive JavaScript; language controls did not work.
+- Preview architecture changed: `maps-hunter-pro-preview` now proxies the public GitHub `main` branch files from `raw.githubusercontent.com/x4hop/maps-hunter-pro/main`.
+- `/` maps to `/index.html` and `/assets/*` maps directly to the repository assets.
+- Worker forces correct MIME types for `.html`, `.css`, `.js`, and `.json`, and disables caching for development preview.
+- Do not claim preview is working merely because the Worker upload API returns 200; verify that HTML, CSS, JS and locale asset URLs are all served before calling a deployment healthy.
+- Production deployment should later use proper Cloudflare static assets / Pages or a Worker Assets binding rather than the GitHub proxy preview approach.
