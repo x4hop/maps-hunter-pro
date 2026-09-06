@@ -1,18 +1,20 @@
 # Maps Hunter Pro — Project Map & Change Log
 
-Last updated: 2026-09-05
+Last updated: 2026-09-06
 
 ## 1. Purpose
-Maps Hunter Pro is a Chrome extension and web system for discovering, organizing, and exporting business leads from Google Maps. The website is the commercial entry point for pricing, renewals, affiliate onboarding, and future license/account management.
+Maps Hunter Pro is a Chrome extension and web system for discovering, organizing, and exporting business leads from Google Maps. The website is the commercial entry point for pricing, renewals, affiliate onboarding, and license/account management.
 
 ## 2. Current commercial rules
 - Monthly plan: **$20 / month**.
 - Monthly daily limit: **1,500 leads/day**.
 - Annual plan: **$100 / year**.
 - Annual daily extraction: **Unlimited**.
-- Payment methods currently planned: **USDT** and **REDOTPAY**.
+- There is **no website checkout and no payment gateway**.
+- Customer flow: account registration → activation request → WhatsApp → manual payment verification → license issue.
+- Activation WhatsApp: **+218931650822**.
 - Affiliate commission: **50% on first purchase** and **20% on renewals**.
-- Renewals are intended to use the customer's existing Maps Hunter Pro email.
+- Renewals use the customer's existing Maps Hunter Pro account/email.
 
 ## 3. Design system
 The landing page and admin dashboard share the same warm visual identity:
@@ -36,12 +38,12 @@ The approved landing-page structure is:
 4. Professional Excel preview.
 5. Pricing.
 6. Success Partner / affiliate section.
-7. Payment methods.
+7. Manual activation / WhatsApp explanation.
 8. FAQ.
 9. Footer policies.
 
 ### Feature section compacting
-The section headed **“Everything you need to collect leads faster”** was intentionally reduced in vertical size on 2026-09-05. Cards, icons, gaps, and heading sizes were reduced so this section does not dominate the landing page. This is currently the best interpretation of the user's phrase “قسم الاغري ثينك”. If a different section was intended, update this note when corrected.
+The section headed **“Everything you need to collect leads faster”** was intentionally reduced in vertical size on 2026-09-05. Cards, icons, gaps, and heading sizes were reduced so this section does not dominate the landing page.
 
 ## 5. Language system
 Supported languages:
@@ -52,7 +54,7 @@ Supported languages:
 - Spanish (`es`)
 
 Rules:
-- Use the standard **globe SVG icon** in the header; do not show `AR`/`EN` as the main language button.
+- Use the standard **globe SVG icon** in the header.
 - Language choices open in a dropdown.
 - Arabic uses `dir="rtl"`; all other languages use `ltr`.
 - The selected language is stored in `localStorage` under `mhp_lang`.
@@ -77,11 +79,15 @@ Cloudflare Worker backend:
 - `backend/wrangler.toml`
 - `backend/package.json`
 - `backend/migrations/0001_initial.sql`
+- `backend/migrations/0002_auth_activation.sql`
 
-Public API endpoints:
+Public API direction:
 - `GET /api/health`
 - `GET /api/plans`
-- `POST /api/checkout`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/account/me`
+- `POST /api/activation/request`
 - `POST /api/affiliate/register`
 - `POST /api/license/validate`
 
@@ -93,7 +99,7 @@ Admin API endpoints under `/api/admin/*` require `ADMIN_TOKEN`.
 - Database: Cloudflare D1.
 - Admin dashboard: `admin/index.html` + `admin/admin.js`.
 - Admin authentication: temporary secret token stored only in browser `sessionStorage`; never commit it to GitHub.
-- Payments: USDT/REDOTPAY records persist, but provider-side verification is not automated yet.
+- Payment confirmation: manual via WhatsApp. No online checkout.
 
 ## 9. Working rule for future agents
 Before changing the site or backend, read this file first. After any material decision or architecture/design change, update this file in the same commit. Keep implementation and documentation synchronized.
@@ -111,63 +117,58 @@ Before changing the site or backend, read this file first. After any material de
 - Added initial Cloudflare Worker backend scaffold and API routes.
 - Added this project map/change log as the source of truth for future work.
 
-## 11. Backend activation — 2026-09-05
-The backend moved from scaffold status to a persistent Cloudflare system.
+### 2026-09-06 — Cloudflare ownership migration
+Maps Hunter Pro Cloudflare infrastructure is now assigned **exclusively** to Anas's Cloudflare account.
 
-### Cloudflare D1
-- Database name: `maps-hunter-pro`
-- D1 binding name: `DB`
-- Primary region: `WEUR`
-- Schema migration: `backend/migrations/0001_initial.sql`
-- Tables: `users`, `subscriptions`, `licenses`, `devices`, `payments`, `affiliates`, `referrals`, `commissions`, `payouts`, `usage_daily`, `audit_logs`, `settings`.
+- Cloudflare account: `Anas98gha@gmail.com's Account`
+- Account ID: `90d77a67b5686c9a9eec64a2d3749e0b`
+- Workers subdomain: `anas98gha.workers.dev`
+- D1 database name: `maps-hunter-pro`
+- D1 database ID: `21beb48b-da1d-4828-9a69-001fd6c798de`
+- D1 primary region: `WEUR`
+- API Worker: `https://maps-hunter-pro-api.anas98gha.workers.dev`
+- Admin Worker: `https://maps-hunter-pro-admin.anas98gha.workers.dev`
+- Frontend preview Worker: `https://maps-hunter-pro-preview.anas98gha.workers.dev`
+- GitHub remains: `x4hop/maps-hunter-pro`.
+- **Do not deploy, read, or modify Maps Hunter Pro resources in the previous Cloudflare account.**
 
-### API Worker
-- Worker name: `maps-hunter-pro-api`
-- Source: `backend/src/index.js`
-- Public endpoints:
-  - `GET /api/health`
-  - `GET /api/plans`
-  - `POST /api/checkout`
-  - `POST /api/affiliate/register`
-  - `POST /api/license/validate`
-- Admin endpoints are under `/api/admin/*` and require a secret `ADMIN_TOKEN` supplied as `Authorization: Bearer <token>` or `X-Admin-Token`.
-- The Admin Token must never be committed to GitHub.
+### D1 tables
+- `users`
+- `subscriptions`
+- `licenses`
+- `devices`
+- `payments`
+- `affiliates`
+- `referrals`
+- `commissions`
+- `payouts`
+- `usage_daily`
+- `audit_logs`
+- `settings`
+- `auth_sessions`
+- `activation_requests`
 
-### Current real behavior
-- Checkout now creates a persistent pending payment and a user when required.
-- Affiliate registration persists affiliates and generates referral codes.
-- License validation reads persistent licenses and can bind extension devices up to the configured device limit.
-- Admin can create an active subscription + license manually.
-- Admin can confirm a pending payment manually; this activates a subscription and creates the affiliate commission ledger entry when a referral exists.
-- USDT/REDOTPAY provider-side verification is still not automated. Until provider integrations are added, payment confirmation is an explicit admin action.
-
-### Admin dashboard
-- `admin/index.html` — live admin console based on the approved warm Maps Hunter Pro dashboard design.
-- `admin/admin.js` — authenticated calls to the real API.
-- The admin page never contains the Admin Token in source code. The token is entered at login and kept only in `sessionStorage`.
+### Manual activation flow
+1. Customer creates a Maps Hunter Pro account with email/password.
+2. Customer selects Monthly or Annual.
+3. Backend creates an activation request with an `ACT-*` reference and a pending manual payment record.
+4. Customer is redirected to WhatsApp **+218931650822** with request ID, email, plan, and price.
+5. Admin verifies payment manually in WhatsApp.
+6. Admin confirms the request/payment.
+7. Backend activates the subscription and generates a license code.
+8. Extension validates the license against the API and binds devices according to plan rules.
 
 ### Security baseline
-- D1 data endpoints for administration require `ADMIN_TOKEN`.
-- Audit logs are written for checkout, license validation, license creation/revocation, payment confirmation, affiliate creation, and settings changes.
-- Payment confirmation and real money settlement must remain separate until provider verification is implemented.
+- D1 administration endpoints require `ADMIN_TOKEN`.
+- The Admin Token is stored only as a Cloudflare Worker secret and must never be committed to GitHub.
+- Passwords must be stored as salted PBKDF2 hashes; never store plaintext passwords.
+- Session tokens are stored server-side as hashes and expire.
+- Audit logs should cover account, activation, payment confirmation, license validation, and admin actions.
 
-### Next backend priorities
-1. Automatic USDT / REDOTPAY payment verification or a controlled proof-review flow.
-2. Customer email login / renewal page.
-3. Extension usage reporting endpoint with daily-limit enforcement.
-4. Affiliate dashboard and payout request creation.
-5. Cloudflare rate limiting / abuse protection.
+### Next priorities
+1. Finish the customer register/login + activation request UI on the landing page.
+2. Add activation-request controls to the Admin dashboard.
+3. Add extension usage reporting and enforce the monthly 1,500-lead daily limit server-side.
+4. Add affiliate dashboard and payout-request flow.
+5. Add Cloudflare rate limiting / abuse protection.
 6. Replace temporary Admin Token login with Cloudflare Access or another stronger admin identity layer before production launch.
-
-### Live deployment URLs
-- API Worker: `https://maps-hunter-pro-api.salahaseel82.workers.dev`
-- Admin Worker: `https://maps-hunter-pro-admin.salahaseel82.workers.dev`
-- API health route: `/api/health`
-- Admin UI is served from the Admin Worker root.
-- The temporary `ADMIN_TOKEN` is stored only as a Cloudflare Worker secret and must never be written to this file or committed to GitHub.
-
-### Deployment verification
-- Cloudflare confirms the API Worker has both bindings: `DB` (D1) and `ADMIN_TOKEN` (secret_text).
-- Cloudflare confirms the API deployment is active at 100%.
-- Cloudflare confirms the Admin Worker deployment is active at 100%.
-- Both workers.dev subdomains are enabled.
