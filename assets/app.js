@@ -1,4 +1,4 @@
-const API_BASE = window.MHP_API_BASE || '';
-async function getPlans(){try{const response=await fetch(`${API_BASE}/api/plans`,{headers:{Accept:'application/json'}});if(!response.ok)throw new Error(`plans:${response.status}`);return await response.json()}catch(error){console.info('Maps Hunter Pro API not connected yet; using static landing-page pricing.',error.message);return null}}
+const API_BASE = window.MHP_API_BASE || 'https://maps-hunter-pro-api.anas98gha.workers.dev';
+async function getPlans(){try{const response=await fetch(`${API_BASE}/api/plans`,{headers:{Accept:'application/json'}});if(!response.ok)throw new Error(`plans:${response.status}`);return await response.json()}catch(error){console.info('Maps Hunter Pro API unavailable; using static landing-page pricing.',error.message);return null}}
 function applyPlanData(payload){if(!payload?.plans)return;const monthly=payload.plans.find(p=>p.id==='monthly');const annual=payload.plans.find(p=>p.id==='annual');const prices=document.querySelectorAll('.price');if(monthly&&prices[0])prices[0].firstChild.nodeValue=`$${monthly.price} `;if(annual&&prices[1])prices[1].firstChild.nodeValue=`$${annual.price} `}
 document.addEventListener('DOMContentLoaded',async()=>{applyPlanData(await getPlans())});
