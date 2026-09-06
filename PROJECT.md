@@ -172,3 +172,12 @@ Maps Hunter Pro Cloudflare infrastructure is now assigned **exclusively** to Ana
 4. Add affiliate dashboard and payout-request flow.
 5. Add Cloudflare rate limiting / abuse protection.
 6. Replace temporary Admin Token login with Cloudflare Access or another stronger admin identity layer before production launch.
+
+### 2026-09-06 — Professional admin console
+- Replaced the minimal admin UI with the professional Maps Hunter Pro admin console.
+- Admin navigation now includes Dashboard, Activation Requests, Users, Licenses, and Payments.
+- Dashboard shows live totals for users, pending activations, active licenses, and confirmed manual payments.
+- Activation requests can be approved from the admin panel and issue/extend licenses through the existing API.
+- Licenses and payments are read live from the same D1 database after validating the admin session against the API.
+- Admin Worker bindings: service binding `API` -> `maps-hunter-pro-api`, D1 binding `DB` -> `21beb48b-da1d-4828-9a69-001fd6c798de`.
+- The customer frontend and API flow are unchanged by this redesign.
