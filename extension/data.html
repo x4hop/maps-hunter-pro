@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maps Hunter Pro - Sheet</title>
+  <link rel="stylesheet" href="data.css">
+</head>
+<body>
+  <main class="sheet">
+    <header>
+      <div>
+        <span>Maps Hunter Pro</span>
+        <h1>Data Sheet</h1>
+      </div>
+      <div class="header-actions">
+        <button id="refreshBtn" type="button">Refresh</button>
+        <button id="closeBtn" class="close-btn" type="button" aria-label="Close sheet">×</button>
+      </div>
+    </header>
+
+    <section class="toolbar">
+      <input id="searchInput" type="text" placeholder="Filter exported rows — Search all fields...">
+      <button id="csvBtn" type="button">CSV</button>
+      <button id="excelBtn" type="button">Excel</button>
+      <button id="jsonBtn" type="button">JSON</button>
+    </section>
+
+    <section class="wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Address</th>
+            <th>Website</th>
+            <th>Image</th>
+            <th>Emails</th>
+            <th>Facebook</th>
+            <th>Instagram</th>
+            <th>Social Links</th>
+            <th>Google Maps</th>
+          </tr>
+        </thead>
+        <tbody id="body">
+          <tr><td colspan="11" class="empty">No data yet</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+  <div id="toast" class="toast"></div>
+  <script src="xlsx-export.js"></script><script src="data.js"></script>
+</body>
+</html>
