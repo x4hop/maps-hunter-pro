@@ -181,3 +181,4 @@ Maps Hunter Pro Cloudflare infrastructure is now assigned **exclusively** to Ana
 - Licenses and payments are read live from the same D1 database after validating the admin session against the API.
 - Admin Worker bindings: service binding `API` -> `maps-hunter-pro-api`, D1 binding `DB` -> `21beb48b-da1d-4828-9a69-001fd6c798de`.
 - The customer frontend and API flow are unchanged by this redesign.
+

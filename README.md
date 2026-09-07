@@ -33,3 +33,4 @@ Official website and launch foundation for Maps Hunter Pro.
 ## Affiliate model
 
 20% commission on eligible renewals. Full attribution, payout, fraud prevention and eligibility rules must be finalized before launch.
+
