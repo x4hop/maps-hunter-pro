@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maps Hunter Pro</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body><div style="padding:10px;background:#f6eadb"><label>License <input id="licenseKey" placeholder="MHP-…" autocomplete="off"></label><button id="saveLicense" type="button">Activate</button><a href="https://maps-hunter-pro-preview.anas98gha.workers.dev/#account" target="_blank">My account</a></div>
+  <main class="app">
+    <header class="topbar">
+      <div class="header-mark" aria-label="Extension panel">
+        <img src="icons/logo.png" alt="">
+      </div>
+      <nav class="tabs" aria-label="Panel pages">
+        <button class="tab active" data-page="searchPage" type="button">Search</button>
+        <button class="tab" data-page="resultsPage" type="button">Results <span id="tabLeadCount">0</span></button>
+        <button class="tab" data-page="settingsPage" type="button">Settings</button>
+      </nav>
+    </header>
+
+    <section class="status-card compact-status">
+      <div class="status-line">
+        <span id="phaseText">Ready</span>
+        <b id="statusText">Enter a keyword and city, then start.</b>
+      </div>
+      <div class="bar"><i id="progressBar"></i></div>
+    </section>
+
+    <section class="page active" id="searchPage">
+      <section class="search-panel card">
+        <label class="field wide">
+          <span>Search Keyword</span>
+          <textarea id="keyword" placeholder="restaurants, cafes, clinics"></textarea>
+        </label>
+
+        <label class="field wide">
+          <span>Target Cities</span>
+          <div id="cityTagsBox" class="tag-box">
+            <input id="cityInput" type="text" placeholder="Type city then press Enter">
+          </div>
+        </label>
+
+        <div class="controls">
+          <label>Search country<select id="searchCountry"><option value="">Detect from address</option><option value="218">Libya</option><option value="49">Germany</option><option value="962">Jordan</option><option value="968">Oman</option><option value="7">Russia</option><option value="34">Spain</option><option value="1">US / Canada</option><option value="44">United Kingdom</option><option value="20">Egypt</option><option value="966">Saudi Arabia</option><option value="971">UAE</option></select></label><button id="startBtn" class="primary" type="button">Start Search</button>
+          <button id="skipScanBtn" type="button">Skip Scan</button>
+          <button id="skipCityBtn" type="button">Skip City</button>
+          <button id="stopBtn" type="button">Stop</button>
+          <button id="clearBtn" type="button">Clear</button>
+        </div>
+      </section>
+
+      <section class="status-grid">
+        <div><span>Leads</span><b id="leadCount">0</b></div>
+        <div><span>Phones</span><b id="phoneCount">0</b></div>
+        <div><span>Emails</span><b id="emailCount">0</b></div>
+        <div><span>Social</span><b id="socialCount">0</b></div>
+      </section>
+
+      <section class="scan-details">
+        <div><span>Current City</span><b id="currentCityText">-</b></div>
+        <div><span>Queued</span><b id="queuedText">0</b></div>
+        <div><span>Processed</span><b id="processedText">0</b></div>
+        <div><span>Tabs</span><b id="tabsText">3</b></div>
+      </section>
+    </section>
+
+    <section class="page" id="resultsPage">
+      <section class="table-card card">
+        <div class="table-head">
+          <strong>Results</strong>
+          <div class="export">
+            <button id="openSheetBtn" type="button">Results table</button>
+            <button id="csvBtn" type="button">CSV</button>
+            <button id="excelBtn" type="button">Excel</button>
+            <button id="jsonBtn" type="button">JSON</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Website</th>
+                <th>Image</th>
+                <th>Email</th>
+                <th>Facebook</th>
+                <th>Instagram</th>
+                <th>Social Links</th>
+                <th>Maps</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody">
+              <tr><td colspan="11" class="empty">No results yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section class="page" id="settingsPage">
+      <section class="settings-panel card">
+        <div class="settings-title">
+          <strong>Extraction Settings</strong>
+          <span>These settings control speed and scan behavior only.</span>
+        </div>
+
+        <label class="setting-card">
+          <div>
+            <strong>Background Tabs</strong>
+            <span>More tabs can be faster but heavier on Chrome.</span>
+          </div>
+          <select id="workerCount">
+            <option value="1">1 - Safe</option>
+            <option value="2">2 - Balanced</option>
+            <option value="3">3 - Fast</option>
+            <option value="4">4 - Turbo</option>
+            <option value="5">5 - Max</option>
+            <option value="6" selected>6 - Ultra</option>
+            <option value="8">8 - Extreme</option>
+          </select>
+        </label>
+
+        <label class="setting-card switch-card">
+          <div>
+            <strong>Scan links first</strong>
+            <span>Collect all Maps links before opening details tabs.</span>
+          </div>
+          <input id="scanFirst" type="checkbox" checked>
+        </label>
+
+
+
+      </section>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+  <script src="panel.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Maps Hunter Pro",
+  "version": "8.0.9",
+  "description": "Direct Google Maps lead extractor with images, emails, websites, and social profiles.",
+  "permissions": [
+    "activeTab",
+    "downloads",
+    "scripting",
+    "sidePanel",
+    "storage",
+    "unlimitedStorage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://www.google.com/*",
+    "https://maps.google.com/*",
+    "https://maps-hunter-pro-api.anas98gha.workers.dev/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Maps Hunter Pro",
+    "default_popup": "panel.html"
+  },
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
