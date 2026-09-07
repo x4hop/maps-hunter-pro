@@ -171,3 +171,4 @@ INSERT OR IGNORE INTO settings(key,value) VALUES
 ('affiliate_renewal_percent','20'),
 ('allowed_devices','2'),
 ('payment_methods','USDT,REDOTPAY');
+

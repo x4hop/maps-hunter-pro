@@ -1,258 +1,59 @@
-const JSON_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-  'cache-control': 'no-store',
-  'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'GET,POST,PATCH,OPTIONS',
-  'access-control-allow-headers': 'content-type,authorization,x-admin-token'
-};
-
-const PLANS = {
-  monthly: { id: 'monthly', name: 'Monthly', price: 20, amountCents: 2000, currency: 'USD', billing: 'month', dailyLeadLimit: 1500 },
-  annual: { id: 'annual', name: 'Annual', price: 100, amountCents: 10000, currency: 'USD', billing: 'year', dailyLeadLimit: null }
-};
-
-function json(data, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(data), { status, headers: { ...JSON_HEADERS, ...extraHeaders } });
-}
-
-async function readJson(request) {
-  try { return await request.json(); } catch { return null; }
-}
-
-function validEmail(value) {
-  return typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-}
-
-function cleanEmail(value) { return String(value || '').trim().toLowerCase(); }
-function uid(prefix) { return `${prefix}-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`; }
-function licenseKey() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const bytes = new Uint8Array(12); crypto.getRandomValues(bytes);
-  let raw = ''; for (const b of bytes) raw += chars[b % chars.length];
-  return `MHP-${raw.slice(0,4)}-${raw.slice(4,8)}-${raw.slice(8,12)}`;
-}
-function referralCode() { return `AF-${crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase()}`; }
-function ipOf(request) { return request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || null; }
-
-function isAdmin(request, env) {
-  if (!env.ADMIN_TOKEN) return false;
-  const auth = request.headers.get('authorization') || '';
-  const x = request.headers.get('x-admin-token') || '';
-  return auth === `Bearer ${env.ADMIN_TOKEN}` || x === env.ADMIN_TOKEN;
-}
-
-async function audit(env, request, eventType, actorType, actor, targetType, targetId, result = 'success', metadata = null) {
-  try {
-    await env.DB.prepare(`INSERT INTO audit_logs(event_type,actor_type,actor,target_type,target_id,ip,result,metadata_json) VALUES(?,?,?,?,?,?,?,?)`)
-      .bind(eventType, actorType, actor || null, targetType || null, targetId ? String(targetId) : null, ipOf(request), result, metadata ? JSON.stringify(metadata) : null).run();
-  } catch (_) {}
-}
-
-async function getOrCreateUser(env, email, name = null, locale = 'en') {
-  const normalized = cleanEmail(email);
-  let user = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(normalized).first();
-  if (user) return user;
-  await env.DB.prepare('INSERT INTO users(email,name,locale) VALUES(?,?,?)').bind(normalized, name || null, locale || 'en').run();
-  return env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(normalized).first();
-}
-
-async function publicPlans(env) {
-  const rows = await env.DB.prepare('SELECT key,value FROM settings').all();
-  const settings = Object.fromEntries((rows.results || []).map(r => [r.key, r.value]));
-  return {
-    plans: [
-      { ...PLANS.monthly, price: Number(settings.monthly_price_usd || 20), dailyLeadLimit: Number(settings.monthly_daily_limit || 1500) },
-      { ...PLANS.annual, price: Number(settings.annual_price_usd || 100), dailyLeadLimit: null }
-    ],
-    paymentMethods: String(settings.payment_methods || 'USDT,REDOTPAY').split(',').map(x => x.trim()).filter(Boolean),
-    affiliate: {
-      firstPurchasePercent: Number(settings.affiliate_first_purchase_percent || 50),
-      renewalPercent: Number(settings.affiliate_renewal_percent || 20)
-    }
-  };
-}
-
-async function handleCheckout(request, env) {
-  const body = await readJson(request);
-  if (!body || !validEmail(body.email)) return json({ ok:false, error:'VALID_EMAIL_REQUIRED' }, 400);
-  const plan = PLANS[body.planId];
-  if (!plan) return json({ ok:false, error:'INVALID_PLAN' }, 400);
-  const method = String(body.method || 'USDT').toUpperCase();
-  if (!['USDT','REDOTPAY'].includes(method)) return json({ ok:false, error:'INVALID_PAYMENT_METHOD' }, 400);
-
-  const user = await getOrCreateUser(env, body.email, body.name, body.locale);
-  const current = await env.DB.prepare(`SELECT s.* FROM subscriptions s WHERE s.user_id=? AND s.status='active' ORDER BY s.id DESC LIMIT 1`).bind(user.id).first();
-  const paymentType = current ? 'renewal' : 'first_purchase';
-  const paymentRef = uid('PAY');
-  await env.DB.prepare(`INSERT INTO payments(payment_ref,user_id,method,amount_cents,currency,payment_type,status) VALUES(?,?,?,?,?,?, 'pending')`)
-    .bind(paymentRef, user.id, method, plan.amountCents, 'USD', paymentType).run();
-
-  if (body.referralCode) {
-    const affiliate = await env.DB.prepare(`SELECT id FROM affiliates WHERE referral_code=? AND status='active'`).bind(String(body.referralCode).trim().toUpperCase()).first();
-    if (affiliate) await env.DB.prepare(`INSERT OR IGNORE INTO referrals(affiliate_id,referred_user_id) VALUES(?,?)`).bind(affiliate.id, user.id).run();
-  }
-
-  await audit(env, request, 'CHECKOUT_CREATED', 'user', user.email, 'payment', paymentRef, 'success', { planId: plan.id, method, paymentType });
-  return json({ ok:true, payment:{ reference:paymentRef, status:'pending', amount:plan.price, currency:'USD', method, type:paymentType }, plan, next:'PAYMENT_VERIFICATION_REQUIRED' }, 201);
-}
-
-async function handleAffiliateRegister(request, env) {
-  const body = await readJson(request);
-  if (!body || !validEmail(body.email)) return json({ ok:false, error:'VALID_EMAIL_REQUIRED' }, 400);
-  const email = cleanEmail(body.email);
-  let affiliate = await env.DB.prepare('SELECT * FROM affiliates WHERE email=?').bind(email).first();
-  if (!affiliate) {
-    const code = referralCode();
-    await env.DB.prepare(`INSERT INTO affiliates(email,name,referral_code,status) VALUES(?,?,?,'active')`).bind(email, body.name || null, code).run();
-    affiliate = await env.DB.prepare('SELECT * FROM affiliates WHERE email=?').bind(email).first();
-    await audit(env, request, 'AFFILIATE_CREATED', 'affiliate', email, 'affiliate', affiliate.id, 'success');
-  }
-  return json({ ok:true, affiliate:{ id:affiliate.id, email:affiliate.email, name:affiliate.name, referralCode:affiliate.referral_code, status:affiliate.status, firstPurchasePercent:affiliate.first_purchase_percent, renewalPercent:affiliate.renewal_percent } }, 201);
-}
-
-async function handleLicenseValidate(request, env) {
-  const body = await readJson(request);
-  if (!body || typeof body.licenseKey !== 'string') return json({ ok:false, valid:false, error:'LICENSE_KEY_REQUIRED' }, 400);
-  const key = body.licenseKey.trim().toUpperCase();
-  const row = await env.DB.prepare(`SELECT l.*,u.email,s.plan_id,s.status AS subscription_status FROM licenses l JOIN users u ON u.id=l.user_id LEFT JOIN subscriptions s ON s.id=l.subscription_id WHERE l.license_key=?`).bind(key).first();
-  if (!row || row.status !== 'active') {
-    await audit(env, request, 'LICENSE_VALIDATE', 'extension', body.email || null, 'license', key, 'denied');
-    return json({ ok:true, valid:false, reason: row ? row.status : 'not_found' });
-  }
-  if (row.expires_at && new Date(row.expires_at) < new Date()) {
-    await env.DB.prepare(`UPDATE licenses SET status='expired',updated_at=CURRENT_TIMESTAMP WHERE id=?`).bind(row.id).run();
-    return json({ ok:true, valid:false, reason:'expired' });
-  }
-
-  if (body.deviceId) {
-    const device = await env.DB.prepare('SELECT * FROM devices WHERE license_id=? AND device_uid=?').bind(row.id, String(body.deviceId)).first();
-    if (!device) {
-      const count = await env.DB.prepare(`SELECT COUNT(*) AS c FROM devices WHERE license_id=? AND status!='blocked'`).bind(row.id).first();
-      if (Number(count.c) >= Number(row.device_limit)) return json({ ok:true, valid:false, reason:'device_limit_reached', deviceLimit:row.device_limit });
-      await env.DB.prepare(`INSERT INTO devices(user_id,license_id,device_uid,os,browser,last_ip,status) VALUES(?,?,?,?,?,?,'trusted')`)
-        .bind(row.user_id,row.id,String(body.deviceId),body.os||null,body.browser||null,ipOf(request)).run();
-    } else {
-      if (device.status === 'blocked') return json({ ok:true, valid:false, reason:'device_blocked' });
-      await env.DB.prepare(`UPDATE devices SET last_seen_at=CURRENT_TIMESTAMP,last_ip=?,os=COALESCE(?,os),browser=COALESCE(?,browser) WHERE id=?`)
-        .bind(ipOf(request),body.os||null,body.browser||null,device.id).run();
-    }
-  }
-  await audit(env, request, 'LICENSE_VALIDATE', 'extension', row.email, 'license', key, 'allowed');
-  return json({ ok:true, valid:true, license:{ key, planId:row.plan_id, expiresAt:row.expires_at, deviceLimit:row.device_limit }, user:{ email:row.email } });
-}
-
-async function adminSummary(env) {
-  const q = await env.DB.batch([
-    env.DB.prepare(`SELECT COUNT(*) c FROM users WHERE status='active'`),
-    env.DB.prepare(`SELECT COUNT(*) c FROM subscriptions WHERE status='active'`),
-    env.DB.prepare(`SELECT COUNT(*) c FROM licenses WHERE status='active'`),
-    env.DB.prepare(`SELECT COALESCE(SUM(amount_cents),0) cents FROM payments WHERE status='confirmed' AND substr(confirmed_at,1,7)=substr(datetime('now'),1,7)`),
-    env.DB.prepare(`SELECT COALESCE(SUM(leads_processed),0) c FROM usage_daily WHERE usage_date=date('now')`),
-    env.DB.prepare(`SELECT COUNT(*) c FROM payments WHERE status='pending'`),
-    env.DB.prepare(`SELECT COUNT(*) c FROM affiliates WHERE status='active'`),
-    env.DB.prepare(`SELECT COUNT(*) c FROM subscriptions WHERE status='active' AND expires_at IS NOT NULL AND expires_at <= datetime('now','+3 days')`)
-  ]);
-  return {
-    activeUsers:Number(q[0].results?.[0]?.c||0), activeSubscriptions:Number(q[1].results?.[0]?.c||0), activeLicenses:Number(q[2].results?.[0]?.c||0),
-    monthlyRevenue:Number(q[3].results?.[0]?.cents||0)/100, leadsToday:Number(q[4].results?.[0]?.c||0), pendingPayments:Number(q[5].results?.[0]?.c||0),
-    activeAffiliates:Number(q[6].results?.[0]?.c||0), expiringSoon:Number(q[7].results?.[0]?.c||0)
-  };
-}
-
-async function handleAdmin(request, env, url) {
-  if (!isAdmin(request, env)) return json({ ok:false, error:'UNAUTHORIZED' }, 401);
-  const p = url.pathname;
-  const limit = Math.min(Math.max(Number(url.searchParams.get('limit') || 100), 1), 500);
-
-  if (p === '/api/admin/summary' && request.method === 'GET') return json({ ok:true, summary:await adminSummary(env) });
-  if (p === '/api/admin/users' && request.method === 'GET') {
-    const rows = await env.DB.prepare(`SELECT u.*, (SELECT plan_id FROM subscriptions s WHERE s.user_id=u.id ORDER BY s.id DESC LIMIT 1) plan_id, (SELECT status FROM subscriptions s WHERE s.user_id=u.id ORDER BY s.id DESC LIMIT 1) subscription_status, (SELECT expires_at FROM subscriptions s WHERE s.user_id=u.id ORDER BY s.id DESC LIMIT 1) expires_at, (SELECT COUNT(*) FROM devices d WHERE d.user_id=u.id) devices FROM users u ORDER BY u.id DESC LIMIT ?`).bind(limit).all();
-    return json({ok:true,users:rows.results||[]});
-  }
-  if (p === '/api/admin/subscriptions' && request.method === 'GET') {
-    const rows=await env.DB.prepare(`SELECT s.*,u.email FROM subscriptions s JOIN users u ON u.id=s.user_id ORDER BY s.id DESC LIMIT ?`).bind(limit).all(); return json({ok:true,subscriptions:rows.results||[]});
-  }
-  if (p === '/api/admin/licenses' && request.method === 'GET') {
-    const rows=await env.DB.prepare(`SELECT l.*,u.email,s.plan_id FROM licenses l JOIN users u ON u.id=l.user_id LEFT JOIN subscriptions s ON s.id=l.subscription_id ORDER BY l.id DESC LIMIT ?`).bind(limit).all(); return json({ok:true,licenses:rows.results||[]});
-  }
-  if (p === '/api/admin/licenses' && request.method === 'POST') {
-    const body=await readJson(request); if(!body||!validEmail(body.email)||!PLANS[body.planId]) return json({ok:false,error:'VALID_EMAIL_AND_PLAN_REQUIRED'},400);
-    const user=await getOrCreateUser(env,body.email,body.name); const plan=PLANS[body.planId]; const days=body.planId==='annual'?365:30;
-    await env.DB.prepare(`INSERT INTO subscriptions(user_id,plan_id,status,started_at,expires_at,daily_lead_limit) VALUES(?,?,'active',CURRENT_TIMESTAMP,datetime('now', ?),?)`)
-      .bind(user.id,plan.id,`+${days} days`,plan.dailyLeadLimit).run();
-    const sub=await env.DB.prepare(`SELECT * FROM subscriptions WHERE user_id=? ORDER BY id DESC LIMIT 1`).bind(user.id).first();
-    let key; for(let i=0;i<5;i++){ key=licenseKey(); const exists=await env.DB.prepare('SELECT id FROM licenses WHERE license_key=?').bind(key).first(); if(!exists)break; }
-    const deviceLimit=Math.min(Math.max(Number(body.deviceLimit||2),1),10);
-    await env.DB.prepare(`INSERT INTO licenses(user_id,subscription_id,license_key,status,device_limit,activated_at,expires_at) VALUES(?,?,?,'active',?,CURRENT_TIMESTAMP,?)`).bind(user.id,sub.id,key,deviceLimit,sub.expires_at).run();
-    await audit(env,request,'LICENSE_CREATE','admin','admin','license',key,'success',{email:user.email,planId:plan.id});
-    return json({ok:true,license:{licenseKey:key,email:user.email,planId:plan.id,expiresAt:sub.expires_at,deviceLimit}},201);
-  }
-  const revokeMatch=p.match(/^\/api\/admin\/licenses\/([^/]+)\/revoke$/);
-  if(revokeMatch&&request.method==='POST'){
-    const key=decodeURIComponent(revokeMatch[1]).toUpperCase(); const r=await env.DB.prepare(`UPDATE licenses SET status='revoked',updated_at=CURRENT_TIMESTAMP WHERE license_key=?`).bind(key).run();
-    await audit(env,request,'LICENSE_REVOKE','admin','admin','license',key,r.meta?.changes?'success':'not_found'); return json({ok:true,changed:r.meta?.changes||0});
-  }
-  if (p === '/api/admin/devices' && request.method === 'GET') {
-    const rows=await env.DB.prepare(`SELECT d.*,u.email,l.license_key FROM devices d JOIN users u ON u.id=d.user_id JOIN licenses l ON l.id=d.license_id ORDER BY d.last_seen_at DESC LIMIT ?`).bind(limit).all(); return json({ok:true,devices:rows.results||[]});
-  }
-  if (p === '/api/admin/payments' && request.method === 'GET') {
-    const rows=await env.DB.prepare(`SELECT p.*,u.email FROM payments p JOIN users u ON u.id=p.user_id ORDER BY p.id DESC LIMIT ?`).bind(limit).all(); return json({ok:true,payments:rows.results||[]});
-  }
-  const confirmMatch=p.match(/^\/api\/admin\/payments\/([^/]+)\/confirm$/);
-  if(confirmMatch&&request.method==='POST'){
-    const ref=decodeURIComponent(confirmMatch[1]); const body=await readJson(request)||{};
-    const payment=await env.DB.prepare(`SELECT p.*,u.email FROM payments p JOIN users u ON u.id=p.user_id WHERE p.payment_ref=?`).bind(ref).first();
-    if(!payment)return json({ok:false,error:'PAYMENT_NOT_FOUND'},404); if(payment.status==='confirmed')return json({ok:true,alreadyConfirmed:true});
-    const planId=Number(payment.amount_cents)>=10000?'annual':'monthly'; const plan=PLANS[planId]; const days=planId==='annual'?365:30;
-    await env.DB.prepare(`INSERT INTO subscriptions(user_id,plan_id,status,started_at,expires_at,daily_lead_limit) VALUES(?,?,'active',CURRENT_TIMESTAMP,datetime('now', ?),?)`).bind(payment.user_id,planId,`+${days} days`,plan.dailyLeadLimit).run();
-    const sub=await env.DB.prepare(`SELECT * FROM subscriptions WHERE user_id=? ORDER BY id DESC LIMIT 1`).bind(payment.user_id).first();
-    await env.DB.prepare(`UPDATE payments SET status='confirmed',subscription_id=?,external_reference=?,confirmed_at=CURRENT_TIMESTAMP WHERE id=?`).bind(sub.id,body.externalReference||null,payment.id).run();
-    const referral=await env.DB.prepare(`SELECT r.*,a.first_purchase_percent,a.renewal_percent FROM referrals r JOIN affiliates a ON a.id=r.affiliate_id WHERE r.referred_user_id=?`).bind(payment.user_id).first();
-    if(referral){const pct=payment.payment_type==='renewal'?referral.renewal_percent:referral.first_purchase_percent; const amount=Math.round(payment.amount_cents*pct/100); await env.DB.prepare(`INSERT OR IGNORE INTO commissions(affiliate_id,payment_id,commission_type,percent,amount_cents,status) VALUES(?,?,?,?,?,'approved')`).bind(referral.affiliate_id,payment.id,payment.payment_type,pct,amount).run(); await env.DB.prepare(`UPDATE referrals SET converted_at=COALESCE(converted_at,CURRENT_TIMESTAMP) WHERE id=?`).bind(referral.id).run();}
-    await audit(env,request,'PAYMENT_CONFIRM','admin','admin','payment',ref,'success',{subscriptionId:sub.id}); return json({ok:true,paymentRef:ref,subscriptionId:sub.id});
-  }
-  if (p === '/api/admin/affiliates' && request.method === 'GET') {
-    const rows=await env.DB.prepare(`SELECT a.*, (SELECT COUNT(*) FROM referrals r WHERE r.affiliate_id=a.id) referrals, (SELECT COALESCE(SUM(amount_cents),0) FROM commissions c WHERE c.affiliate_id=a.id AND c.status IN ('approved','paid')) commission_cents FROM affiliates a ORDER BY a.id DESC LIMIT ?`).bind(limit).all(); return json({ok:true,affiliates:rows.results||[]});
-  }
-  if (p === '/api/admin/payouts' && request.method === 'GET') {
-    const rows=await env.DB.prepare(`SELECT p.*,a.email,a.referral_code FROM payouts p JOIN affiliates a ON a.id=p.affiliate_id ORDER BY p.id DESC LIMIT ?`).bind(limit).all(); return json({ok:true,payouts:rows.results||[]});
-  }
-  if (p === '/api/admin/usage' && request.method === 'GET') {
-    const rows=await env.DB.prepare(`SELECT ud.*,u.email FROM usage_daily ud JOIN users u ON u.id=ud.user_id ORDER BY ud.usage_date DESC,ud.leads_processed DESC LIMIT ?`).bind(limit).all(); return json({ok:true,usage:rows.results||[]});
-  }
-  if (p === '/api/admin/logs' && request.method === 'GET') {
-    const rows=await env.DB.prepare(`SELECT * FROM audit_logs ORDER BY id DESC LIMIT ?`).bind(limit).all(); return json({ok:true,logs:rows.results||[]});
-  }
-  if (p === '/api/admin/settings' && request.method === 'GET') {
-    const rows=await env.DB.prepare('SELECT key,value,updated_at FROM settings ORDER BY key').all(); return json({ok:true,settings:rows.results||[]});
-  }
-  if (p === '/api/admin/settings' && request.method === 'PATCH') {
-    const body=await readJson(request); if(!body||typeof body!=='object')return json({ok:false,error:'JSON_REQUIRED'},400);
-    const allowed=['monthly_price_usd','annual_price_usd','monthly_daily_limit','annual_daily_limit','affiliate_first_purchase_percent','affiliate_renewal_percent','allowed_devices','payment_methods'];
-    for(const key of allowed){if(body[key]!==undefined)await env.DB.prepare(`INSERT INTO settings(key,value,updated_at) VALUES(?,?,CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=CURRENT_TIMESTAMP`).bind(key,String(body[key])).run();}
-    await audit(env,request,'SETTINGS_UPDATE','admin','admin','settings','global','success'); return json({ok:true});
-  }
-  return json({ok:false,error:'ADMIN_ROUTE_NOT_FOUND'},404);
-}
-
-export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
-    if (request.method === 'OPTIONS') return new Response(null, { status:204, headers:JSON_HEADERS });
-    try {
-      if (url.pathname === '/api/health' && request.method === 'GET') {
-        const db = await env.DB.prepare('SELECT 1 AS ok').first();
-        return json({ ok:true, service:'maps-hunter-pro-api', version:'1.0.0', database:db?.ok===1?'connected':'error' });
-      }
-      if (url.pathname === '/api/plans' && request.method === 'GET') return json({ ok:true, ...(await publicPlans(env)) });
-      if (url.pathname === '/api/checkout' && request.method === 'POST') return handleCheckout(request,env);
-      if (url.pathname === '/api/affiliate/register' && request.method === 'POST') return handleAffiliateRegister(request,env);
-      if (url.pathname === '/api/license/validate' && request.method === 'POST') return handleLicenseValidate(request,env);
-      if (url.pathname.startsWith('/api/admin/')) return handleAdmin(request,env,url);
-      return json({ ok:false, error:'NOT_FOUND' },404);
-    } catch (error) {
-      console.error(error);
-      return json({ ok:false, error:'INTERNAL_ERROR', message:String(error?.message||error) },500);
-    }
-  }
-};
+const HEADERS={'content-type':'application/json; charset=utf-8','cache-control':'no-store','access-control-allow-origin':'*','access-control-allow-headers':'content-type,authorization,x-admin-token','access-control-allow-methods':'GET,POST,PATCH,OPTIONS'};
+const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:HEADERS});
+const fail=(code,status=400)=>{const e=new Error(code);e.status=status;throw e};
+const enc=new TextEncoder();
+const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const random=n=>b64(crypto.getRandomValues(new Uint8Array(n)));
+const hash=async v=>b64(await crypto.subtle.digest('SHA-256',enc.encode(v)));
+const email=v=>String(v||'').trim().toLowerCase();
+const validEmail=v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)&&v.length<=254;
+const sql=(e,q,...p)=>e.DB.prepare(q).bind(...p);
+const first=(e,q,...p)=>sql(e,q,...p).first();
+const rows=async(e,q,...p)=>(await sql(e,q,...p).all()).results||[];
+const run=(e,q,...p)=>sql(e,q,...p).run();
+const key=prefix=>prefix+'-'+crypto.randomUUID().replace(/-/g,'').toUpperCase();
+async function body(r){if(Number(r.headers.get('content-length')||0)>16384)fail('REQUEST_TOO_LARGE',413);const t=await r.text();if(t.length>16384)fail('REQUEST_TOO_LARGE',413);try{const x=JSON.parse(t||'{}');if(!x||typeof x!=='object'||Array.isArray(x))fail('INVALID_JSON');return x}catch{fail('INVALID_JSON')}}
+async function passwordHash(password,salt){const k=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveBits']);return b64(await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:enc.encode(salt),iterations:150000},k,256))}
+async function settings(e){const z=Object.fromEntries((await rows(e,'SELECT key,value FROM settings')).map(x=>[x.key,x.value]));const numeric=['monthly_price_usd','annual_price_usd','monthly_daily_limit','allowed_devices','affiliate_first_purchase_percent','affiliate_renewal_percent'];const out={monthly_price_usd:20,annual_price_usd:100,monthly_daily_limit:1500,allowed_devices:2,affiliate_first_purchase_percent:50,affiliate_renewal_percent:20};for(const k of numeric)if(z[k]!=null&&Number.isFinite(Number(z[k])))out[k]=Number(z[k]);return out}
+const plan=(s,id)=>{if(!['monthly','annual'].includes(id))fail('INVALID_PLAN');return {id,price:s[id+'_price_usd'],dailyLeadLimit:id==='monthly'?s.monthly_daily_limit:null,durationDays:id==='monthly'?30:365}};
+async function session(r,e,admin=false){const a=r.headers.get('authorization')||'';if(!a.startsWith('Bearer '))fail('UNAUTHORIZED',401);const h=await hash(a.slice(7));const u=admin?await first(e,"SELECT id FROM admin_sessions WHERE token_hash=? AND julianday(expires_at)>julianday('now')",h):await first(e,"SELECT u.id,u.email,u.name,u.status FROM auth_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND julianday(s.expires_at)>julianday('now') AND u.status='active'",h);if(!u)fail('UNAUTHORIZED',401);return u}
+async function rateLimit(r,e,path){const ip=r.headers.get('cf-connecting-ip')||'unknown';const h=await hash(path+'|'+ip+'|'+Math.floor(Date.now()/600000));const q=await first(e,"INSERT INTO request_limits(key,count,expires_at) VALUES(?,1,datetime('now','+20 minutes')) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count",h);if(q.count>40)fail('TOO_MANY_REQUESTS',429)}
+async function grant(e,type,source,userId,planId){const existing=await first(e,'SELECT g.*,l.license_key,s.expires_at FROM entitlement_grants g JOIN licenses l ON l.id=g.license_id JOIN subscriptions s ON s.id=g.subscription_id WHERE source_type=? AND source_ref=?',type,source);if(existing){if(existing.user_id!==userId)fail('CODE_ALREADY_USED',409);return {already:true,licenseKey:existing.license_key,expiresAt:existing.expires_at}}const s=await settings(e),p=plan(s,planId);try{await run(e,'INSERT INTO entitlement_grants(source_type,source_ref,user_id,plan_id,license_key,device_limit,daily_limit) VALUES(?,?,?,?,?,?,?)',type,source,userId,planId,key('MHP'),s.allowed_devices,p.dailyLeadLimit)}catch(err){const won=await first(e,'SELECT user_id FROM entitlement_grants WHERE source_type=? AND source_ref=?',type,source);if(!won||won.user_id!==userId)throw err;}const g=await first(e,'SELECT l.license_key,s.expires_at FROM entitlement_grants g JOIN licenses l ON l.id=g.license_id JOIN subscriptions s ON s.id=g.subscription_id WHERE source_type=? AND source_ref=?',type,source);return {licenseKey:g.license_key,expiresAt:g.expires_at}}
+async function license(r,e,x){const k=String(x.licenseKey||'').trim().toUpperCase(),device=String(x.deviceId||'').trim();if(!k||!device||device.length>128)fail('LICENSE_AND_DEVICE_REQUIRED');const l=await first(e,"SELECT l.*,s.plan_id,s.daily_lead_limit,u.email FROM licenses l JOIN subscriptions s ON s.id=l.subscription_id JOIN users u ON u.id=l.user_id WHERE l.license_key=? AND l.status='active' AND s.status='active' AND u.status='active' AND julianday(l.expires_at)>julianday('now') AND julianday(s.expires_at)>julianday('now')",k);if(!l)fail('INVALID_LICENSE',401);if(x.email&&email(x.email)!==email(l.email))fail('LICENSE_EMAIL_MISMATCH',403);let d=await first(e,'SELECT id,status FROM devices WHERE license_id=? AND device_uid=?',l.id,device);if(d?.status==='blocked')fail('DEVICE_BLOCKED',403);if(!d){try{await run(e,"INSERT INTO devices(user_id,license_id,device_uid,os,browser,last_ip,status) VALUES(?,?,?,?,?,?,'trusted')",l.user_id,l.id,device,String(x.os||'').slice(0,100),String(x.browser||'').slice(0,100),r.headers.get('cf-connecting-ip'))}catch(err){d=await first(e,'SELECT status FROM devices WHERE license_id=? AND device_uid=?',l.id,device);if(!d)fail('DEVICE_LIMIT_REACHED',403);if(d.status==='blocked')fail('DEVICE_BLOCKED',403)}}return l}
+async function activation(r,e,x,u){const s=await settings(e),p=plan(s,x.planId);const ref=String(x.referralCode||'').trim().toUpperCase();if(ref&&!await first(e,"SELECT id FROM payments WHERE user_id=? AND status='confirmed'",u.id)){await run(e,"INSERT OR IGNORE INTO referrals(affiliate_id,referred_user_id) SELECT id,? FROM affiliates WHERE referral_code=? AND status='active' AND lower(email)!=?",u.id,ref,u.email)}let old=await first(e,"SELECT a.request_ref,a.payment_ref,a.plan_id,p.amount_cents FROM activation_requests a JOIN payments p ON p.payment_ref=a.payment_ref WHERE a.user_id=? AND a.plan_id=? AND a.status='pending' AND p.status='pending' ORDER BY a.id DESC LIMIT 1",u.id,p.id);if(!old){await e.DB.batch([sql(e,"UPDATE activation_requests SET status='cancelled',updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND status='pending'",u.id),sql(e,"UPDATE payments SET status='cancelled',updated_at=CURRENT_TIMESTAMP WHERE user_id=? AND status='pending' AND payment_ref IN (SELECT payment_ref FROM activation_requests WHERE user_id=?)",u.id,u.id)]);const ar=key('ACT'),pay=key('PAY');await e.DB.batch([sql(e,"INSERT INTO payments(payment_ref,user_id,method,amount_cents,payment_type,status) VALUES(?,?,'MANUAL_WHATSAPP',?,'first_purchase','pending')",pay,u.id,Math.round(p.price*100)),sql(e,"INSERT INTO activation_requests(request_ref,user_id,plan_id,payment_ref) VALUES(?,?,?,?)",ar,u.id,p.id,pay)]);old={request_ref:ar,payment_ref:pay,plan_id:p.id,amount_cents:Math.round(p.price*100)}}const msg=['مرحبًا، أريد تفعيل Maps Hunter Pro.','رقم الطلب: '+old.request_ref,'البريد: '+u.email,'الخطة: '+old.plan_id,'السعر: $'+(old.amount_cents/100)].join('\n');return json({ok:true,requestRef:old.request_ref,paymentRef:old.payment_ref,planId:old.plan_id,amount:old.amount_cents/100,whatsappUrl:'https://wa.me/218931650822?text='+encodeURIComponent(msg)},201)}
+async function dispatch(r,e){const url=new URL(r.url),p=url.pathname,m=r.method;if(m==='OPTIONS')return new Response(null,{status:204,headers:HEADERS});if(p==='/api/health')return json({ok:true,version:'5.0.0-reliability',database:(await first(e,'SELECT 1 ok')).ok===1?'connected':'error'});if(p==='/api/plans') {const s=await settings(e);return json({ok:true,plans:['monthly','annual'].map(id=>plan(s,id)),affiliate:{firstPurchasePercent:s.affiliate_first_purchase_percent,renewalPercent:s.affiliate_renewal_percent}})}
+if(['/api/auth/register','/api/auth/login','/api/admin/login','/api/codes/redeem'].includes(p)&&m==='POST')await rateLimit(r,e,p);
+if(p==='/api/admin/login'&&m==='POST'){const x=await body(r);if(!e.ADMIN_TOKEN||x.username!==(e.ADMIN_USERNAME||'anasbm')||await hash(String(x.password||''))!==await hash(e.ADMIN_TOKEN))fail('INVALID_ADMIN_CREDENTIALS',401);const t=random(32);await run(e,"INSERT INTO admin_sessions(token_hash,expires_at) VALUES(?,datetime('now','+12 hours'))",await hash(t));return json({ok:true,token:t})}
+if(['/api/auth/login','/api/auth/register'].includes(p)&&m==='POST'){const x=await body(r),em=email(x.email),pw=String(x.password||'');if(!validEmail(em)||pw.length<8||pw.length>256)fail('INVALID_INPUT');let u=await first(e,'SELECT id,email,name,status,password_hash,password_salt FROM users WHERE email=?',em);if(p.endsWith('/register')){if(u)fail('ACCOUNT_EXISTS',409);const name=String(x.name||'').trim().slice(0,120);if(!name)fail('NAME_REQUIRED');const salt=random(16);try{await run(e,'INSERT INTO users(email,name,locale,password_hash,password_salt) VALUES(?,?,?,?,?)',em,name,['en','ar','ru','de','es'].includes(x.locale)?x.locale:'en',await passwordHash(pw,salt),salt)}catch(err){if(await first(e,'SELECT id FROM users WHERE email=?',em))fail('ACCOUNT_EXISTS',409);throw err}u=await first(e,'SELECT id,email,name,status FROM users WHERE email=?',em);await run(e,'INSERT OR IGNORE INTO acquisition(user_id,source,campaign) VALUES(?,?,?)',u.id,String(x.source||'direct').slice(0,120),String(x.campaign||'').slice(0,120))}else if(!u||u.status!=='active'||!u.password_hash||await passwordHash(pw,u.password_salt)!==u.password_hash)fail('INVALID_CREDENTIALS',401);const t=random(32);await run(e,"INSERT INTO auth_sessions(user_id,token_hash,expires_at) VALUES(?,?,datetime('now','+30 days'))",u.id,await hash(t));return json({ok:true,token:t,user:{id:u.id,email:u.email,name:u.name}},p.endsWith('/register')?201:200)}
+if(p==='/api/auth/logout'&&m==='POST'){const a=(r.headers.get('authorization')||'').replace(/^Bearer /,'');await run(e,'DELETE FROM auth_sessions WHERE token_hash=?',await hash(a));return json({ok:true})}
+if(p==='/api/account/me'&&m==='GET'){const u=await session(r,e);return json({ok:true,user:u,subscription:await first(e,'SELECT * FROM subscriptions WHERE user_id=? ORDER BY id DESC LIMIT 1',u.id),license:await first(e,'SELECT license_key,status,device_limit,expires_at FROM licenses WHERE user_id=? ORDER BY id DESC LIMIT 1',u.id)})}
+if(p==='/api/activation/request'&&m==='POST')return activation(r,e,await body(r),await session(r,e));
+if(p==='/api/codes/redeem'&&m==='POST'){const u=await session(r,e),x=await body(r),c=String(x.code||'').trim().toUpperCase();const z=await first(e,'SELECT * FROM activation_codes WHERE code=?',c);if(!z)fail('CODE_NOT_FOUND',404);if(z.status==='redeemed')fail('CODE_ALREADY_USED',409);if(z.status!=='unused')fail('CODE_NOT_AVAILABLE',409);if(z.expires_at&&Date.parse(z.expires_at)<=Date.now())fail('CODE_EXPIRED',410);return json({ok:true,planId:z.plan_id,...await grant(e,'code',c,u.id,z.plan_id)})}
+if(['/api/license/validate','/api/usage/consume'].includes(p)&&m==='POST'){const x=await body(r),l=await license(r,e,x);if(p.endsWith('/consume')){const id=String(x.requestId||''),amount=Number(x.amount||1);if(id.length<8||id.length>128||!Number.isInteger(amount)||amount<1||amount>100)fail('INVALID_USAGE');const prior=await first(e,'SELECT user_id,license_id,amount FROM usage_events WHERE request_id=?',id);if(prior&&(prior.user_id!==l.user_id||prior.license_id!==l.id||prior.amount!==amount))fail('REQUEST_ID_CONFLICT',409);if(!prior)await run(e,'INSERT INTO usage_events(request_id,user_id,license_id,usage_date,amount) VALUES(?,?,?,date(\'now\'),?)',id,l.user_id,l.id,amount)}const used=await first(e,"SELECT leads_processed FROM usage_daily WHERE user_id=? AND usage_date=date('now')",l.user_id);return json({ok:true,valid:true,license:{key:l.license_key,planId:l.plan_id,dailyLeadLimit:l.daily_lead_limit,deviceLimit:l.device_limit,expiresAt:l.expires_at,email:l.email},usedToday:used?.leads_processed||0})}
+if(p==='/api/affiliate/register'&&m==='POST'){const u=await session(r,e),s=await settings(e);await run(e,"INSERT OR IGNORE INTO affiliates(email,name,referral_code,status,first_purchase_percent,renewal_percent) VALUES(?,?,?,'active',?,?)",u.email,u.name,key('AF'),s.affiliate_first_purchase_percent,s.affiliate_renewal_percent);return json({ok:true,affiliate:await first(e,'SELECT referral_code,status,first_purchase_percent,renewal_percent FROM affiliates WHERE email=?',u.email)})}
+if(p.startsWith('/api/admin/')){await session(r,e,true);return admin(r,e,url)}fail('NOT_FOUND',404)}
+async function admin(r,e,url){const p=url.pathname,m=r.method;const limit=Math.min(100,Math.max(1,Number(url.searchParams.get('limit'))||50)),offset=Math.max(0,Number(url.searchParams.get('offset'))||0),q='%'+String(url.searchParams.get('q')||'').slice(0,120)+'%';
+if(p==='/api/admin/logout'&&m==='POST'){await run(e,'DELETE FROM admin_sessions WHERE token_hash=?',await hash((r.headers.get('authorization')||'').slice(7)));return json({ok:true})}
+if(p==='/api/admin/summary'){const count=async(q)=>Number((await first(e,q)).c||0);const active="status='active' AND julianday(expires_at)>julianday('now')";const s={users:await count('SELECT count(*) c FROM users'),activeUsers:await count("SELECT count(*) c FROM users WHERE status='active'"),pendingActivations:await count("SELECT count(*) c FROM activation_requests WHERE status='pending'"),activeSubscriptions:await count('SELECT count(*) c FROM subscriptions WHERE '+active),activeLicenses:await count('SELECT count(*) c FROM licenses WHERE '+active),unusedCodes:await count("SELECT count(*) c FROM activation_codes WHERE status='unused' AND (expires_at IS NULL OR julianday(expires_at)>julianday('now'))"),monthlyRevenue:await count("SELECT coalesce(sum(amount_cents),0) c FROM payments WHERE status='confirmed' AND strftime('%Y-%m',confirmed_at)=strftime('%Y-%m','now')")/100,leadsToday:await count("SELECT coalesce(sum(leads_processed),0) c FROM usage_daily WHERE usage_date=date('now')"),pendingPayments:await count("SELECT count(*) c FROM payments WHERE status='pending'"),activeAffiliates:await count("SELECT count(*) c FROM affiliates WHERE status='active'"),expiringSoon:await count("SELECT count(*) c FROM subscriptions WHERE status='active' AND julianday(expires_at)>julianday('now') AND julianday(expires_at)<=julianday('now','+3 days')")};return json({ok:true,summary:s})}
+if(p==='/api/admin/settings'){if(m==='PATCH'){const x=await body(r),ranges={monthly_price_usd:[1,10000],annual_price_usd:[1,100000],monthly_daily_limit:[1,1000000],allowed_devices:[1,10],affiliate_first_purchase_percent:[0,100],affiliate_renewal_percent:[0,100]};const ops=[];for(const [k,v]of Object.entries(x)){if(!(k in ranges))continue;const n=Number(v),[lo,hi]=ranges[k];if(!Number.isFinite(n)||n<lo||n>hi||(!k.includes('price')&&!Number.isInteger(n)))fail('INVALID_SETTING');ops.push(sql(e,'INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=CURRENT_TIMESTAMP',k,String(n)))}if(ops.length)await e.DB.batch(ops)}return json({ok:true,settings:await rows(e,'SELECT key,value FROM settings')})}
+if(p==='/api/admin/codes/generate'&&m==='POST'){const x=await body(r),s=await settings(e);plan(s,x.planId);const n=Number(x.quantity||1);if(!Number.isInteger(n)||n<1||n>100)fail('INVALID_QUANTITY');let exp=null;if(x.expiresAt){if(!Number.isFinite(Date.parse(x.expiresAt))||Date.parse(x.expiresAt)<=Date.now())fail('INVALID_EXPIRY');exp=new Date(x.expiresAt).toISOString()}const codes=Array.from({length:n},()=>key('MHP-'+(x.planId==='annual'?'Y':'M')));await e.DB.batch(codes.map(c=>sql(e,'INSERT INTO activation_codes(code,plan_id,note,purchaser_email,expires_at) VALUES(?,?,?,?,?)',c,x.planId,String(x.note||'').slice(0,500)||null,email(x.purchaserEmail)||null,exp)));return json({ok:true,codes,planId:x.planId},201)}
+if(p==='/api/admin/licenses'&&m==='POST'){const x=await body(r),s=await settings(e),p0=plan(s,x.planId),em=email(x.email),u=await first(e,'SELECT id,email FROM users WHERE email=? AND status=\'active\'',em);if(!u)fail('CUSTOMER_ACCOUNT_REQUIRED',409);const source=key('MHP-A');await run(e,'INSERT INTO activation_codes(code,plan_id,note,purchaser_email) VALUES(?,?,?,?)',source,p0.id,'Direct admin activation',em);const result=await grant(e,'code',source,u.id,p0.id);const deviceLimit=Math.min(10,Math.max(1,Number(x.deviceLimit)||s.allowed_devices));await run(e,'UPDATE licenses SET device_limit=? WHERE license_key=?',deviceLimit,result.licenseKey);return json({ok:true,license:{licenseKey:result.licenseKey,email:em,planId:p0.id,expiresAt:result.expiresAt,deviceLimit}},201)}
+let a=p.match(/^\/api\/admin\/activation-requests\/([^/]+)\/activate$/);if(a&&m==='POST'){const z=await first(e,'SELECT * FROM activation_requests WHERE request_ref=?',decodeURIComponent(a[1]));if(!z)fail('NOT_FOUND',404);if(z.status==='approved')return json({ok:true,already:true});return json({ok:true,...await grant(e,'payment',z.payment_ref,z.user_id,z.plan_id)})}
+a=p.match(/^\/api\/admin\/payments\/([^/]+)\/confirm$/);if(a&&m==='POST'){const z=await first(e,'SELECT * FROM activation_requests WHERE payment_ref=?',decodeURIComponent(a[1]));if(!z)fail('ACTIVATION_REQUEST_REQUIRED',409);if(z.status==='approved')return json({ok:true,already:true});return json({ok:true,...await grant(e,'payment',z.payment_ref,z.user_id,z.plan_id)})}
+a=p.match(/^\/api\/admin\/codes\/([^/]+)\/revoke$/);if(a&&m==='POST'){const z=await run(e,"UPDATE activation_codes SET status='revoked' WHERE code=? AND status='unused'",decodeURIComponent(a[1]));return json({ok:true,changed:z.meta.changes})}
+a=p.match(/^\/api\/admin\/licenses\/([^/]+)\/revoke$/);if(a&&m==='POST'){const z=await run(e,"UPDATE licenses SET status='revoked',updated_at=CURRENT_TIMESTAMP WHERE license_key=?",decodeURIComponent(a[1]));return json({ok:true,changed:z.meta.changes})}
+a=p.match(/^\/api\/admin\/devices\/(\d+)\/block$/);if(a&&m==='POST'){await run(e,"UPDATE devices SET status='blocked' WHERE id=?",Number(a[1]));return json({ok:true})}
+const lists={
+users:['users',"SELECT u.id,u.email,u.name,u.status,u.created_at,s.plan_id,s.status subscription_status,s.expires_at,(SELECT count(*) FROM devices d WHERE d.user_id=u.id) devices FROM users u LEFT JOIN subscriptions s ON s.id=(SELECT id FROM subscriptions WHERE user_id=u.id ORDER BY id DESC LIMIT 1) WHERE u.email LIKE ? ORDER BY u.id DESC"],
+'activation-requests':['requests','SELECT ar.*,u.email,u.name FROM activation_requests ar JOIN users u ON u.id=ar.user_id WHERE u.email LIKE ? OR ar.request_ref LIKE ? ORDER BY ar.id DESC'],
+subscriptions:['subscriptions','SELECT s.*,u.email FROM subscriptions s JOIN users u ON u.id=s.user_id WHERE u.email LIKE ? ORDER BY s.id DESC'],
+licenses:['licenses','SELECT l.*,u.email,s.plan_id FROM licenses l JOIN users u ON u.id=l.user_id LEFT JOIN subscriptions s ON s.id=l.subscription_id WHERE u.email LIKE ? OR l.license_key LIKE ? ORDER BY l.id DESC'],
+codes:['codes','SELECT ac.*,u.email redeemed_by_email FROM activation_codes ac LEFT JOIN users u ON u.id=ac.redeemed_by_user_id WHERE ac.code LIKE ? OR coalesce(u.email,\'\') LIKE ? ORDER BY ac.id DESC'],
+devices:['devices','SELECT d.*,u.email,l.license_key FROM devices d JOIN users u ON u.id=d.user_id JOIN licenses l ON l.id=d.license_id WHERE u.email LIKE ? ORDER BY d.id DESC'],
+payments:['payments','SELECT p.*,u.email FROM payments p JOIN users u ON u.id=p.user_id WHERE u.email LIKE ? OR p.payment_ref LIKE ? ORDER BY p.id DESC'],
+affiliates:['affiliates',"SELECT a.*,(SELECT count(*) FROM referrals r WHERE r.affiliate_id=a.id) referrals,(SELECT coalesce(sum(amount_cents),0) FROM commissions c WHERE c.affiliate_id=a.id AND status IN ('approved','paid')) commission_cents FROM affiliates a WHERE a.email LIKE ? ORDER BY a.id DESC"],
+payouts:['payouts','SELECT p.*,a.email FROM payouts p JOIN affiliates a ON a.id=p.affiliate_id WHERE a.email LIKE ? ORDER BY p.id DESC'],
+usage:['usage','SELECT d.*,u.email FROM usage_daily d JOIN users u ON u.id=d.user_id WHERE u.email LIKE ? ORDER BY d.usage_date DESC'],
+logs:['logs',"SELECT * FROM audit_logs WHERE coalesce(actor,'') LIKE ? ORDER BY id DESC"]};
+const spec=lists[p.split('/').pop()];if(spec&&m==='GET'){const [name,query]=spec,args=Array((query.match(/\?/g)||[]).length).fill(q),data=await rows(e,query+' LIMIT ? OFFSET ?',...args,limit+1,offset);return json({ok:true,[name]:data.slice(0,limit),hasMore:data.length>limit,offset,limit})}fail('NOT_FOUND',404)}
+export default {async fetch(r,e){try{return await dispatch(r,e)}catch(err){const message=String(err.message||err);const known=['CODE_NOT_AVAILABLE','PAYMENT_NOT_PENDING','ACCOUNT_INACTIVE','DAILY_LIMIT_REACHED','INVALID_LICENSE','DEVICE_LIMIT_REACHED'].find(x=>message.includes(x));return json({ok:false,error:err.status?message:known||'SERVER_ERROR'},err.status||(known?409:500))}}};
