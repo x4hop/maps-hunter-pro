@@ -1,21 +1,22 @@
 {
   "manifest_version": 3,
   "name": "Maps Hunter Pro",
-  "version": "8.0.9",
-  "description": "Direct Google Maps lead extractor with images, emails, websites, and social profiles.",
+  "version": "8.1.0",
+  "description": "User-initiated business research, local organization, optional website enrichment, and Excel/CSV/JSON export.",
   "permissions": [
     "activeTab",
     "downloads",
     "scripting",
     "sidePanel",
     "storage",
-    "unlimitedStorage",
-    "tabs"
+    "unlimitedStorage"
   ],
   "host_permissions": [
     "https://www.google.com/*",
     "https://maps.google.com/*",
-    "https://maps-hunter-pro-api.anas98gha.workers.dev/*",
+    "https://maps-hunter-pro-api.anas98gha.workers.dev/*"
+  ],
+  "optional_host_permissions": [
     "https://*/*"
   ],
   "background": {

@@ -11,7 +11,9 @@ const state = {
   queued: 0,
   processed: 0,
   maxWorkers: 6,
-  scanFirst: true
+  scanFirst: true,
+  enrichWebsites: false,
+  paused: false
 };
 
 let queue = [];
@@ -43,6 +45,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message?.type === "GET_LICENSE") return sendResponse(await MHPAccess.status());
       if (message?.type === "GET_STATE") return sendResponse({ ...state });
       if (message?.type === "START_SCAN") return sendResponse(await startScan(message));
+      if (message?.type === "RESUME_SCAN") return sendResponse(await resumeScan());
       if (message?.type === "STOP_SCAN") return sendResponse(await stopScan("Stopped by user."));
       if (message?.type === "SKIP_SCAN_CITY") return sendResponse(await skipScanCity());
       if (message?.type === "SKIP_CITY") return sendResponse(await skipCity());
@@ -105,6 +108,8 @@ async function startScan(message) {
   state.queued = 0;
   state.processed = 0;
   state.scanFirst = message.scanFirst !== false;
+  state.enrichWebsites = message.enrichWebsites === true;
+  state.paused = false;
   queue = [];
   queuedKeys = new Set();
   processedKeys = new Set();
@@ -124,7 +129,7 @@ async function openCitySearch() {
   collectorSessionId += 1;
   collectionDone = false;
   state.phase = "Collecting";
-  const cityQuery = buildCityQuery(state.keyword, city);
+  const cityQuery = buildCityQuery(state.keyword, city, state.searchCountry);
   state.status = state.scanFirst
     ? `Scanning ${state.keyword} in ${city} before extraction...`
     : `Searching ${state.keyword} in ${city}...`;
@@ -171,11 +176,13 @@ async function handleCollectorFailure(error, sessionId) {
 }
 
 
-function buildCityQuery(keyword, city) {
+function buildCityQuery(keyword, city, countryCode) {
   const safeKeyword = clean(keyword);
   const safeCity = clean(city);
   // Use "near" so Google Maps keeps the search tied to the selected city instead of broadening globally.
-  return `${safeKeyword} near ${safeCity}`;
+  const names={"218":"Libya","49":"Germany","962":"Jordan","968":"Oman","7":"Russia","34":"Spain","1":"United States","44":"United Kingdom","20":"Egypt","966":"Saudi Arabia","971":"United Arab Emirates"};
+  const country=names[clean(countryCode)]||"";
+  return `${safeKeyword} near ${safeCity}${country&&!safeCity.toLowerCase().includes(country.toLowerCase())?`, ${country}`:""}`;
 }
 
 async function maybeNextCity() {
@@ -252,20 +259,23 @@ async function processPlace(preview, workerRunId = scanRunId) {
 
     if (workerRunId !== scanRunId || !state.running) return;
     const lead = mergeLead(preview, details);
-    await MHPAccess.consume(preview.usageRequestId || (preview.usageRequestId = crypto.randomUUID()));
+    preview.usageRequestId ||= crypto.randomUUID();
+    inFlightItems.set(key,preview);
+    await persistRuntime();
+    await MHPAccess.consume(preview.usageRequestId);
     if (workerRunId !== scanRunId || !state.running) return;
     addLead(lead);
     processedKeys.add(key);
     state.status = `Saved ${state.leads.length}. Queue ${queue.length}.`;
 
-    if (lead.website) {
+    if (lead.website && state.enrichWebsites) {
       enrichLeadInBackground(lead, workerRunId);
     }
   } catch (error) {
-    if (error.accessError && workerRunId === scanRunId) { await stopScan(error.message); return; }
+    if (error.accessError && workerRunId === scanRunId) { await pauseScan(error.message,preview); return; }
     if (workerRunId === scanRunId && state.running) {
-      try { await MHPAccess.consume(preview.usageRequestId || (preview.usageRequestId = crypto.randomUUID())); }
-      catch (access) { if (access.accessError) { await stopScan(access.message); return; } }
+      try {preview.usageRequestId ||= crypto.randomUUID();inFlightItems.set(key,preview);await persistRuntime();await MHPAccess.consume(preview.usageRequestId);}
+      catch (access) { if (access.accessError) { await pauseScan(access.message,preview); return; } }
       addLead(preview);
       processedKeys.add(key);
       state.status = `Saved preview after detail error. Queue ${queue.length}.`;
@@ -471,7 +481,7 @@ function extractGoogleMapsPlace() {
 
 async function enrichFromWebsite(website) {
   website = clean(website);
-  if (!/^https?:\/\//i.test(website)) return {};
+  if (!safePublicUrl(website)) return {};
 
   const pages = [website];
   try {
@@ -490,23 +500,28 @@ async function enrichFromWebsite(website) {
 }
 
 async function fetchText(url, timeoutMs = 3500) {
+  if(!safePublicUrl(url))return "";
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, {
-      redirect: "follow",
+      redirect: "manual",
       signal: controller.signal,
       headers: { "Accept": "text/html,application/xhtml+xml,text/plain;q=0.8,*/*;q=0.3" }
     });
     const type = String(res.headers.get("content-type") || "");
-    if (!res.ok || !/html|text|xml|json/i.test(type)) return "";
-    return (await res.text()).slice(0, 260000);
+    if(res.status>=300&&res.status<400){const next=res.headers.get("location");if(!next)return "";const redirected=new URL(next,url).href;return safePublicUrl(redirected)?fetchText(redirected,timeoutMs):"";}
+    const declared=Number(res.headers.get("content-length")||0);
+    if (!res.ok || declared>300000 || !/html|text|xml|json/i.test(type)) return "";
+    const reader=res.body?.getReader();if(!reader)return "";let total=0,out="";const decoder=new TextDecoder();while(true){const {done,value}=await reader.read();if(done)break;total+=value.byteLength;if(total>300000){await reader.cancel();return "";}out+=decoder.decode(value,{stream:true});}return out+decoder.decode();
   } catch (e) {
     return "";
   } finally {
     clearTimeout(timer);
   }
 }
+
+function safePublicUrl(value){try{const u=new URL(value);if(u.protocol!=="https:")return false;const h=u.hostname.toLowerCase();if(h==="localhost"||h.endsWith(".local")||h==="0.0.0.0"||h==="127.0.0.1"||h==="::1")return false;if(/^(10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h))return false;return true;}catch{return false;}}
 
 function extractWebsiteSignals(html) {
   const text = String(html || "")
@@ -550,9 +565,13 @@ function addLead(raw) {
 }
 
 function normalizeLead(lead) {
+  const rawPhone=clean(lead?.phoneRaw||lead?.phone);
+  const phone=clean(lead?.phone);
   return {
     name: clean(lead?.name),
-    phone: clean(lead?.phone),
+    phone,
+    phoneRaw: rawPhone,
+    phoneStatus: phone?/\d{7,16}/.test(phone.replace(/[^\d]/g,''))?'plausible':'unverified':'missing',
     address: clean(lead?.address),
     website: clean(lead?.website),
     imageUrl: clean(lead?.imageUrl),
@@ -612,6 +631,25 @@ async function stopScan(status = "Stopped.", silent = false) {
     await broadcast();
   }
   return { ok: true };
+}
+
+async function pauseScan(status, currentItem) {
+  state.running=false;
+  state.paused=true;
+  state.phase="Paused";
+  state.status=`${status} Work is saved; retry when access is available.`;
+  if(currentItem){const key=currentItem.mapsUrl||`${currentItem.name}|${currentItem.address}`;if(!processedKeys.has(key)&&!queue.some(x=>(x.mapsUrl||`${x.name}|${x.address}`)===key))queue.unshift(currentItem);}
+  for(const tabId of Array.from(workerTabs)){try{await chromeTabsRemove(tabId);}catch(e){}}
+  workerTabs.clear();
+  await persistRuntime();
+  await broadcast(true);
+}
+
+async function resumeScan(){
+  if(!state.paused)return {ok:false,error:"No paused search."};
+  await MHPAccess.validate();
+  state.paused=false;state.running=true;state.phase="Extracting";state.status=`Resuming ${queue.length} saved places...`;
+  await persistRuntime();await broadcast(true);runWorkers();return {ok:true};
 }
 
 async function skipScanCity() {

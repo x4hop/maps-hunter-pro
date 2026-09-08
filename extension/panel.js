@@ -75,6 +75,7 @@ function openExportPage(action) {
 }
 
 async function start() {
+  if(exportState.paused){const resumed=await send({type:"RESUME_SCAN"});if(!resumed?.ok)toast(resumed?.error||"Could not resume search.");return;}
   const keyword = document.getElementById("keyword").value.trim();
   const cities = getCities();
 
@@ -85,7 +86,9 @@ async function start() {
   const maxWorkers = Number(document.getElementById("workerCount")?.value || 6);
   const scanFirst = document.getElementById("scanFirst")?.checked !== false;
   const searchCountry=document.getElementById("searchCountry").value;
-  const res = await send({ type: "START_SCAN", keyword, cities, maxWorkers, scanFirst, searchCountry });
+  const enrichWebsites=document.getElementById("enrichWebsites")?.checked===true;
+  if(enrichWebsites){const granted=await chrome.permissions.request({origins:["https://*/*"]});if(!granted)return toast("Website enrichment permission was declined. Turn it off to continue with Maps data only.");}
+  const res = await send({ type: "START_SCAN", keyword, cities, maxWorkers, scanFirst, searchCountry, enrichWebsites });
   if (!res?.ok) {
     setBusy(false);
     toast(res?.error || "Could not start search.");
@@ -201,6 +204,7 @@ function renderState(state) {
   const pct = queued > 0 ? Math.min(100, Math.round((processed / queued) * 100)) : (state.running ? 15 : 0);
   document.getElementById("progressBar").style.width = `${pct}%`;
   setBusy(Boolean(state.running));
+  const startButton=document.getElementById("startBtn");if(startButton)startButton.textContent=state.paused?"Resume Search":"Start Search";
   renderTable();
 }
 

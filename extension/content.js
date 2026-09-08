@@ -122,6 +122,7 @@ function normalizeMapsUrl(url) {
     const u = new URL(url, location.href);
     if (!/\/maps\/place\//.test(u.href) && !/google\.[^/]+\/maps\/place/.test(u.href)) return "";
     u.hash = "";
+    u.search = "";
     return u.href;
   } catch (e) {
     return "";
