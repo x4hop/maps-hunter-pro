@@ -2,6 +2,13 @@
 
 Last updated: 2026-09-08
 
+## 8.1.3 compact no-scroll interface — 2026-09-08
+
+- Replaced the multi-card layout with a single-screen interface that does not require page scrolling.
+- Bundled real Tajawal font files for Arabic and Latin instead of silently falling back to Arial.
+- Kept the centered live lead orbit, compact metrics, and extraction controls in one view.
+- Reduced password hashing cost to a Worker-compatible PBKDF2 setting while storing per-account iterations for backward compatibility.
+
 ## 8.1.2 live progress and account repair — 2026-09-08
 
 - Removed the Search Country control; city text is again the only search location input.

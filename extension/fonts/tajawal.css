@@ -1,2 +1,8 @@
-/* Tajawal font-family hook. Install Tajawal locally or replace this file with your licensed font package before publishing. */
-:root{--font-main:Tajawal,Arial,sans-serif;}
+@font-face{font-family:Tajawal;font-style:normal;font-weight:400;font-display:swap;src:url("files/tajawal-arabic-400-normal.woff2") format("woff2");unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFC}
+@font-face{font-family:Tajawal;font-style:normal;font-weight:400;font-display:swap;src:url("files/tajawal-latin-400-normal.woff2") format("woff2");unicode-range:U+0000-00FF,U+2000-206F}
+@font-face{font-family:Tajawal;font-style:normal;font-weight:500;font-display:swap;src:url("files/tajawal-arabic-500-normal.woff2") format("woff2");unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFC}
+@font-face{font-family:Tajawal;font-style:normal;font-weight:500;font-display:swap;src:url("files/tajawal-latin-500-normal.woff2") format("woff2");unicode-range:U+0000-00FF,U+2000-206F}
+@font-face{font-family:Tajawal;font-style:normal;font-weight:700;font-display:swap;src:url("files/tajawal-arabic-700-normal.woff2") format("woff2");unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFC}
+@font-face{font-family:Tajawal;font-style:normal;font-weight:700;font-display:swap;src:url("files/tajawal-latin-700-normal.woff2") format("woff2");unicode-range:U+0000-00FF,U+2000-206F}
+@font-face{font-family:Tajawal;font-style:normal;font-weight:800;font-display:swap;src:url("files/tajawal-arabic-800-normal.woff2") format("woff2");unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFC}
+@font-face{font-family:Tajawal;font-style:normal;font-weight:800;font-display:swap;src:url("files/tajawal-latin-800-normal.woff2") format("woff2");unicode-range:U+0000-00FF,U+2000-206F}
