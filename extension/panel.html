@@ -38,7 +38,6 @@
         <section class="section-card location-card">
           <div class="section-heading"><div><small>02</small><span><strong>Choose target locations</strong><em>Add one city or paste a full list.</em></span></div></div>
           <label class="field"><span>Target cities</span><div id="cityTagsBox" class="tag-box"><input id="cityInput" type="text" placeholder="Type a city and press Enter"></div></label>
-          <label class="select-field"><span>Search country</span><select id="searchCountry"><option value="">Detect from address</option><option value="218">Libya</option><option value="49">Germany</option><option value="962">Jordan</option><option value="968">Oman</option><option value="7">Russia</option><option value="34">Spain</option><option value="1">US / Canada</option><option value="44">United Kingdom</option><option value="20">Egypt</option><option value="966">Saudi Arabia</option><option value="971">UAE</option></select></label>
         </section>
 
         <section class="section-card launch-card">
@@ -54,7 +53,13 @@
 
     <section class="page" id="activityPage">
       <div class="page-scroll">
-        <section class="hero-metric section-card"><span>Collected leads</span><strong id="leadCount">0</strong><em>Live total for this workspace</em></section>
+        <section class="activity-stage section-card">
+          <div class="lead-orbit" aria-label="Live lead counter">
+            <i class="orbit-ring"></i><i class="orbit-dot"></i>
+            <div><span>LEADS</span><strong id="leadCount">0</strong><em>collected</em></div>
+          </div>
+          <p id="activityCaption">Preparing your search…</p>
+        </section>
         <section class="metric-grid">
           <div><span>Phones</span><b id="phoneCount">0</b><i></i></div><div><span>Emails</span><b id="emailCount">0</b><i></i></div>
           <div><span>Social profiles</span><b id="socialCount">0</b><i></i></div><div><span>Worker tabs</span><b id="tabsText">6</b><i></i></div>

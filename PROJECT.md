@@ -2,6 +2,13 @@
 
 Last updated: 2026-09-08
 
+## 8.1.2 live progress and account repair — 2026-09-08
+
+- Removed the Search Country control; city text is again the only search location input.
+- Start Search now opens a centered animated lead counter and updates the real lead count live.
+- Deferred the heavy results-table redraw until the Results tab is opened, reducing UI work during extraction.
+- Added a backward-compatible credentials table and automatic auth schema repair after live registration returned HTTP 500.
+
 ## 8.1.1 interface redesign — 2026-09-08
 
 - Rebuilt the Chrome side panel without changing the extraction engine or brand colors.

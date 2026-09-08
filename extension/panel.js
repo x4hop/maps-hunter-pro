@@ -2,6 +2,7 @@ let leads = [];
 let toastTimer = null;
 let cityTags = [];
 let exportState = {};
+let resultsDirty = true;
 
 const fields = [
   ["name", "Name"],
@@ -58,6 +59,10 @@ function bindTabs() {
 function openPage(pageId) {
   document.querySelectorAll(".tab[data-page]").forEach(item => item.classList.toggle("active", item.dataset.page === pageId));
   document.querySelectorAll(".page").forEach(page => page.classList.toggle("active", page.id === pageId));
+  if (pageId === "resultsPage" && resultsDirty) {
+    renderTable();
+    resultsDirty = false;
+  }
 }
 
 function bind() {
@@ -91,14 +96,17 @@ async function start() {
   if (!cities.length) return toast("Add at least one city.");
 
   setBusy(true);
+  document.body.classList.add("is-running");
+  openPage("activityPage");
   const maxWorkers = Number(document.getElementById("workerCount")?.value || 6);
   const scanFirst = document.getElementById("scanFirst")?.checked !== false;
-  const searchCountry=document.getElementById("searchCountry").value;
   const enrichWebsites=document.getElementById("enrichWebsites")?.checked===true;
-  if(enrichWebsites){const granted=await chrome.permissions.request({origins:["https://*/*"]});if(!granted)return toast("Website enrichment permission was declined. Turn it off to continue with Maps data only.");}
-  const res = await send({ type: "START_SCAN", keyword, cities, maxWorkers, scanFirst, searchCountry, enrichWebsites });
+  if(enrichWebsites){const granted=await chrome.permissions.request({origins:["https://*/*"]});if(!granted){setBusy(false);document.body.classList.remove("is-running");openPage("searchPage");return toast("Website enrichment permission was declined. Turn it off to continue with Maps data only.");}}
+  const res = await send({ type: "START_SCAN", keyword, cities, maxWorkers, scanFirst, enrichWebsites });
   if (!res?.ok) {
     setBusy(false);
+    document.body.classList.remove("is-running");
+    openPage("searchPage");
     toast(res?.error || "Could not start search.");
   }
 }
@@ -184,6 +192,7 @@ function renderCityTags() {
 function renderState(state) {
   exportState = state || exportState;
   leads = Array.isArray(state.leads) ? state.leads : leads;
+  resultsDirty = true;
   document.getElementById("phaseText").textContent = state.phase || "Ready";
   document.getElementById("statusText").textContent = state.status || "Ready";
 
@@ -211,9 +220,15 @@ function renderState(state) {
   document.getElementById("tabsText").textContent = String(state.maxWorkers || document.getElementById("workerCount")?.value || 3);
   const pct = queued > 0 ? Math.min(100, Math.round((processed / queued) * 100)) : (state.running ? 15 : 0);
   document.getElementById("progressBar").style.width = `${pct}%`;
+  document.body.classList.toggle("is-running", Boolean(state.running));
+  const activityCaption = document.getElementById("activityCaption");
+  if (activityCaption) activityCaption.textContent = state.running ? `${processed} of ${queued || "…"} places processed` : state.paused ? "Search paused — your queue is safe." : total ? "Search complete. Your results are ready." : "Ready for your next search.";
   setBusy(Boolean(state.running));
   const startButton=document.getElementById("startBtn");if(startButton){const label=startButton.querySelector("span");if(label)label.textContent=state.paused?"Resume Search":"Start Search";else startButton.textContent=state.paused?"Resume Search":"Start Search";}
-  renderTable();
+  if (document.getElementById("resultsPage")?.classList.contains("active")) {
+    renderTable();
+    resultsDirty = false;
+  }
 }
 
 function renderTable() {
