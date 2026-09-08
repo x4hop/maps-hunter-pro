@@ -2,6 +2,13 @@
 
 Last updated: 2026-09-08
 
+## 8.1.1 interface redesign — 2026-09-08
+
+- Rebuilt the Chrome side panel without changing the extraction engine or brand colors.
+- Added four clear workspaces: Search, Activity, Results, and Settings.
+- Moved license controls into Settings and added a dedicated live activity dashboard.
+- Improved visual hierarchy, compact-screen scrolling, focus states, actions, exports, and future expansion space.
+
 ## 1. Purpose
 Maps Hunter Pro is a Chrome extension and web system for discovering, organizing, and exporting business leads from Google Maps. The website is the commercial entry point for pricing, renewals, affiliate onboarding, and license/account management.
 

@@ -50,6 +50,14 @@ function bindTabs() {
       document.querySelectorAll(".page").forEach(page => page.classList.toggle("active", page.id === pageId));
     });
   });
+  document.querySelectorAll("[data-open-page]").forEach(button => {
+    button.addEventListener("click", () => openPage(button.dataset.openPage));
+  });
+}
+
+function openPage(pageId) {
+  document.querySelectorAll(".tab[data-page]").forEach(item => item.classList.toggle("active", item.dataset.page === pageId));
+  document.querySelectorAll(".page").forEach(page => page.classList.toggle("active", page.id === pageId));
 }
 
 function bind() {
@@ -204,7 +212,7 @@ function renderState(state) {
   const pct = queued > 0 ? Math.min(100, Math.round((processed / queued) * 100)) : (state.running ? 15 : 0);
   document.getElementById("progressBar").style.width = `${pct}%`;
   setBusy(Boolean(state.running));
-  const startButton=document.getElementById("startBtn");if(startButton)startButton.textContent=state.paused?"Resume Search":"Start Search";
+  const startButton=document.getElementById("startBtn");if(startButton){const label=startButton.querySelector("span");if(label)label.textContent=state.paused?"Resume Search":"Start Search";else startButton.textContent=state.paused?"Resume Search":"Start Search";}
   renderTable();
 }
 

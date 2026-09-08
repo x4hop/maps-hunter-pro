@@ -6,143 +6,98 @@
   <title>Maps Hunter Pro</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body><div style="padding:10px;background:#f6eadb"><label>License <input id="licenseKey" placeholder="MHP-…" autocomplete="off"></label><button id="saveLicense" type="button">Activate</button><a href="https://maps-hunter-pro-preview.anas98gha.workers.dev/#account" target="_blank">My account</a></div>
+<body>
   <main class="app">
-    <header class="topbar">
-      <div class="header-mark" aria-label="Extension panel">
+    <header class="brandbar">
+      <div class="brand">
         <img src="icons/icon128.png" alt="">
+        <div><strong>Maps Hunter <em>Pro</em></strong><span>Lead extraction workspace</span></div>
       </div>
-      <nav class="tabs" aria-label="Panel pages">
-        <button class="tab active" data-page="searchPage" type="button">Search</button>
-        <button class="tab" data-page="resultsPage" type="button">Results <span id="tabLeadCount">0</span></button>
-        <button class="tab" data-page="settingsPage" type="button">Settings</button>
-      </nav>
+      <a class="account-link" href="https://maps-hunter-pro-preview.anas98gha.workers.dev/#account" target="_blank" aria-label="Open my account">Account</a>
     </header>
 
-    <section class="status-card compact-status">
-      <div class="status-line">
-        <span id="phaseText">Ready</span>
-        <b id="statusText">Enter a keyword and city, then start.</b>
-      </div>
+    <nav class="tabs" aria-label="Workspace sections">
+      <button class="tab active" data-page="searchPage" type="button"><i></i><span>Search</span></button>
+      <button class="tab" data-page="activityPage" type="button"><i></i><span>Activity</span></button>
+      <button class="tab" data-page="resultsPage" type="button"><i></i><span>Results</span><b id="tabLeadCount">0</b></button>
+      <button class="tab" data-page="settingsPage" type="button"><i></i><span>Settings</span></button>
+    </nav>
+
+    <section class="live-status" aria-live="polite">
+      <div class="status-copy"><span id="phaseText">Ready</span><b id="statusText">Enter a keyword and city, then start.</b></div>
       <div class="bar"><i id="progressBar"></i></div>
     </section>
 
     <section class="page active" id="searchPage">
-      <section class="search-panel card">
-        <label class="field wide">
-          <span>Search Keyword</span>
-          <textarea id="keyword" placeholder="restaurants, cafes, clinics"></textarea>
-        </label>
+      <div class="page-scroll">
+        <section class="section-card search-card">
+          <div class="section-heading"><div><small>01</small><span><strong>What are you looking for?</strong><em>Use a business type, service, or niche.</em></span></div></div>
+          <label class="field"><span>Search keyword</span><textarea id="keyword" placeholder="Example: restaurants, dental clinics, car dealers"></textarea></label>
+        </section>
 
-        <label class="field wide">
-          <span>Target Cities</span>
-          <div id="cityTagsBox" class="tag-box">
-            <input id="cityInput" type="text" placeholder="Type city then press Enter">
+        <section class="section-card location-card">
+          <div class="section-heading"><div><small>02</small><span><strong>Choose target locations</strong><em>Add one city or paste a full list.</em></span></div></div>
+          <label class="field"><span>Target cities</span><div id="cityTagsBox" class="tag-box"><input id="cityInput" type="text" placeholder="Type a city and press Enter"></div></label>
+          <label class="select-field"><span>Search country</span><select id="searchCountry"><option value="">Detect from address</option><option value="218">Libya</option><option value="49">Germany</option><option value="962">Jordan</option><option value="968">Oman</option><option value="7">Russia</option><option value="34">Spain</option><option value="1">US / Canada</option><option value="44">United Kingdom</option><option value="20">Egypt</option><option value="966">Saudi Arabia</option><option value="971">UAE</option></select></label>
+        </section>
+
+        <section class="section-card launch-card">
+          <div class="section-heading compact"><div><small>03</small><span><strong>Launch extraction</strong><em>Your current settings will be used.</em></span></div></div>
+          <button id="startBtn" class="primary launch-button" type="button"><span>Start Search</span><i>→</i></button>
+          <div class="action-grid">
+            <button id="skipScanBtn" class="secondary" type="button">Skip Scan</button><button id="skipCityBtn" class="secondary" type="button">Skip City</button>
+            <button id="stopBtn" class="dark" type="button">Stop</button><button id="clearBtn" class="danger" type="button">Clear Results</button>
           </div>
-        </label>
+        </section>
+      </div>
+    </section>
 
-        <div class="controls">
-          <label>Search country<select id="searchCountry"><option value="">Detect from address</option><option value="218">Libya</option><option value="49">Germany</option><option value="962">Jordan</option><option value="968">Oman</option><option value="7">Russia</option><option value="34">Spain</option><option value="1">US / Canada</option><option value="44">United Kingdom</option><option value="20">Egypt</option><option value="966">Saudi Arabia</option><option value="971">UAE</option></select></label><button id="startBtn" class="primary" type="button">Start Search</button>
-          <button id="skipScanBtn" type="button">Skip Scan</button>
-          <button id="skipCityBtn" type="button">Skip City</button>
-          <button id="stopBtn" type="button">Stop</button>
-          <button id="clearBtn" type="button">Clear</button>
-        </div>
-      </section>
-
-      <section class="status-grid">
-        <div><span>Leads</span><b id="leadCount">0</b></div>
-        <div><span>Phones</span><b id="phoneCount">0</b></div>
-        <div><span>Emails</span><b id="emailCount">0</b></div>
-        <div><span>Social</span><b id="socialCount">0</b></div>
-      </section>
-
-      <section class="scan-details">
-        <div><span>Current City</span><b id="currentCityText">-</b></div>
-        <div><span>Queued</span><b id="queuedText">0</b></div>
-        <div><span>Processed</span><b id="processedText">0</b></div>
-        <div><span>Tabs</span><b id="tabsText">3</b></div>
-      </section>
+    <section class="page" id="activityPage">
+      <div class="page-scroll">
+        <section class="hero-metric section-card"><span>Collected leads</span><strong id="leadCount">0</strong><em>Live total for this workspace</em></section>
+        <section class="metric-grid">
+          <div><span>Phones</span><b id="phoneCount">0</b><i></i></div><div><span>Emails</span><b id="emailCount">0</b><i></i></div>
+          <div><span>Social profiles</span><b id="socialCount">0</b><i></i></div><div><span>Worker tabs</span><b id="tabsText">6</b><i></i></div>
+        </section>
+        <section class="section-card activity-details">
+          <div class="section-heading"><div><small>LIVE</small><span><strong>Current activity</strong><em>Progress is saved automatically.</em></span></div></div>
+          <dl><div><dt>Current city</dt><dd id="currentCityText">-</dd></div><div><dt>Queued places</dt><dd id="queuedText">0</dd></div><div><dt>Processed places</dt><dd id="processedText">0</dd></div></dl>
+        </section>
+        <button class="wide-secondary" type="button" data-open-page="resultsPage">View collected results</button>
+      </div>
     </section>
 
     <section class="page" id="resultsPage">
-      <section class="table-card card">
-        <div class="table-head">
-          <strong>Results</strong>
-          <div class="export">
-            <button id="openSheetBtn" type="button">Results table</button>
-            <button id="csvBtn" type="button">CSV</button>
-            <button id="excelBtn" type="button">Excel</button>
-            <button id="jsonBtn" type="button">JSON</button>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Name</th>
-                <th>Phone</th>
-                <th>Address</th>
-                <th>Website</th>
-                <th>Image</th>
-                <th>Email</th>
-                <th>Facebook</th>
-                <th>Instagram</th>
-                <th>Social Links</th>
-                <th>Maps</th>
-              </tr>
-            </thead>
-            <tbody id="resultsBody">
-              <tr><td colspan="11" class="empty">No results yet</td></tr>
-            </tbody>
-          </table>
-        </div>
+      <section class="section-card table-card">
+        <div class="results-head"><div><strong>Collected results</strong><span>Review or export your lead list.</span></div><button id="openSheetBtn" class="sheet-button" type="button">Open table</button></div>
+        <div class="export-bar"><span>Export as</span><button id="csvBtn" type="button">CSV</button><button id="excelBtn" type="button">Excel</button><button id="jsonBtn" type="button">JSON</button></div>
+        <div class="table-wrap"><table><thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Address</th><th>Website</th><th>Image</th><th>Email</th><th>Facebook</th><th>Instagram</th><th>Social Links</th><th>Maps</th></tr></thead><tbody id="resultsBody"><tr><td colspan="11" class="empty">No results yet</td></tr></tbody></table></div>
       </section>
     </section>
 
     <section class="page" id="settingsPage">
-      <section class="settings-panel card">
-        <div class="settings-title">
-          <strong>Extraction Settings</strong>
-          <span>These settings control speed and scan behavior only.</span>
-        </div>
+      <div class="page-scroll settings-stack">
+        <section class="section-card">
+          <div class="section-heading"><div><small>KEY</small><span><strong>License & account</strong><em>Activate this installation.</em></span></div></div>
+          <div class="license-row"><label><span>License key</span><input id="licenseKey" placeholder="MHP-…" autocomplete="off"></label><button id="saveLicense" class="primary" type="button">Activate</button></div>
+          <a class="text-link" href="https://maps-hunter-pro-preview.anas98gha.workers.dev/#account" target="_blank">Manage subscription and devices →</a>
+        </section>
 
-        <label class="setting-card">
-          <div>
-            <strong>Background Tabs</strong>
-            <span>More tabs can be faster but heavier on Chrome.</span>
-          </div>
-          <select id="workerCount">
-            <option value="1">1 - Safe</option>
-            <option value="2">2 - Balanced</option>
-            <option value="3">3 - Fast</option>
-            <option value="4">4 - Turbo</option>
-            <option value="5">5 - Max</option>
-            <option value="6" selected>6 - Ultra</option>
-            <option value="8">8 - Extreme</option>
-          </select>
-        </label>
+        <section class="section-card">
+          <div class="section-heading"><div><small>SPD</small><span><strong>Performance</strong><em>Balance extraction speed and Chrome load.</em></span></div></div>
+          <label class="setting-row"><span><strong>Background tabs</strong><em>More tabs can be faster but use more memory.</em></span><select id="workerCount"><option value="1">1 · Safe</option><option value="2">2 · Balanced</option><option value="3">3 · Fast</option><option value="4">4 · Turbo</option><option value="5">5 · Max</option><option value="6" selected>6 · Ultra</option><option value="8">8 · Extreme</option></select></label>
+          <label class="setting-row toggle-setting"><span><strong>Scan links first</strong><em>Collect Maps links before opening details.</em></span><input id="scanFirst" type="checkbox" checked></label>
+        </section>
 
-        <label class="setting-card switch-card">
-          <div>
-            <strong>Scan links first</strong>
-            <span>Collect all Maps links before opening details tabs.</span>
-          </div>
-          <input id="scanFirst" type="checkbox" checked>
-        </label>
-        <label class="toggle-row">
-          <input id="enrichWebsites" type="checkbox">
-          <span><strong>Website enrichment</strong><small>Optional: visit business websites to find public emails and social links. Chrome will ask for permission.</small></span>
-        </label>
-        <p class="hint">Results and work queues stay on this device. The server receives only license, installation ID, request ID and usage count. <a href="https://maps-hunter-pro-preview.anas98gha.workers.dev/privacy.html" target="_blank">Privacy policy</a></p>
+        <section class="section-card">
+          <div class="section-heading"><div><small>WEB</small><span><strong>Data enrichment</strong><em>Find more public contact information.</em></span></div></div>
+          <label class="setting-row toggle-setting"><span><strong>Website enrichment</strong><em>Visit business websites for public emails and social links. Chrome asks once for permission.</em></span><input id="enrichWebsites" type="checkbox"></label>
+        </section>
 
-
-
-      </section>
+        <section class="privacy-note"><strong>Privacy by design</strong><p>Results and work queues stay on this device. The server receives license and usage data only.</p><a href="https://maps-hunter-pro-preview.anas98gha.workers.dev/privacy.html" target="_blank">Read privacy policy</a></section>
+      </div>
     </section>
   </main>
-
   <div id="toast" class="toast"></div>
   <script src="panel.js"></script>
 </body>
