@@ -22,5 +22,4 @@ No remote JavaScript or WASM is executed. XLSX/CSV/JSON generation is bundled lo
 - `downloads`: user-requested exports.
 - `unlimitedStorage`: avoid silently truncating larger user-owned result sets.
 - Maps origins: core operation; Anas API origin: licensing and limits.
-- Optional `https://*/*`: requested only when website enrichment is enabled.
-
+- `https://*/*`: disclosed at installation and used only when website enrichment is enabled; no permission prompt appears after Start Search.
