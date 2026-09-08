@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS payments (
   payment_ref TEXT NOT NULL UNIQUE,
   user_id INTEGER NOT NULL,
   subscription_id INTEGER,
-  method TEXT NOT NULL CHECK(method IN ('USDT','REDOTPAY')),
+  method TEXT NOT NULL CHECK(method IN ('USDT','REDOTPAY','MANUAL_WHATSAPP')),
   amount_cents INTEGER NOT NULL,
   currency TEXT NOT NULL DEFAULT 'USD',
   payment_type TEXT NOT NULL DEFAULT 'first_purchase' CHECK(payment_type IN ('first_purchase','renewal')),
@@ -171,4 +171,3 @@ INSERT OR IGNORE INTO settings(key,value) VALUES
 ('affiliate_renewal_percent','20'),
 ('allowed_devices','2'),
 ('payment_methods','USDT,REDOTPAY');
-

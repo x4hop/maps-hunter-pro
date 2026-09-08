@@ -2,6 +2,9 @@ name = "maps-hunter-pro-api"
 main = "src/index.js"
 compatibility_date = "2026-09-06"
 
+[triggers]
+crons = ["17 3 * * *"]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "maps-hunter-pro"
@@ -9,4 +12,3 @@ database_id = "21beb48b-da1d-4828-9a69-001fd6c798de"
 
 [observability]
 enabled = true
-

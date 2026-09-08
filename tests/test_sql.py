@@ -5,6 +5,7 @@ db = sqlite3.connect(':memory:')
 db.row_factory = sqlite3.Row
 db.executescript(Path('backend/schema.sql').read_text())
 db.executescript(Path('backend/migrations/0003_atomic_entitlements.sql').read_text())
+db.executescript(Path('backend/migrations/0004_operations_privacy.sql').read_text())
 db.execute("INSERT INTO users(id,email,name,password_hash,password_salt) VALUES(1,'buyer@example.test','Buyer','x','y')")
 db.execute("INSERT INTO activation_codes(code,plan_id) VALUES('MHP-M-ONE','monthly')")
 db.execute("INSERT INTO entitlement_grants(source_type,source_ref,user_id,plan_id,license_key,device_limit,daily_limit) VALUES('code','MHP-M-ONE',1,'monthly','LIC-ONE',2,3)")
