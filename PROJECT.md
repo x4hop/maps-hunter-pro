@@ -1,6 +1,6 @@
 # Maps Hunter Pro — Project Map & Change Log
 
-Last updated: 2026-09-06
+Last updated: 2026-09-08
 
 ## 1. Purpose
 Maps Hunter Pro is a Chrome extension and web system for discovering, organizing, and exporting business leads from Google Maps. The website is the commercial entry point for pricing, renewals, affiliate onboarding, and license/account management.
@@ -79,7 +79,9 @@ Cloudflare Worker backend:
 - `backend/wrangler.toml`
 - `backend/package.json`
 - `backend/migrations/0001_initial.sql`
-- `backend/migrations/0002_auth_activation.sql`
+- `backend/migrations/0002_auth_activation_codes.sql`
+- `backend/migrations/0003_atomic_entitlements.sql`
+- `backend/migrations/0004_operations_privacy.sql`
 
 Public API direction:
 - `GET /api/health`
@@ -91,7 +93,7 @@ Public API direction:
 - `POST /api/affiliate/register`
 - `POST /api/license/validate`
 
-Admin API endpoints under `/api/admin/*` require `ADMIN_TOKEN`.
+Admin API endpoints under `/api/admin/*` require a temporary admin session obtained using the Cloudflare `ADMIN_TOKEN` secret. Customer affiliate statistics, payout requests, data requests, refunds and device support controls are implemented.
 
 ## 8. Current architecture
 - Frontend: static HTML/CSS/vanilla JS.
@@ -165,13 +167,11 @@ Maps Hunter Pro Cloudflare infrastructure is now assigned **exclusively** to Ana
 - Session tokens are stored server-side as hashes and expire.
 - Audit logs should cover account, activation, payment confirmation, license validation, and admin actions.
 
-### Next priorities
-1. Finish the customer register/login + activation request UI on the landing page.
-2. Add activation-request controls to the Admin dashboard.
-3. Add extension usage reporting and enforce the monthly 1,500-lead daily limit server-side.
-4. Add affiliate dashboard and payout-request flow.
-5. Add Cloudflare rate limiting / abuse protection.
-6. Replace temporary Admin Token login with Cloudflare Access or another stronger admin identity layer before production launch.
+### Remaining launch gates
+1. Configure verified email delivery before enabling password reset/email verification.
+2. Add MFA/Cloudflare Access in front of admin and verify the direct API protection.
+3. Obtain a documented decision on Google Maps content collection/export rights; store-policy work does not grant source rights.
+4. Complete live Chrome, payment, reviewer and rollback tests before public paid launch.
 
 ### 2026-09-06 — Professional admin console
 - Replaced the minimal admin UI with the professional Maps Hunter Pro admin console.
@@ -182,3 +182,13 @@ Maps Hunter Pro Cloudflare infrastructure is now assigned **exclusively** to Ana
 - Admin Worker bindings: service binding `API` -> `maps-hunter-pro-api`, D1 binding `DB` -> `21beb48b-da1d-4828-9a69-001fd6c798de`.
 - The customer frontend and API flow are unchanged by this redesign.
 
+### 2026-09-08 — Audit remediation 8.1.0
+- Completed deterministic migrations 0001→0004 for new databases and an additive production upgrade.
+- Fixed activation-plan cancellation compatibility and blocked monthly downgrade over an active annual entitlement.
+- Saved unique external payment references; added idempotent refund, commission reversal, payout transitions and audit events.
+- Added customer affiliate stats/payout API, data-request workflow, device block/unblock/release controls, and server-side admin pagination/search.
+- Made arbitrary HTTPS access optional and tied it to the explicit website-enrichment toggle.
+- Persisted usage request IDs before charging and pause/resume state on access/network failures.
+- Added public-URL/redirect checks and bounded website response streaming.
+- Added accurate privacy/data-flow/store-submission documents and a reproducible extension-only ZIP release with SHA-256.
+- Unknown frontend/admin routes now return 404.
