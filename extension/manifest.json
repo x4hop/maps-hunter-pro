@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Maps Hunter Pro",
-  "version": "8.1.3",
+  "version": "8.1.4",
   "description": "User-initiated business research, local organization, optional website enrichment, and Excel/CSV/JSON export.",
   "permissions": [
     "activeTab",
@@ -14,10 +14,8 @@
   "host_permissions": [
     "https://www.google.com/*",
     "https://maps.google.com/*",
+    "https://*/*",
     "https://maps-hunter-pro-api.anas98gha.workers.dev/*"
-  ],
-  "optional_host_permissions": [
-    "https://*/*"
   ],
   "background": {
     "service_worker": "background.js"
