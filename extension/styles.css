@@ -27,5 +27,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 .orbit-ring{position:absolute;inset:0;border-radius:50%;border:7px solid #f0dfcc;border-top-color:var(--accent);border-right-color:var(--accent2);box-shadow:0 0 0 1px rgba(184,95,56,.05)}
 .orbit-dot{position:absolute;z-index:3;top:-2px;left:50%;width:15px;height:15px;margin-left:-7px;border:4px solid #fff;border-radius:50%;background:var(--accent2);box-shadow:0 4px 10px rgba(184,95,56,.4);transform-origin:7px 97px}
 .is-running .orbit-ring{animation:orbitSpin .7s linear infinite}.is-running .orbit-dot{animation:dotSpin 1.1s linear infinite}.activity-stage p{margin:8px 0 0;color:var(--muted);font-size:12px;font-weight:800}
+.live-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.live-actions button{min-height:40px;border-radius:11px}.live-actions .dark{grid-column:1/-1}
 @keyframes orbitSpin{to{transform:rotate(360deg)}}@keyframes dotSpin{to{transform:rotate(360deg)}}
 @media(max-height:700px){.activity-stage{min-height:225px}.lead-orbit{width:160px;height:160px}.lead-orbit>div{width:120px;height:120px}.orbit-dot{transform-origin:7px 82px}}

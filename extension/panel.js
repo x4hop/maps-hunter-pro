@@ -68,8 +68,11 @@ function openPage(pageId) {
 function bind() {
   document.getElementById("startBtn").addEventListener("click", start);
   document.getElementById("stopBtn").addEventListener("click", () => send({ type: "STOP_SCAN" }));
+  document.getElementById("activityStopBtn").addEventListener("click", () => send({ type: "STOP_SCAN" }));
   document.getElementById("skipScanBtn").addEventListener("click", skipScanCity);
   document.getElementById("skipCityBtn").addEventListener("click", skipCity);
+  document.getElementById("activitySkipScanBtn").addEventListener("click", skipScanCity);
+  document.getElementById("activitySkipCityBtn").addEventListener("click", skipCity);
   document.getElementById("clearBtn").addEventListener("click", async () => {
     await send({ type: "CLEAR_RESULTS" });
     renderState({ leads: [], status: "Results cleared.", phase: "Ready" });
@@ -272,6 +275,9 @@ function setBusy(isBusy) {
   document.getElementById("stopBtn").disabled = !isBusy;
   document.getElementById("skipScanBtn").disabled = !isBusy;
   document.getElementById("skipCityBtn").disabled = !isBusy;
+  document.getElementById("activityStopBtn").disabled = !isBusy;
+  document.getElementById("activitySkipScanBtn").disabled = !isBusy;
+  document.getElementById("activitySkipCityBtn").disabled = !isBusy;
 }
 
 function send(payload) {
