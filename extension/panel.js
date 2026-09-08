@@ -104,7 +104,6 @@ async function start() {
   const maxWorkers = Number(document.getElementById("workerCount")?.value || 6);
   const scanFirst = document.getElementById("scanFirst")?.checked !== false;
   const enrichWebsites=document.getElementById("enrichWebsites")?.checked===true;
-  if(enrichWebsites){const granted=await chrome.permissions.request({origins:["https://*/*"]});if(!granted){setBusy(false);document.body.classList.remove("is-running");openPage("searchPage");return toast("Website enrichment permission was declined. Turn it off to continue with Maps data only.");}}
   const res = await send({ type: "START_SCAN", keyword, cities, maxWorkers, scanFirst, enrichWebsites });
   if (!res?.ok) {
     setBusy(false);
