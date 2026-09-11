@@ -12,6 +12,7 @@ Last updated: 2026-09-11
 - Deployed frontend blobs landing-v8-owner and admin-v8-owner; earlier blobs retained for rollback.
 - Preserve the registration fix: PBKDF2 iterations 100000 for new credentials, stored iteration count for verification, auth schema repair. Never deploy the stale local 5.1 backend over this version.
 - Automated tests: owner validation/unlimited usage/wrong and revoked codes/admin isolation; SQL entitlement, renewal, device, daily limits; migration chain.
+- Live API checks after deployment: owner validate and consume returned 200 with null expiration/limit; wrong owner code returned 401; unauthenticated owner rotation returned 401. Health reported 5.3.0-owner-platform and authentication ready.
 - Browser UI test could not run because the Chromium download timed out. Do not report a successful browser or live extraction test for this change.
 
 ### Remaining roadmap, in execution order
