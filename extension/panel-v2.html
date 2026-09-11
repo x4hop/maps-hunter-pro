@@ -1,61 +1,69 @@
 <!doctype html>
 <html lang="en" dir="ltr">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Maps Hunter Pro</title><link rel="stylesheet" href="styles.css"></head>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Maps Hunter Pro</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
 <body>
-<main class="app">
-  <header class="brandbar">
-    <div class="brand"><img src="icons/icon128.png" alt=""><div><strong>Maps Hunter <em>Pro</em></strong><span>Google Maps lead extractor</span></div></div>
-    <span class="account-link">Code activation</span>
+<main class="app-shell">
+  <header class="topbar">
+    <div class="brand">
+      <img src="icons/icon128.png" alt="">
+      <div><strong>Maps Hunter <em>Pro</em></strong><span>Google Maps lead extractor</span></div>
+    </div>
+    <span id="licenseChip" class="license-chip">Checking…</span>
   </header>
 
-  <nav class="tabs" aria-label="Tool sections">
-    <button class="tab active" data-page="searchPage" type="button">Search</button>
-    <button class="tab" data-page="activityPage" type="button">Live</button>
-    <button class="tab" data-page="resultsPage" type="button">Results <b id="tabLeadCount">0</b></button>
-    <button class="tab" data-page="settingsPage" type="button">Settings</button>
+  <nav class="nav-tabs" aria-label="Maps Hunter Pro sections">
+    <button class="nav-tab active" data-page="searchPage" type="button"><span>⌕</span>Search</button>
+    <button class="nav-tab" data-page="resultsPage" type="button"><span>▦</span>Results <b id="tabLeadCount">0</b></button>
+    <button class="nav-tab" data-page="licensePage" type="button"><span>◆</span>Activation</button>
   </nav>
 
-  <section class="live-status" aria-live="polite"><span id="phaseText">Ready</span><b id="statusText">Enter a keyword and city, then start.</b><div class="bar"><i id="progressBar"></i></div></section>
-
-  <section class="page active" id="searchPage">
-    <div class="search-shell">
-      <div class="intro"><span>New search</span><strong>Find your next customers</strong><p>Add a business keyword and the cities you want to scan.</p></div>
-      <label class="field"><span>Search keyword</span><textarea id="keyword" rows="2" placeholder="Restaurants, clinics, car dealers…"></textarea></label>
-      <label class="field city-field"><span>Target cities</span><div id="cityTagsBox" class="tag-box"><input id="cityInput" type="text" placeholder="Type a city and press Enter"></div></label>
-      <button id="startBtn" class="start-button" type="button"><span>Start Search</span><i>→</i></button>
-      <div class="utility-actions">
-        <button id="skipScanBtn" type="button">Skip Scan</button><button id="skipCityBtn" type="button">Skip City</button><button id="stopBtn" type="button">Stop</button><button id="clearBtn" class="danger" type="button">Clear</button>
+  <section id="searchPage" class="page active">
+    <div class="search-card">
+      <div class="section-heading"><div><small>NEW SEARCH</small><h1>Find businesses faster</h1></div><span id="phaseBadge">Ready</span></div>
+      <label class="input-group"><span>Business keyword</span><input id="keyword" type="text" placeholder="Restaurants, dentists, car dealers…" autocomplete="off"></label>
+      <label class="input-group cities-group"><span>Cities</span><textarea id="citiesInput" rows="3" placeholder="Tripoli&#10;Benghazi&#10;Misrata"></textarea><small>One city per line, or separate with commas.</small></label>
+      <div class="search-options">
+        <label><span>Speed</span><select id="workerCount"><option value="1">Safe · 1</option><option value="2">Light · 2</option><option value="3" selected>Balanced · 3</option><option value="4">Fast · 4</option><option value="5">Turbo · 5</option><option value="6">Ultra · 6</option></select></label>
+        <label class="toggle-row"><span>Find emails & social</span><input id="enrichWebsites" type="checkbox"></label>
       </div>
+      <button id="startBtn" class="primary-action" type="button"><span>Start Search</span><b>→</b></button>
+      <div class="live-card">
+        <div class="live-orbit" id="liveOrbit"><div><small>LEADS</small><strong id="leadCount">0</strong><span>collected</span></div></div>
+        <div class="live-copy"><strong id="statusTitle">Ready to search</strong><p id="statusText">Enter a keyword and at least one city.</p><div class="mini-progress"><i id="progressBar"></i></div></div>
+      </div>
+      <div class="run-actions"><button id="skipCityBtn" type="button" disabled>Skip city</button><button id="stopBtn" class="danger" type="button" disabled>Stop search</button></div>
     </div>
   </section>
 
-  <section class="page" id="activityPage">
-    <div class="activity-shell">
-      <div class="lead-orbit" aria-label="Live lead counter"><i class="orbit-ring"></i><i class="orbit-dot"></i><div><span>LEADS</span><strong id="leadCount">0</strong><em>collected</em></div></div>
-      <p id="activityCaption">Preparing your search…</p>
-      <div class="metric-row"><div><b id="phoneCount">0</b><span>Phones</span></div><div><b id="emailCount">0</b><span>Emails</span></div><div><b id="socialCount">0</b><span>Social</span></div><div><b id="tabsText">6</b><span>Tabs</span></div></div>
-      <div class="current-row"><span>City <b id="currentCityText">-</b></span><span>Queue <b id="queuedText">0</b></span><span>Done <b id="processedText">0</b></span></div>
-      <div class="live-actions"><button id="activitySkipScanBtn" type="button">Skip Scan</button><button id="activitySkipCityBtn" type="button">Skip City</button><button id="activityStopBtn" class="stop" type="button">Stop Search</button></div>
-      <button class="view-results" type="button" data-open-page="resultsPage">View collected results</button>
+  <section id="resultsPage" class="page">
+    <div class="results-card">
+      <div class="results-hero"><span>COLLECTED</span><strong id="resultTotal">0</strong><small>businesses saved</small></div>
+      <div class="stat-grid"><div><strong id="phoneCount">0</strong><span>Phones</span></div><div><strong id="emailCount">0</strong><span>Emails</span></div><div><strong id="socialCount">0</strong><span>Social</span></div></div>
+      <div class="export-section"><div class="section-label">EXPORT RESULTS</div><button id="excelBtn" class="export-main" type="button"><span>XLSX</span><strong>Excel</strong><small>Recommended</small></button><div class="export-grid"><button id="csvBtn" type="button"><b>CSV</b><span>Spreadsheet</span></button><button id="jsonBtn" type="button"><b>JSON</b><span>Raw data</span></button><button id="openSheetBtn" type="button"><b>TABLE</b><span>View all</span></button></div></div>
+      <div id="recentResults" class="recent-results"><div class="empty-state">Your latest businesses will appear here.</div></div>
+      <button id="clearBtn" class="clear-button" type="button">Clear saved results</button>
     </div>
   </section>
 
-  <section class="page" id="resultsPage">
-    <div class="results-shell">
-      <header><div><strong>Collected results</strong><span>Your complete lead list</span></div><button id="openSheetBtn" type="button">Open table</button></header>
-      <div class="export-bar"><span>Export</span><button id="csvBtn" type="button">CSV</button><button id="excelBtn" type="button">Excel</button><button id="jsonBtn" type="button">JSON</button></div>
-      <div class="table-wrap"><table><thead><tr><th>#</th><th>Name</th><th>Phone</th><th>Address</th><th>Website</th><th>Image</th><th>Email</th><th>Facebook</th><th>Instagram</th><th>Social Links</th><th>Maps</th></tr></thead><tbody id="resultsBody"><tr><td colspan="11" class="empty">No results yet</td></tr></tbody></table></div>
+  <section id="licensePage" class="page">
+    <div class="license-card">
+      <div class="license-icon">◆</div>
+      <h2>Activation</h2>
+      <p>Enter the activation code you received after payment confirmation.</p>
+      <label class="input-group"><span>Activation code</span><input id="licenseKey" type="text" placeholder="MHP-…" autocomplete="off" spellcheck="false"></label>
+      <button id="saveLicense" class="primary-action" type="button"><span>Activate code</span><b>✓</b></button>
+      <div id="licenseStatusBox" class="activation-state"><strong>Checking activation…</strong><span>Please wait.</span></div>
+      <div class="license-meta"><div><span>Status</span><b id="licenseStateText">Checking</b></div><div><span>Expires</span><b id="expiresText">—</b></div></div>
+      <footer><span>Maps Hunter Pro v8.2.1</span><a href="https://maps-hunter-pro-preview.anas98gha.workers.dev/privacy.html" target="_blank">Privacy</a></footer>
     </div>
   </section>
-
-  <section class="page" id="settingsPage">
-    <div class="settings-shell">
-      <section><header><strong>License</strong><span>Activate this device</span></header><div class="license-row"><input id="licenseKey" placeholder="MHP-…" autocomplete="off"><button id="saveLicense" type="button">Activate</button></div></section>
-      <section><header><strong>Extraction speed</strong><span>Choose how many tabs work together</span></header><label class="setting-row"><span>Background tabs</span><select id="workerCount"><option value="1">1 · Safe</option><option value="2">2 · Balanced</option><option value="3">3 · Fast</option><option value="4">4 · Turbo</option><option value="5">5 · Max</option><option value="6" selected>6 · Ultra</option><option value="8">8 · Extreme</option></select></label><label class="setting-row"><span>Scan links first</span><input id="scanFirst" type="checkbox" checked></label></section>
-      <section><header><strong>Website enrichment</strong><span>Find public emails and social profiles</span></header><label class="setting-row"><span>Enable enrichment</span><input id="enrichWebsites" type="checkbox"></label></section>
-      <footer><a href="https://maps-hunter-pro-preview.anas98gha.workers.dev/privacy.html" target="_blank">Privacy</a></footer>
-    </div>
-  </section>
+  <div id="toast" class="toast" role="status"></div>
 </main>
-<div id="toast" class="toast"></div><script src="panel.js"></script><script src="panel-v2.js"></script>
-</body></html>
+<script src="panel-v2.js"></script>
+</body>
+</html>
