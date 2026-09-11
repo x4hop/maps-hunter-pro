@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Maps Hunter Pro",
-  "version": "8.1.4",
+  "version": "8.1.5",
   "description": "User-initiated business research, local organization, optional website enrichment, and Excel/CSV/JSON export.",
   "permissions": [
     "activeTab",
@@ -22,10 +22,10 @@
   },
   "action": {
     "default_title": "Maps Hunter Pro",
-    "default_popup": "panel.html"
+    "default_popup": "panel-v2.html"
   },
   "side_panel": {
-    "default_path": "panel.html"
+    "default_path": "panel-v2.html"
   },
   "icons": {
     "16": "icons/icon16.png",
