@@ -1,27 +1,27 @@
 # Maps Hunter Pro — Project Map & Change Log
 
-Last updated: 2026-09-08
+Last updated: 2026-09-11
 
-## 8.1.3 compact no-scroll interface — 2026-09-08
+## 2026-09-11 — Owner access and platform continuation
+- Owner requested a permanent activation code that works in the extension without customer registration.
+- API 5.3.0-owner-platform adds a separate singleton owner_access table. Only a SHA-256 digest is stored; the actual code is never committed, bundled, logged, or returned by status endpoints.
+- Owner access has no subscription expiration or daily lead cap. It still requires API connectivity. It does not confer admin permissions.
+- Existing extension 8.1.4 accepts the owner code through Settings > License > Activate; no extraction-engine changes are required.
+- Admin > Owner access can rotate or revoke the code. Rotation shows the new code once and invalidates the old code.
+- Added admin Activation requests view and customer My orders and payments history scoped to the signed-in customer.
+- Deployed frontend blobs landing-v8-owner and admin-v8-owner; earlier blobs retained for rollback.
+- Preserve the registration fix: PBKDF2 iterations 100000 for new credentials, stored iteration count for verification, auth schema repair. Never deploy the stale local 5.1 backend over this version.
+- Automated tests: owner validation/unlimited usage/wrong and revoked codes/admin isolation; SQL entitlement, renewal, device, daily limits; migration chain.
+- Browser UI test could not run because the Chromium download timed out. Do not report a successful browser or live extraction test for this change.
 
-- Replaced the multi-card layout with a single-screen interface that does not require page scrolling.
-- Bundled real Tajawal font files for Arabic and Latin instead of silently falling back to Arial.
-- Kept the centered live lead orbit, compact metrics, and extraction controls in one view.
-- Reduced password hashing cost to a Worker-compatible PBKDF2 setting while storing per-account iterations for backward compatibility.
-
-## 8.1.2 live progress and account repair — 2026-09-08
-
-- Removed the Search Country control; city text is again the only search location input.
-- Start Search now opens a centered animated lead counter and updates the real lead count live.
-- Deferred the heavy results-table redraw until the Results tab is opened, reducing UI work during extraction.
-- Added a backward-compatible credentials table and automatic auth schema repair after live registration returned HTTP 500.
-
-## 8.1.1 interface redesign — 2026-09-08
-
-- Rebuilt the Chrome side panel without changing the extraction engine or brand colors.
-- Added four clear workspaces: Search, Activity, Results, and Settings.
-- Moved license controls into Settings and added a dedicated live activity dashboard.
-- Improved visual hierarchy, compact-screen scrolling, focus states, actions, exports, and future expansion space.
+### Remaining roadmap, in execution order
+1. Complete account onboarding: consent recording, verified email delivery, verification and password reset. Email provider setup is required.
+2. Complete manual-payment evidence workflow and customer-facing rejection reasons; reconcile receipts before approval. Current paid activation still uses WhatsApp and admin confirmation.
+3. Validate the complete monthly/annual purchase, renewal and affiliate lifecycle in a real browser, including duplicate requests and failed payments.
+4. Finalize affiliate attribution window, withdrawal threshold and refund rules with the owner before marketing the program.
+5. Redesign extension UI using existing cream/orange palette and Tajawal, centered live counter, no Search Country, no Start permission prompt, no main-screen scroll. Preserve extraction behavior and compare before/after performance.
+6. Configure final domain, email delivery and admin additional protection; verify backups and rollback; then limited paid pilot.
+7. Store submission and public launch after real-device verification. A roadmap item is not complete merely because an API or mockup exists.
 
 ## 1. Purpose
 Maps Hunter Pro is a Chrome extension and web system for discovering, organizing, and exporting business leads from Google Maps. The website is the commercial entry point for pricing, renewals, affiliate onboarding, and license/account management.

@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS owner_access (
+ id INTEGER PRIMARY KEY CHECK(id=1),
+ code_hash TEXT NOT NULL,
+ status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','revoked')),
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

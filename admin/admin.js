@@ -8,7 +8,7 @@ let searchTimer=null;
 const $ = id => document.getElementById(id);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money = cents => `$${(Number(cents||0)/100).toFixed(2)}`;
-const date = v => v ? new Date(String(v).replace(' ','T')+'Z').toLocaleString() : '—';
+const date = v => v ? new Date(/[zZ]$|[+-]\d\d:\d\d$/.test(String(v))?v:String(v).replace(' ','T')+'Z').toLocaleString() : '—';
 const pill = s => `<span class="pill ${['active','confirmed','trusted','allowed','paid'].includes(s)?'green':['pending','review'].includes(s)?'orange':['revoked','expired','blocked','rejected'].includes(s)?'red':'gray'}">${esc(s||'—')}</span>`;
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
 
@@ -69,6 +69,20 @@ async function payoutAction(ref,action){if(!confirm(`${action} payout ${ref}?`))
 async function generateCodes(){try{const expires=$('codeExpiry').value;const d=await api('/api/admin/codes/generate',{method:'POST',body:JSON.stringify({planId:$('codePlan').value,quantity:Number($('codeQuantity').value),purchaserEmail:$('codeEmail').value.trim(),expiresAt:expires?new Date(expires).toISOString():null,note:$('codeNote').value.trim()})});toast(`Generated ${d.codes.length} code(s)`);await loadCodes();await loadOverview();}catch(e){toast(e.message);}}
 async function revokeCode(code){if(!confirm(`Revoke ${code}?`))return;try{await api(`/api/admin/codes/${encodeURIComponent(code)}/revoke`,{method:'POST',body:'{}'});toast('Code revoked');await loadCodes();await loadOverview();}catch(e){toast(e.message);}}
 async function saveSettings(){try{await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify({monthly_price_usd:$('setMonthlyPrice').value,annual_price_usd:$('setAnnualPrice').value,monthly_daily_limit:$('setMonthlyLimit').value,affiliate_first_purchase_percent:$('setFirstCommission').value,affiliate_renewal_percent:$('setRenewCommission').value,allowed_devices:$('setDevices').value})});toast('Settings saved');}catch(e){toast(e.message);}}
+
+
+function installOwnerUI(){
+ document.querySelector('[data-view="settings"]').insertAdjacentHTML('beforebegin','<button class="nav-item" data-view="owner"><span class="ico">◇</span> Owner access</button><button class="nav-item" data-view="activationRequests"><span class="ico">✓</span> Activation requests</button>');
+ $('settings').insertAdjacentHTML('beforebegin',`<section class="view" id="owner"><div class="page-head"><div><h1>كود المالك الدائم</h1><p>تشغيل الإضافة دون تسجيل أو اشتراك أو حد يومي. هذا الكود لا يمنح صلاحيات الأدمن.</p></div></div><div class="card panel" dir="rtl"><p id="ownerStatus"></p><p>يظهر الكود الجديد مرة واحدة. احفظه في مكان خاص؛ إنشاء بديل يلغي الكود السابق مباشرة.</p><button class="primary-btn" id="rotateOwner">إنشاء / استبدال كود المالك</button> <button class="mini" id="revokeOwner">إلغاء الكود</button><p><code id="ownerCode" dir="ltr" style="overflow-wrap:anywhere;user-select:all"></code></p><button class="mini" id="copyOwner" hidden>نسخ الكود</button></div></section><section class="view" id="activationRequests"><div class="page-head"><div><h1>Activation requests</h1><p>Check the received payment, then approve from Payments using the matching reference.</p></div></div><div class="card table-card"><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Plan</th><th>Request</th><th>Payment reference</th><th>Status</th><th>Created</th></tr></thead><tbody id="activationRequestsBody"></tbody></table></div></div></section>`);
+ $('rotateOwner').onclick=async()=>{if(!confirm('إنشاء كود جديد يلغي الكود السابق. متابعة؟'))return;const b=$('rotateOwner');b.disabled=true;try{const d=await api('/api/admin/owner-access/rotate',{method:'POST',body:'{}'});$('ownerCode').textContent=d.code;$('copyOwner').hidden=false;await loadOwner();}catch(e){toast(e.message)}finally{b.disabled=false}};
+ $('revokeOwner').onclick=async()=>{if(!confirm('إلغاء كود المالك الحالي؟'))return;try{await api('/api/admin/owner-access/revoke',{method:'POST',body:'{}'});$('ownerCode').textContent='';$('copyOwner').hidden=true;await loadOwner()}catch(e){toast(e.message)}};
+ $('copyOwner').onclick=async()=>{try{await navigator.clipboard.writeText($('ownerCode').textContent);toast('تم النسخ')}catch{toast('حدد الكود وانسخه يدويًا')}};
+}
+async function loadOwner(){const d=await api('/api/admin/owner-access');$('ownerStatus').textContent=d.owner?.status==='active'?'الحالة: فعال · دائم · بلا تسجيل':'الحالة: لا يوجد كود فعال';}
+async function loadActivationRequests(){const d=await listApi('activation-requests');$('activationRequestsBody').innerHTML=d.requests.map(x=>`<tr><td>${esc(x.email)}</td><td>${esc(x.plan_id)}</td><td class="mono">${esc(x.request_ref)}</td><td class="mono">${esc(x.payment_ref)}</td><td>${pill(x.status)}</td><td>${date(x.created_at)}</td></tr>`).join('')||empty(6);}
+installOwnerUI();
+loaders.owner=loadOwner;
+loaders.activationRequests=loadActivationRequests;
 
 document.querySelectorAll('.nav-item').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));btn.classList.add('active');document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));currentView=btn.dataset.view;$(currentView).classList.add('active');$('sidebar').classList.remove('open');loadView(currentView);}));
 $('menuBtn').addEventListener('click',()=>$('sidebar').classList.toggle('open'));
