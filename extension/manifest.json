@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Maps Hunter Pro",
-  "version": "8.2.1",
-  "description": "User-initiated business research, local organization, optional website enrichment, and Excel/CSV/JSON export.",
+  "version": "8.2.6",
+  "description": "Instant Google Maps result capture with direct extraction and professional export.",
   "permissions": [
     "activeTab",
     "downloads",
@@ -14,7 +14,6 @@
   "host_permissions": [
     "https://www.google.com/*",
     "https://maps.google.com/*",
-    "https://*/*",
     "https://maps-hunter-pro-api.anas98gha.workers.dev/*"
   ],
   "background": {

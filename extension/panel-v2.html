@@ -11,7 +11,7 @@
   <header class="topbar">
     <div class="brand">
       <img src="icons/icon128.png" alt="">
-      <div><strong>Maps Hunter <em>Pro</em></strong><span>Google Maps lead extractor</span></div>
+      <div><strong>Maps Hunter <em>Pro</em></strong><span>Instant Google Maps extractor</span></div>
     </div>
     <span id="licenseChip" class="license-chip">Checking…</span>
   </header>
@@ -25,18 +25,41 @@
   <section id="searchPage" class="page active">
     <div class="search-card">
       <div class="section-heading"><div><small>NEW SEARCH</small><h1>Find businesses faster</h1></div><span id="phaseBadge">Ready</span></div>
-      <label class="input-group"><span>Business keyword</span><input id="keyword" type="text" placeholder="Restaurants, dentists, car dealers…" autocomplete="off"></label>
-      <label class="input-group cities-group"><span>Cities</span><textarea id="citiesInput" rows="3" placeholder="Tripoli&#10;Benghazi&#10;Misrata"></textarea><small>One city per line, or separate with commas.</small></label>
-      <div class="search-options">
-        <label><span>Speed</span><select id="workerCount"><option value="1">Safe · 1</option><option value="2">Light · 2</option><option value="3" selected>Balanced · 3</option><option value="4">Fast · 4</option><option value="5">Turbo · 5</option><option value="6">Ultra · 6</option></select></label>
-        <label class="toggle-row"><span>Find emails & social</span><input id="enrichWebsites" type="checkbox"></label>
+
+      <div class="tag-field tag-card" data-tag-kind="keyword">
+        <div class="tag-field-head">
+          <div><strong>Search types</strong><small>What businesses do you want?</small></div>
+          <span>Enter ↵</span>
+        </div>
+        <div class="tag-editor" id="keywordEditor">
+          <input id="keywordInput" type="text" placeholder="Type a niche, e.g. Restaurants" autocomplete="off" aria-label="Add search type">
+        </div>
+        <div class="tag-list" id="keywordTags" aria-label="Search type tags"></div>
       </div>
+
+      <div class="tag-field tag-card" data-tag-kind="city">
+        <div class="tag-field-head">
+          <div><strong>Cities</strong><small>Where should Maps Hunter search?</small></div>
+          <span>Enter ↵</span>
+        </div>
+        <div class="tag-editor" id="cityEditor">
+          <input id="cityInput" type="text" placeholder="Type a city, e.g. Tripoli" autocomplete="off" aria-label="Add city">
+        </div>
+        <div class="tag-list" id="cityTags" aria-label="City tags"></div>
+      </div>
+      <div class="instant-mode"><span class="instant-dot"></span><div><strong>Instant capture</strong><small>Every Google Maps result is saved the moment it appears.</small></div><b>MAX SPEED</b></div>
+
       <button id="startBtn" class="primary-action" type="button"><span>Start Search</span><b>→</b></button>
+
       <div class="live-card">
         <div class="live-orbit" id="liveOrbit"><div><small>LEADS</small><strong id="leadCount">0</strong><span>collected</span></div></div>
-        <div class="live-copy"><strong id="statusTitle">Ready to search</strong><p id="statusText">Enter a keyword and at least one city.</p><div class="mini-progress"><i id="progressBar"></i></div></div>
+        <div class="live-copy"><strong id="statusTitle">Ready to search</strong><p id="statusText">Add search types and cities as tags.</p><div class="mini-progress"><i id="progressBar"></i></div></div>
       </div>
-      <div class="run-actions"><button id="skipCityBtn" type="button" disabled>Skip city</button><button id="stopBtn" class="danger" type="button" disabled>Stop search</button></div>
+
+      <div class="run-actions">
+        <button id="skipCityBtn" type="button" disabled>Skip city</button>
+        <button id="stopBtn" class="danger" type="button" disabled>Stop search</button>
+      </div>
     </div>
   </section>
 
@@ -59,9 +82,10 @@
       <button id="saveLicense" class="primary-action" type="button"><span>Activate code</span><b>✓</b></button>
       <div id="licenseStatusBox" class="activation-state"><strong>Checking activation…</strong><span>Please wait.</span></div>
       <div class="license-meta"><div><span>Status</span><b id="licenseStateText">Checking</b></div><div><span>Expires</span><b id="expiresText">—</b></div></div>
-      <footer><span>Maps Hunter Pro v8.2.1</span><a href="https://maps-hunter-pro-preview.anas98gha.workers.dev/privacy.html" target="_blank">Privacy</a></footer>
+      <footer><span>Maps Hunter Pro v8.2.6</span><a href="https://maps-hunter-pro-preview.anas98gha.workers.dev/privacy.html" target="_blank">Privacy</a></footer>
     </div>
   </section>
+
   <div id="toast" class="toast" role="status"></div>
 </main>
 <script src="panel-v2.js"></script>
