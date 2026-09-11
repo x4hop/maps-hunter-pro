@@ -15,7 +15,8 @@ const landing=await inline(await read('index.html'));
 const privacy=await inline(await read('privacy.html'));
 const terms=await inline(await read('terms.html'));
 let admin=await read('admin/index.html');
-admin=admin.replace('<script src="./admin.js"></script>',`<script>${(await read('admin/admin.js')).replace(/<\/script/gi,'<\\/script')}</script>`).replace("window.MHP_API_BASE='https://maps-hunter-pro-api.anas98gha.workers.dev'","window.MHP_API_BASE=''");
+const adminScripts=(await read('admin/admin.js'))+'\n'+(await read('admin/admin-v2.js'));
+admin=admin.replace('<script src="./admin.js"></script>',`<script>${adminScripts.replace(/<\/script/gi,'<\\/script')}</script>`).replace("window.MHP_API_BASE='https://maps-hunter-pro-api.anas98gha.workers.dev'","window.MHP_API_BASE=''");
 await mkdir(resolve(root,'dist'),{recursive:true});
 for(const [name,text] of Object.entries({landing,privacy,terms,admin})){
   await writeFile(resolve(root,`dist/${name}.html`),text);
