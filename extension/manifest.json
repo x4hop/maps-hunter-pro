@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Maps Hunter Pro",
-  "version": "8.3.1",
-  "description": "Instant Google Maps result capture with direct extraction and professional export.",
+  "version": "8.4.0",
+  "description": "Stable Google Maps scanning and extraction with Stop Scan, Stop All, settings, activation, and professional export.",
   "permissions": [
     "activeTab",
     "downloads",
@@ -14,7 +14,9 @@
   "host_permissions": [
     "https://www.google.com/*",
     "https://maps.google.com/*",
-    "https://maps-hunter-pro-api.anas98gha.workers.dev/*"
+    "https://maps-hunter-pro-api.anas98gha.workers.dev/*",
+    "https://*/*",
+    "http://*/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -29,5 +31,6 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "version_name": "8.4.0 RC10 MAPS-FIRST EMAIL"
 }
