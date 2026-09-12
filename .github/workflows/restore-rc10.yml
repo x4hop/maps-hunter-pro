@@ -19,18 +19,73 @@ jobs:
         with:
           ref: handoff/8.4.0-rc10-maps-first
           fetch-depth: 0
-      - name: Rebuild verified RC10 archive
+
+      - name: Repair transferred chunks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path('handoff/rc10-archive')
+
+          # The MCP transfer preserved almost every chunk exactly. These six
+          # transfer defects were identified byte-for-byte against the local
+          # verified RC10 package. Repair them in the runner before rebuild.
+          p = root / 'rc10.zip.b64.part02'
+          s = p.read_text()
+          assert len(s) == 9987
+          p.write_text(s + '73jIcfzY7KihL')
+
+          def replace_char(name, index, expected_current, desired):
+              p = root / name
+              s = p.read_text()
+              assert len(s) == (5744 if name.endswith('part21') else 10000)
+              assert s[index] == expected_current, (name, index, s[index])
+              p.write_text(s[:index] + desired + s[index + 1:])
+
+          replace_char('rc10.zip.b64.part06', 4518, 'K', 'w')
+          replace_char('rc10.zip.b64.part13', 9250, 'o', 'e')
+          replace_char('rc10.zip.b64.part14', 1233, 'a', 'e')
+          replace_char('rc10.zip.b64.part21', 4759, 'I', 'A')
+
+          p = root / 'rc10.zip.b64.part07'
+          s = p.read_text()
+          assert len(s) == 10000
+          desired = 'ehRxMKONCuqkqOZhQxoV0lTYW8rZxM8YYe5zgYEIZF9JVNmhQcBXl+u/K+dxg/BeqdfkiaeL32iLL3HqbbJsJZTxR5LhzTEFenRwc6bXh5wryjscTSblU2gS95GDKhVTaQF6LMKFcSGWCNmFCuZBKG8jbQ2'
+          assert len(desired) == 155
+          p.write_text(s[:4019] + desired + s[4174:])
+          PY
+
+      - name: Rebuild and verify exact RC10 archive
         shell: bash
         run: |
           set -euo pipefail
           test "$(find handoff/rc10-archive -maxdepth 1 -name 'rc10.zip.b64.part*' | wc -l)" -eq 22
+          for i in $(seq -w 0 21); do
+            test -f "handoff/rc10-archive/rc10.zip.b64.part${i}"
+          done
           cat handoff/rc10-archive/rc10.zip.b64.part* > /tmp/rc10.b64
           base64 -d /tmp/rc10.b64 > /tmp/rc10.zip
           echo 'fd73d74df1cb0ef073a47374ba4064733093bdf18a1218442c34b931c558eb21  /tmp/rc10.zip' | sha256sum -c -
           unzip -t /tmp/rc10.zip
+
+      - name: Restore exact RC10 extension source
+        shell: bash
+        run: |
+          set -euo pipefail
           rm -rf extension
           mkdir -p extension
           unzip -q /tmp/rc10.zip -d extension
+          test "$(stat -c%s extension/background.js)" -eq 78179
+          test "$(stat -c%s extension/content.js)" -eq 15315
+          test "$(stat -c%s extension/data.js)" -eq 20363
+          test "$(stat -c%s extension/manifest.json)" -eq 870
+          test "$(stat -c%s extension/panel-v2.html)" -eq 7318
+          test "$(stat -c%s extension/panel-v2.js)" -eq 14780
+          test "$(stat -c%s extension/styles.css)" -eq 25296
+          test "$(stat -c%s extension/xlsx-export.js)" -eq 17035
+
       - name: Commit restored RC10 source
         shell: bash
         run: |
