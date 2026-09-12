@@ -3,6 +3,25 @@
 Branch: `handoff/8.4.0-rc10-maps-first`
 Source package: Maps Hunter Pro 8.4.0 RC10 MAPS-FIRST
 
+## Start here
+The exact RC10 package is stored losslessly under:
+
+`handoff/rc10-archive/rc10.zip.b64.part00` … `part21`
+
+Expected RC10 ZIP SHA-256:
+
+`fd73d74df1cb0ef073a47374ba4064733093bdf18a1218442c34b931c558eb21`
+
+After cloning/checking out this branch, restore the exact tested RC10 source with:
+
+```bash
+bash handoff/restore-rc10.sh
+```
+
+The script concatenates all 22 Base64 chunks, rebuilds the ZIP, verifies the SHA-256, removes the older `extension/` snapshot on this handoff branch, and extracts the exact RC10 source into `extension/`.
+
+**Do not work from `main` for this handoff. `main` was intentionally left untouched.**
+
 ## Scope
 Continue work on the Chrome extension only. Landing page, admin, SEO and backend are considered working and should not be modified unless absolutely required for extension compatibility.
 
