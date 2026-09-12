@@ -1,0 +1,46 @@
+name: Restore RC10 handoff
+
+on:
+  push:
+    branches:
+      - handoff/8.4.0-rc10-maps-first
+    paths:
+      - 'handoff/rc10-archive/**'
+      - '.github/workflows/restore-rc10.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: handoff/8.4.0-rc10-maps-first
+          fetch-depth: 0
+      - name: Rebuild verified RC10 archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find handoff/rc10-archive -maxdepth 1 -name 'rc10.zip.b64.part*' | wc -l)" -eq 22
+          cat handoff/rc10-archive/rc10.zip.b64.part* > /tmp/rc10.b64
+          base64 -d /tmp/rc10.b64 > /tmp/rc10.zip
+          echo 'fd73d74df1cb0ef073a47374ba4064733093bdf18a1218442c34b931c558eb21  /tmp/rc10.zip' | sha256sum -c -
+          unzip -t /tmp/rc10.zip
+          rm -rf extension
+          mkdir -p extension
+          unzip -q /tmp/rc10.zip -d extension
+      - name: Commit restored RC10 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'maps-hunter-handoff-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add extension
+          if git diff --cached --quiet; then
+            echo 'RC10 source already matches.'
+            exit 0
+          fi
+          git commit -m 'Restore verified RC10 extension source'
+          git push origin HEAD:handoff/8.4.0-rc10-maps-first
