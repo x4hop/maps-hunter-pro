@@ -54,11 +54,11 @@ async function init() {
 }
 
 async function load() {
-  const state = await send({ type: "GET_STATE" });
-  exportState = state || {};
-  leads = Array.isArray(state?.leads) ? state.leads : [];
+  const payload = await send({ type: "GET_EXPORT_DATA" });
+  exportState = payload?.meta || {};
+  leads = Array.isArray(payload?.leads) ? payload.leads : [];
   applyFilter();
-  toast("Refreshed");
+  toast(`Refreshed ${leads.length} leads`);
 }
 
 function applyFilter() {
@@ -77,7 +77,7 @@ function render() {
     <tr>
       <td>${index + 1}</td>
       <td title="${html(lead.name)}">${html(lead.name) || "-"}</td>
-      <td title="${html(lead.phone)}">${html(lead.phone) || "-"}</td>
+      <td title="${html(internationalizePhone(lead.phone, lead))}">${html(internationalizePhone(lead.phone, lead)) || "-"}</td>
       <td title="${html(lead.address)}">${html(lead.address) || "-"}</td>
       <td>${link(lead.website, "Website")}</td>
       <td>${link(lead.imageUrl, "Image")}</td>
@@ -102,9 +102,12 @@ function exportJson() {
   download(JSON.stringify(exportLeads, null, 2), `maps_hunter_${stamp()}.json`, "application/json;charset=utf-8;");
 }
 
-function exportExcel() {
+async function exportExcel() {
   if (!filtered.length) return toast("No data to export.");
-  MHPExport.xlsx(filtered.map(lead=>({...lead,phone:internationalizePhone(lead.phone,lead)})), `maps_hunter_${stamp()}.xlsx`);
+  try {
+    const result = await MHPExport.xlsx(filtered.map(lead=>({...lead,phone:internationalizePhone(lead.phone,lead)})), `maps_hunter_${stamp()}.xlsx`, { search: [exportState?.keyword, ...(Array.isArray(exportState?.cities) ? exportState.cities : [])].filter(Boolean).join(' — ') });
+    toast(`Excel downloaded: ${Number(result?.rows||0)} leads`);
+  } catch (e) { console.error(e); toast("Excel export failed."); }
 }
 
 function excelXmlCell(lead, field, rowIndex) {
@@ -322,16 +325,12 @@ function phoneAliasMatches(text, alias) {
 }
 
 function detectCountryPhoneRule(lead) {
-  // 1) The search location is authoritative. Every lead now carries the city/search area it came from.
   if(lead?.searchCountry) { const chosen=COUNTRY_PHONE_RULES.find(r=>r.code===lead.searchCountry); if(chosen)return chosen; }
   const searchCity = cleanExcelText(lead?.searchCity || "");
   if (searchCity) {
     const candidates=COUNTRY_PHONE_RULES.flatMap(rule=>rule.aliases.filter(alias=>phoneAliasMatches(searchCity,alias)).map(alias=>({rule,score:alias.length}))).sort((a,b)=>b.score-a.score);
     const explicit=candidates[0]?.rule;
     if (explicit) return explicit;
-
-    // Resolve a city-only search (e.g. "Berlin") from any result collected in that SAME city.
-    // Once one address says Germany, all local numbers from Berlin use +49.
     const sameCityLeads = (Array.isArray(leads) ? leads : []).filter(item => cleanExcelText(item?.searchCity || "").toLowerCase() === searchCity.toLowerCase());
     const evidence = new Map();
     for (const item of sameCityLeads) {
@@ -342,17 +341,12 @@ function detectCountryPhoneRule(lead) {
     }
     if (evidence.size === 1) return [...evidence.values()][0];
   }
-
-  // 2) For old saved results that predate searchCity, use the result's address.
   const leadText = `${lead?.address || ""} ${lead?.category || ""}`;
   const direct = COUNTRY_PHONE_RULES.find(rule => rule.aliases.some(alias => phoneAliasMatches(leadText, alias)));
   if (direct) return direct;
-
-  // 3) Final compatibility fallback: only when the whole scan resolves to one country.
   const stateCities = (typeof exportState !== "undefined" && Array.isArray(exportState?.cities)) ? exportState.cities.join(" ") : "";
   const matches = COUNTRY_PHONE_RULES.filter(rule => rule.aliases.some(alias => phoneAliasMatches(stateCities, alias)));
   if (matches.length === 1) return matches[0];
-
   const allEvidence = new Map();
   for (const item of (Array.isArray(leads) ? leads : [])) {
     const text = `${item?.address || ""} ${item?.category || ""}`;
@@ -366,28 +360,26 @@ function detectCountryPhoneRule(lead) {
 function internationalizePhone(value, lead) {
   const onePhone = normalizePhoneText(value);
   if (!onePhone) return "";
-
   let text = String(onePhone)
     .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
     .replace(/[۰-۹]/g, d => "۰۱۲۳۴۵۶۷۸۹".indexOf(d))
     .trim();
   let digits = text.replace(/\D/g, "");
-  if (digits.length < 7) return onePhone;
-
-  // Already international: normalize 00CC... to +CC... and preserve +CC....
-  if (/^\s*\+/.test(text)) return `+${digits}`;
-  if (digits.startsWith("00") && digits.length > 8) return `+${digits.slice(2)}`;
-
+  if (digits.length < 7 || digits.length > 15) return "";
+  if (/^(\d)\1{6,}$/.test(digits)) return "";
+  if (/^\s*\+/.test(text)) return digits.length >= 8 && digits.length <= 15 ? `+${digits}` : "";
+  if (digits.startsWith("00")) {
+    digits = digits.slice(2);
+    return digits.length >= 8 && digits.length <= 15 ? `+${digits}` : "";
+  }
   const rule = detectCountryPhoneRule(lead);
-  if (!rule) return onePhone;
-
-  // Number already contains this country's calling code, only missing the plus.
-  if (digits.startsWith(rule.code) && digits.length >= rule.code.length + 7) return `+${digits}`;
-
+  if (!rule) return "";
+  if (digits.startsWith(rule.code) && digits.length >= rule.code.length + 7 && digits.length <= 15) return `+${digits}`;
   let national = digits;
   if (!rule.noTrunk && !rule.keepTrunkZero) national = national.replace(/^0+/, "");
-  if (!national) return onePhone;
-  return `+${rule.code}${national}`;
+  if (national.length < 7 || national.length > 12) return "";
+  const international = `${rule.code}${national}`;
+  return international.length >= 8 && international.length <= 15 ? `+${international}` : "";
 }
 
 function extractUrls(value) {
@@ -395,74 +387,23 @@ function extractUrls(value) {
 }
 
 function linkLabel(key) {
-  const labels = {
-    website: "Website",
-    imageUrl: "Image",
-    mapsUrl: "Map",
-    facebook: "Facebook",
-    instagram: "Instagram",
-    twitter: "X",
-    linkedin: "LinkedIn",
-    youtube: "YouTube",
-    tiktok: "TikTok",
-    socialLinks: "Social"
-  };
+  const labels = { website: "Website", imageUrl: "Image", mapsUrl: "Map", facebook: "Facebook", instagram: "Instagram", twitter: "X", linkedin: "LinkedIn", youtube: "YouTube", tiktok: "TikTok", socialLinks: "Social" };
   return labels[key] || "Link";
 }
 
 function xml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+  return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
 
-
 async function closeSheet() {
-  try {
-    const tab = await chrome.tabs.getCurrent();
-    if (tab?.id) return chrome.tabs.remove(tab.id);
-  } catch (e) {}
+  try { const tab = await chrome.tabs.getCurrent(); if (tab?.id) return chrome.tabs.remove(tab.id); } catch (e) {}
   window.close();
 }
 
-function link(url, label) {
-  return url ? `<a href="${html(url)}" target="_blank">${label}</a>` : "-";
-}
-
-function send(payload) {
-  return new Promise(resolve => chrome.runtime.sendMessage(payload, response => resolve(response || {})));
-}
-
-function download(content, filename, type) {
-  const url = URL.createObjectURL(new Blob([content], { type }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1200);
-}
-
-function html(value) {
-  return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-
-function csv(value) {
-  const text=String(value ?? "");
-  const safe=/^[\s]*[=+@-]/.test(text)?"\'"+text:text;
-  return `"${safe.replace(/"/g, '""')}"`;
-}
-
-function stamp() {
-  return new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-}
-
-function toast(text) {
-  const el = document.getElementById("toast");
-  el.textContent = text;
-  el.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("show"), 1800);
-}
+function link(url, label) { return url ? `<a href="${html(url)}" target="_blank">${label}</a>` : "-"; }
+function send(payload) { return new Promise(resolve => chrome.runtime.sendMessage(payload, response => resolve(response || {}))); }
+function download(content, filename, type) { const url = URL.createObjectURL(new Blob([content], { type })); const a = document.createElement("a"); a.href = url; a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1200); }
+function html(value) { return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+function csv(value) { const text=String(value ?? ""); const safe=/^[\s]*[=+@-]/.test(text)?"\'"+text:text; return `"${safe.replace(/"/g, '""')}"`; }
+function stamp() { return new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-"); }
+function toast(text) { const el = document.getElementById("toast"); el.textContent = text; el.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove("show"), 1800); }
