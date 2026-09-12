@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Maps Hunter Pro",
-  "version": "8.2.6",
+  "version": "8.3.1",
   "description": "Instant Google Maps result capture with direct extraction and professional export.",
   "permissions": [
     "activeTab",
