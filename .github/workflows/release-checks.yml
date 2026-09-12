@@ -1,0 +1,53 @@
+name: Release checks
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/**'
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax checks
+        run: |
+          node --check admin/admin.js
+          node --check backend/src/index.js
+          node --check deploy/preview-worker.js
+          node --check extension/background.js
+          node --check extension/content.js
+          node --check extension/data.js
+          node --check extension/license-client.js
+          node --check extension/panel-v2.js
+          node --check extension/xlsx-export.js
+      - name: Build static pages
+        run: node scripts/build.mjs
+      - name: Build extension release
+        run: node scripts/release-extension.mjs
+      - name: Verify release version
+        run: |
+          test -f release/maps-hunter-pro-extension-8.3.1.zip
+          test -f release/maps-hunter-pro-extension-8.3.1.sha256
+          test -f release/maps-hunter-pro-extension-8.3.1-contents.txt
+      - name: Upload extension package
+        uses: actions/upload-artifact@v4
+        with:
+          name: maps-hunter-pro-extension-8.3.1
+          path: |
+            release/maps-hunter-pro-extension-8.3.1.zip
+            release/maps-hunter-pro-extension-8.3.1.sha256
+            release/maps-hunter-pro-extension-8.3.1-contents.txt
+          if-no-files-found: error
