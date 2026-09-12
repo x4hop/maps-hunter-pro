@@ -20,6 +20,7 @@
     <button class="nav-tab active" data-page="searchPage" type="button"><span>⌕</span>Search</button>
     <button class="nav-tab" data-page="resultsPage" type="button"><span>▦</span>Results <b id="tabLeadCount">0</b></button>
     <button class="nav-tab" data-page="licensePage" type="button"><span>◆</span>Activation</button>
+    <button class="nav-tab" data-page="settingsPage" type="button"><span>⚙</span>Settings</button>
   </nav>
 
   <section id="searchPage" class="page active">
@@ -58,7 +59,8 @@
 
       <div class="run-actions">
         <button id="skipCityBtn" type="button" disabled>Skip city</button>
-        <button id="stopBtn" class="danger" type="button" disabled>Stop search</button>
+        <button id="stopBtn" class="danger" type="button" disabled>Stop Scan &amp; Extract</button>
+        <button id="stopAllBtn" class="stop-all" type="button" disabled>Stop All</button>
       </div>
     </div>
   </section>
@@ -82,12 +84,45 @@
       <button id="saveLicense" class="primary-action" type="button"><span>Activate code</span><b>✓</b></button>
       <div id="licenseStatusBox" class="activation-state"><strong>Checking activation…</strong><span>Please wait.</span></div>
       <div class="license-meta"><div><span>Status</span><b id="licenseStateText">Checking</b></div><div><span>Expires</span><b id="expiresText">—</b></div></div>
-      <footer><span>Maps Hunter Pro v8.2.6</span><a href="https://maps-hunter-pro-preview.anas98gha.workers.dev/privacy.html" target="_blank">Privacy</a></footer>
+      <footer><span>Maps Hunter Pro v8.4.0</span><a href="https://maps-hunter-pro-preview.anas98gha.workers.dev/privacy.html" target="_blank">Privacy</a></footer>
+    </div>
+  </section>
+
+  <section id="settingsPage" class="page">
+    <div class="settings-card">
+      <div class="settings-heading">
+        <div><small>PREFERENCES</small><h2>Settings</h2></div>
+        <span>Saved locally</span>
+      </div>
+
+      <div class="settings-list">
+        <label class="settings-row">
+          <div><strong>Extraction workers</strong><small>Parallel detail tabs used after scanning stops.</small></div>
+          <select id="settingsWorkers" aria-label="Extraction workers">
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option>
+          </select>
+        </label>
+
+        <label class="settings-row">
+          <div><strong>Open Results when done</strong><small>Switch to Results automatically after extraction completes.</small></div>
+          <input id="settingsAutoResults" class="settings-toggle" type="checkbox">
+        </label>
+
+        <label class="settings-row">
+          <div><strong>Remember last search</strong><small>Restore your last niche and cities when the panel opens.</small></div>
+          <input id="settingsRemember" class="settings-toggle" type="checkbox">
+        </label>
+      </div>
+
+      <button id="saveSettingsBtn" class="primary-action settings-save" type="button"><span>Save Settings</span><b>✓</b></button>
+      <button id="resetSettingsBtn" class="settings-reset" type="button">Reset defaults</button>
+      <footer class="settings-footer"><span>Maps Hunter Pro v8.4.0</span><span>Stable workflow controls and export settings.</span></footer>
     </div>
   </section>
 
   <div id="toast" class="toast" role="status"></div>
 </main>
+<script src="xlsx-export.js"></script>
 <script src="panel-v2.js"></script>
 </body>
 </html>
