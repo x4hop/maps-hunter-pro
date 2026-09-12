@@ -20,7 +20,7 @@ jobs:
           ref: handoff/8.4.0-rc10-maps-first
           fetch-depth: 0
 
-      - name: Repair transferred chunks
+      - name: Repair transferred chunks when needed
         shell: bash
         run: |
           set -euo pipefail
@@ -29,32 +29,38 @@ jobs:
 
           root = Path('handoff/rc10-archive')
 
-          # The MCP transfer preserved almost every chunk exactly. These six
-          # transfer defects were identified byte-for-byte against the local
-          # verified RC10 package. Repair them in the runner before rebuild.
           p = root / 'rc10.zip.b64.part02'
           s = p.read_text()
-          assert len(s) == 9987
-          p.write_text(s + '73jIcfzY7KihL')
+          if len(s) == 9987:
+              s += '73jIcfzY7KihL'
+              p.write_text(s)
+          assert len(s) == 10000
 
-          def replace_char(name, index, expected_current, desired):
+          def ensure_char(name, index, wrong, right):
               p = root / name
               s = p.read_text()
-              assert len(s) == (5744 if name.endswith('part21') else 10000)
-              assert s[index] == expected_current, (name, index, s[index])
-              p.write_text(s[:index] + desired + s[index + 1:])
+              expected_len = 5744 if name.endswith('part21') else 10000
+              assert len(s) == expected_len, (name, len(s))
+              if s[index] == wrong:
+                  s = s[:index] + right + s[index + 1:]
+                  p.write_text(s)
+              else:
+                  assert s[index] == right, (name, index, s[index])
 
-          replace_char('rc10.zip.b64.part06', 4518, 'K', 'w')
-          replace_char('rc10.zip.b64.part13', 9250, 'o', 'e')
-          replace_char('rc10.zip.b64.part14', 1233, 'a', 'e')
-          replace_char('rc10.zip.b64.part21', 4759, 'I', 'A')
+          ensure_char('rc10.zip.b64.part06', 4518, 'K', 'w')
+          ensure_char('rc10.zip.b64.part13', 9250, 'o', 'e')
+          ensure_char('rc10.zip.b64.part14', 1233, 'a', 'e')
+          ensure_char('rc10.zip.b64.part21', 4759, 'I', 'A')
 
           p = root / 'rc10.zip.b64.part07'
           s = p.read_text()
           assert len(s) == 10000
           desired = 'ehRxMKONCuqkqOZhQxoV0lTYW8rZxM8YYe5zgYEIZF9JVNmhQcBXl+u/K+dxg/BeqdfkiaeL32iLL3HqbbJsJZTxR5LhzTEFenRwc6bXh5wryjscTSblU2gS95GDKhVTaQF6LMKFcSGWCNmFCuZBKG8jbQ2'
           assert len(desired) == 155
-          p.write_text(s[:4019] + desired + s[4174:])
+          if s[4019:4174] != desired:
+              s = s[:4019] + desired + s[4174:]
+              p.write_text(s)
+          assert s[4019:4174] == desired
           PY
 
       - name: Rebuild and verify exact RC10 archive
