@@ -1,24 +1,21 @@
 # Maps Hunter Pro — Agent Handoff
 
 Branch: `handoff/8.4.0-rc10-maps-first`
-Source package: Maps Hunter Pro 8.4.0 RC10 MAPS-FIRST
+Source package: **Maps Hunter Pro 8.4.0 RC10 MAPS-FIRST**
 
 ## Start here
-The exact RC10 package is stored losslessly under:
 
-`handoff/rc10-archive/rc10.zip.b64.part00` … `part21`
+**`extension/` on this branch is already the exact verified RC10 source. Work directly from it.**
 
-Expected RC10 ZIP SHA-256:
+The RC10 package used for verification has SHA-256:
 
 `fd73d74df1cb0ef073a47374ba4064733093bdf18a1218442c34b931c558eb21`
 
-After cloning/checking out this branch, restore the exact tested RC10 source with:
+GitHub Actions rebuilt the package, verified that SHA-256, ran `unzip -t`, restored `extension/`, checked the critical file sizes, and committed the verified source in:
 
-```bash
-bash handoff/restore-rc10.sh
-```
+`1c9def00c1150bd209530c7fdbbdb4385abf72de` — **Restore verified RC10 extension source**
 
-The script concatenates all 22 Base64 chunks, rebuilds the ZIP, verifies the SHA-256, removes the older `extension/` snapshot on this handoff branch, and extracts the exact RC10 source into `extension/`.
+The Base64 transport chunks remain under `handoff/rc10-archive/` only as a handoff backup. The restore workflow contains the byte-level transfer repairs and full SHA verification. Do not replace the verified `extension/` with an older snapshot.
 
 **Do not work from `main` for this handoff. `main` was intentionally left untouched.**
 
@@ -37,20 +34,20 @@ Continue work on the Chrome extension only. Landing page, admin, SEO and backend
 - Website Enrichment toggle was removed.
 
 ## Highest priority problem
-Email extraction is still not reliable enough. Email + Phone are the two most important lead fields.
+Email extraction is still not reliable enough. **Email + Phone are the two most important lead fields.**
 
 The desired architecture is:
-1. FAST SCAN: collect all Maps business URLs/cards quickly. Do not block scanning on website visits.
-2. MAPS EXTRACTION: after scan, open each business in Google Maps and extract Phone + Email + Website + address/category/rating/etc. Email must be attempted from Google Maps itself even when there is no business website.
-3. WEBSITE FALLBACK: only when Maps does not provide Email and a Website exists, use the business website to fill Email/Social gaps.
-4. COMPLETED only after extraction queues are actually finished.
+1. **FAST SCAN:** collect all Maps business URLs/cards quickly. Do not block scanning on website visits.
+2. **MAPS EXTRACTION:** after scan, open each business in Google Maps and extract Phone + Email + Website + address/category/rating/etc. Email must be attempted from Google Maps itself even when there is no business website.
+3. **WEBSITE FALLBACK:** only when Maps does not provide Email and a Website exists, use the business website to fill Email/Social gaps.
+4. Mark the run **COMPLETED only after extraction queues are actually finished**.
 
 ## Important historical finding
 An older working extractor searched the full Google Maps place text for email using an email regex. That allowed email extraction even for leads with no Website. Later revisions over-focused on Website enrichment and lost this behavior.
 
 RC10 restores a Maps-first approach and attempts email from:
 - visible page text
-- mailto links
+- `mailto:` links
 - relevant DOM attributes
 - Google Maps internal page data such as `APP_INITIALIZATION_STATE`, with safeguards to avoid unrelated Google-account emails
 
