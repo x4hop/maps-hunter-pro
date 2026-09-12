@@ -1,6 +1,7 @@
 let collecting = false;
 let stopRequested = false;
 let seen = new Set();
+let cardSnapshots = new Map();
 let cachedScroller = null;
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -27,6 +28,7 @@ async function collectPlaces(options = {}) {
   collecting = true;
   stopRequested = false;
   seen = new Set();
+  cardSnapshots = new Map();
   cachedScroller = null;
   const maxRounds = Number(options.maxRounds || 70);
   const minPlaces = Number(options.minPlaces || 0);
@@ -39,7 +41,7 @@ async function collectPlaces(options = {}) {
     chrome.runtime.sendMessage({ type: "COLLECT_DONE", count: 0, sessionId });
     return { ok: false, timeout: true, count: 0 };
   }
-  sendStatus("Collecting Google Maps result links...", sessionId);
+  sendStatus("Collecting Google Maps result cards...", sessionId);
 
   let stable = 0;
   let lastCount = 0;
@@ -61,11 +63,11 @@ async function collectPlaces(options = {}) {
     lastCount = seen.size;
 
     chrome.runtime.sendMessage({ type: "COLLECT_PROGRESS", count: seen.size, sessionId });
-    if (stable >= 10 && seen.size >= minPlaces) break;
-    if (isEndVisible() && stable >= 4) break;
+    if (stable >= 7 && seen.size >= minPlaces) break;
+    if (isEndVisible() && stable >= 3) break;
 
     scrollResults();
-    await sleep(900);
+    await sleep(650);
   }
 
   if (stopRequested) {
@@ -73,8 +75,10 @@ async function collectPlaces(options = {}) {
     return { ok: true, stopped: true, count: seen.size };
   }
 
-  sendStatus("Scan finished. Waiting 10 seconds for final Maps results before extraction...", sessionId);
-  await sleep(10000);
+  // One short settle pass is enough. The old 10-second final wait made the
+  // extension feel frozen even though useful result cards were already ready.
+  sendStatus("Final Maps card pass...", sessionId);
+  await sleep(1800);
   if (stopRequested || !collecting) {
     collecting = false;
     return { ok: true, stopped: true, count: seen.size };
@@ -96,25 +100,51 @@ function captureCards() {
 
   for (const anchor of anchors) {
     const mapsUrl = normalizeMapsUrl(anchor.href);
-    if (!mapsUrl || seen.has(mapsUrl)) continue;
-    seen.add(mapsUrl);
+    if (!mapsUrl) continue;
 
     const card = anchor.closest("[role='article'], .Nv2PK, .THOPZb, .bfdHYd") || anchor.parentElement || anchor;
+    const emailData = extractEmail(card);
+    const socials = extractSocialLinks(card);
     const place = {
       name: clean(anchor.getAttribute("aria-label")) || pick(card, [".qBF1Pd", ".fontHeadlineSmall", ".NrDZNb", "h3"], true),
       phone: extractPhone(card),
       address: extractAddress(card),
+      website: extractWebsite(card),
+      email: emailData.email,
+      emails: emailData.emails,
+      facebook: socials.facebook,
+      instagram: socials.instagram,
+      twitter: socials.twitter,
+      linkedin: socials.linkedin,
+      youtube: socials.youtube,
+      tiktok: socials.tiktok,
+      socialLinks: socials.socialLinks,
       category: extractCategory(card),
       rating: normalizeRating(pick(card, [".MW4etd", "span.ceNzKf", "[aria-label*='stars']", "[aria-label*='نجمة']"], true)),
       reviews: extractReviews(clean(card.textContent)),
       imageUrl: extractImage(card),
       mapsUrl,
-      raw: clean(card.textContent).slice(0, 600)
+      raw: clean(card.textContent).slice(0, 900)
     };
-    places.push(place);
+
+    // Google Maps hydrates card controls progressively. Do not permanently
+    // ignore a card after the first sighting: resend only when useful fields
+    // become richer (phone / website / email / social / address).
+    const previous = cardSnapshots.get(mapsUrl);
+    seen.add(mapsUrl);
+    if (!previous || hasUsefulCardUpdate(previous, place)) {
+      cardSnapshots.set(mapsUrl, place);
+      places.push(place);
+    }
   }
 
   return places;
+}
+
+function hasUsefulCardUpdate(previous, next) {
+  if (!previous) return true;
+  const keys = ["name", "phone", "address", "website", "email", "emails", "facebook", "instagram", "twitter", "linkedin", "youtube", "tiktok", "category", "rating", "reviews"];
+  return keys.some(key => !clean(previous[key]) && clean(next[key]));
 }
 
 function normalizeMapsUrl(url) {
@@ -129,19 +159,95 @@ function normalizeMapsUrl(url) {
   }
 }
 
+function normalizeExternalHref(value) {
+  try {
+    const u = new URL(value, location.href);
+    if (!/^https?:$/.test(u.protocol)) return "";
+    const h = u.hostname.toLowerCase();
+    if (/^(www\.)?google\./.test(h)) {
+      const target = u.searchParams.get("q") || u.searchParams.get("url");
+      if (target) return normalizeExternalHref(target);
+      return "";
+    }
+    if (/googleusercontent|gstatic|ggpht|streetviewpixels/i.test(h)) return "";
+    return u.href;
+  } catch (e) {
+    return "";
+  }
+}
+
+function extractWebsite(root) {
+  const labelled = [
+    "a[data-value='Website'][href]",
+    "a[data-item-id='authority'][href]",
+    "a[aria-label*='Website'][href]",
+    "a[aria-label*='website'][href]",
+    "a[aria-label*='الموقع'][href]",
+    "a[aria-label*='Site web'][href]",
+    "a[aria-label*='Webseite'][href]"
+  ];
+  for (const selector of labelled) {
+    for (const a of Array.from(root?.querySelectorAll?.(selector) || [])) {
+      const href = normalizeExternalHref(a.href || a.getAttribute("href"));
+      if (href && !isSocialUrl(href)) return href;
+    }
+  }
+
+  for (const a of Array.from(root?.querySelectorAll?.("a[href^='http']") || [])) {
+    const href = normalizeExternalHref(a.href || a.getAttribute("href"));
+    if (!href || isSocialUrl(href) || /google\.com\/maps|\/maps\//i.test(href)) continue;
+    const label = clean(`${a.textContent || ""} ${a.getAttribute("aria-label") || ""}`);
+    if (/website|site web|webseite|sitio web|sito web|الموقع|موقع إلكتروني/i.test(label)) return href;
+  }
+  return "";
+}
+
+function extractEmail(root) {
+  const candidates = [];
+  for (const a of Array.from(root?.querySelectorAll?.("a[href^='mailto:']") || [])) {
+    const value = String(a.getAttribute("href") || "").replace(/^mailto:/i, "").split(/[?&,;]/)[0].trim();
+    if (value) candidates.push(value);
+  }
+  const text = clean(root?.textContent || "")
+    .replace(/\s*(\[at\]|\(at\)|\{at\})\s*/gi, "@")
+    .replace(/\s*(\[dot\]|\(dot\)|\{dot\})\s*/gi, ".");
+  candidates.push(...(text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,24}/gi) || []));
+  const emails = Array.from(new Set(candidates.map(v => v.toLowerCase()).filter(v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))));
+  return { email: emails[0] || "", emails: emails.join(" | ") };
+}
+
+function extractSocialLinks(root) {
+  const urls = Array.from(root?.querySelectorAll?.("a[href]") || [])
+    .map(a => normalizeExternalHref(a.href || a.getAttribute("href")))
+    .filter(Boolean);
+  const firstMatch = re => urls.find(url => re.test(url) && !/share|intent|sharer/i.test(url)) || "";
+  const social = {
+    facebook: firstMatch(/facebook\.com|fb\.com/i),
+    instagram: firstMatch(/instagram\.com/i),
+    twitter: firstMatch(/twitter\.com|x\.com/i),
+    linkedin: firstMatch(/linkedin\.com/i),
+    youtube: firstMatch(/youtube\.com|youtu\.be/i),
+    tiktok: firstMatch(/tiktok\.com/i)
+  };
+  social.socialLinks = Array.from(new Set(Object.values(social).filter(Boolean))).join(" | ");
+  return social;
+}
+
+function isSocialUrl(url) {
+  return /facebook\.com|fb\.com|instagram\.com|twitter\.com|x\.com|linkedin\.com|youtube\.com|youtu\.be|tiktok\.com/i.test(String(url || ""));
+}
+
 function scrollResults() {
   const scroller = getScroller();
   if (scroller && scroller !== document.documentElement && scroller !== document.body) {
-    scroller.scrollBy({ top: Math.max(650, scroller.clientHeight * .85), behavior: "auto" });
+    scroller.scrollBy({ top: Math.max(700, scroller.clientHeight * .95), behavior: "auto" });
   } else {
-    window.scrollBy({ top: Math.max(650, window.innerHeight * .85), behavior: "auto" });
+    window.scrollBy({ top: Math.max(700, window.innerHeight * .95), behavior: "auto" });
   }
 }
 
 function getScroller() {
-  if (cachedScroller?.isConnected && cachedScroller.scrollHeight > cachedScroller.clientHeight + 100) {
-    return cachedScroller;
-  }
+  if (cachedScroller?.isConnected && cachedScroller.scrollHeight > cachedScroller.clientHeight + 100) return cachedScroller;
   const direct = document.querySelector("div[role='feed']") || document.querySelector(".m6QErb[aria-label]");
   if (direct && direct.scrollHeight > direct.clientHeight + 100) {
     cachedScroller = direct;
@@ -157,20 +263,13 @@ function getScroller() {
 
 function isEndVisible() {
   const text = clean(document.body.textContent).toLowerCase();
-  return text.includes("you've reached the end") ||
-    text.includes("no more results") ||
-    text.includes("وصلت إلى نهاية القائمة") ||
-    text.includes("لا توجد نتائج أخرى");
+  return text.includes("you've reached the end") || text.includes("no more results") || text.includes("وصلت إلى نهاية القائمة") || text.includes("لا توجد نتائج أخرى");
 }
 
 function detectMapsBlock() {
   const text = clean(document.body?.textContent || "").toLowerCase();
-  if (/unusual traffic|automated queries|verify you are human|our systems have detected/i.test(text)) {
-    return "Google Maps requested verification. Extraction stopped for this city to avoid getting stuck.";
-  }
-  if (/captcha|recaptcha/i.test(text) && document.querySelector("iframe[src*='recaptcha'], [class*='captcha'], #captcha")) {
-    return "Google Maps verification page detected. Extraction stopped for this city to avoid getting stuck.";
-  }
+  if (/unusual traffic|automated queries|verify you are human|our systems have detected/i.test(text)) return "Google Maps requested verification. Extraction stopped for this city to avoid getting stuck.";
+  if (/captcha|recaptcha/i.test(text) && document.querySelector("iframe[src*='recaptcha'], [class*='captcha'], #captcha")) return "Google Maps verification page detected. Extraction stopped for this city to avoid getting stuck.";
   return "";
 }
 
@@ -178,7 +277,7 @@ async function waitForMap(timeout) {
   const started = Date.now();
   while (Date.now() - started < timeout) {
     if (document.querySelector("a.hfpxzc[href], a[href*='/maps/place/'], div[role='feed']")) return true;
-    await sleep(350);
+    await sleep(300);
   }
   return false;
 }
@@ -202,9 +301,40 @@ function pick(root, selectors, includeAria = false) {
 }
 
 function extractPhone(root) {
-  const text = clean(root?.textContent || "");
-  const match = toEnglishDigits(text).match(/\+?\d[\d\s().-]{6,}\d/g);
-  return match ? clean(match[0]) : "";
+  const toPhone = value => {
+    const source = toEnglishDigits(String(value || "")).replace(/\u2060/g, " ").trim();
+    const candidates = source.match(/(?:\+|00)?\d[\d\s().-]{5,}\d/g) || [];
+    for (const candidate of candidates) {
+      const digits = candidate.replace(/\D/g, "");
+      if (digits.length < 7 || digits.length > 15) continue;
+      if (/^(\d)\1{6,}$/.test(digits)) continue;
+      if (/^\s*00/.test(candidate)) return `+${digits.slice(2)}`;
+      if (/^\s*\+/.test(candidate)) return `+${digits}`;
+      return clean(candidate);
+    }
+    return "";
+  };
+
+  const selectors = ["a[href^='tel:']", "[data-item-id*='phone']", "[aria-label*='Phone']", "[aria-label*='phone']", "[aria-label*='الهاتف']", "[aria-label*='هاتف']"];
+  for (const selector of selectors) {
+    for (const node of Array.from(root?.querySelectorAll?.(selector) || [])) {
+      const values = [node.getAttribute?.("data-item-id"), node.getAttribute?.("href"), node.getAttribute?.("aria-label"), node.textContent].filter(Boolean);
+      for (const value of values) { const phone = toPhone(value); if (phone && phone.startsWith("+")) return phone; }
+      for (const value of values) { const phone = toPhone(value); if (phone) return phone; }
+    }
+  }
+
+  // Conservative card-text fallback: only accept a full phone-sized run,
+  // never short review/rating/address fragments.
+  const lines = String(root?.innerText || "").split(/\n+/).map(clean).filter(Boolean);
+  for (const line of lines) {
+    if (/reviews?|stars?|مراجعة|نجمة/i.test(line)) continue;
+    const candidate = toPhone(line);
+    if (!candidate) continue;
+    const digits = candidate.replace(/\D/g, "");
+    if (digits.length >= 9 || candidate.startsWith("+")) return candidate;
+  }
+  return "";
 }
 
 function extractAddress(root) {
