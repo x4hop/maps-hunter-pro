@@ -4,7 +4,7 @@
 The repository is the source of truth for the landing page, admin dashboard, backend Worker, D1 schema/migrations, and Chrome extension.
 
 ## 1. Purpose
-Maps Hunter Pro is a Chrome extension and web system for discovering, organizing, and exporting business leads from Google Maps. The website is the commercial entry point for pricing, renewals, affiliate onboarding, and license/account management.
+Maps Hunter Pro is a Chrome extension and web system for discovering, organizing, and exporting business leads from Google Maps. The website is the commercial entry point for pricing, payment instructions, support and manual activation-code delivery. Customer website accounts are not part of the current commercial flow.
 
 ## 2. Current commercial rules
 - Monthly plan: **$20 / month**.
@@ -12,8 +12,8 @@ Maps Hunter Pro is a Chrome extension and web system for discovering, organizing
 - Annual plan: **$100 / year**.
 - Annual daily extraction: **Unlimited**.
 - Customer payment methods: **USDT** and **RedotPay** with manual admin review.
-- Affiliate commission: **50% on first purchase** and **20% on renewals**.
-- Renewals use the customer's existing Maps Hunter Pro website account/email.
+- Affiliate commission target: **50% on first purchase** and **20% on renewals**; affiliate automation is not a launch dependency for the manual-only release.
+- Renewals are handled manually using the existing activation code/customer payment record; no customer website account is required.
 - The Chrome extension does **not** require customer login. It uses an activation/license code only.
 
 ## 3. Design system
@@ -59,6 +59,8 @@ Rules:
 - On first visit, browser language is used when it matches a supported language; otherwise English is the fallback.
 - All visible landing-page UI strings should use `data-i18n` keys.
 - Locale content lives in `assets/locales/` and switcher logic lives in `assets/i18n.js`.
+- Language selection must navigate to the matching indexable route (`/en`, `/ar`, `/ru`, `/de`, `/es`).
+- Each indexable language route has its own canonical, `hreflang`, Open Graph locale/title/description, and appears in the sitemap.
 
 ## 6. Frontend structure
 - `index.html` — landing-page markup and SEO/schema.
@@ -78,19 +80,14 @@ Cloudflare Worker backend:
 - `backend/package.json`
 - `backend/migrations/*`
 
-Core public/customer API direction:
+Current public API direction:
 - `GET /api/health`
 - `GET /api/plans`
 - `GET /api/payment-methods`
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/account/me`
-- `GET /api/account/payments`
-- `POST /api/activation/request`
-- `POST /api/payments/:paymentRef/submit`
-- `POST /api/affiliate/register`
 - `POST /api/license/validate`
 - `POST /api/usage/consume`
+
+Legacy account/payment endpoints may remain in the Worker for compatibility, but they are not part of the current manual-only customer journey unless explicitly re-enabled later.
 
 Admin API endpoints under `/api/admin/*` require a temporary admin session obtained using the Cloudflare `ADMIN_TOKEN` secret.
 
@@ -131,18 +128,16 @@ Anas must always be able to test the extension without a customer account.
 - Owner access does not grant admin dashboard access.
 
 ## 12. Commercial activation flow
-1. Customer creates/logs into the website account.
-2. Customer chooses Monthly or Annual; selected plan is preserved through authentication.
-3. Customer chooses USDT or RedotPay.
-4. Backend creates a pending activation request and pending payment record.
-5. Customer submits transaction reference and/or payment proof.
-6. Request remains pending until Anas/admin verifies that funds actually arrived.
-7. Admin confirms payment exactly once.
-8. Backend grants/extends the entitlement and issues the activation/license code.
-9. Customer enters **only the code** in the extension.
-10. Extension validates the code against the API; no customer email/login is required inside the extension.
+1. Customer chooses Monthly or Annual on the landing page.
+2. Customer pays manually using the published USDT or RedotPay details.
+3. Customer sends the payment screenshot plus transaction reference/address through the published WhatsApp support channel.
+4. Anas/admin verifies that the payment actually arrived.
+5. Admin generates a Monthly or Annual activation code from the protected admin dashboard and sends it to the customer.
+6. The customer pastes **only the activation code** into the extension.
+7. The code starts its customer entitlement on first valid activation and the extension shows the expiry state.
+8. Renewal is handled manually by extending/replacing the existing entitlement after payment verification.
 
-Duplicate external transaction references must be rejected. Repeated admin confirmation must be idempotent and must not issue two entitlements.
+No customer website account is required in this release. Payment proof alone must never auto-activate access. Admin actions and renewals must remain idempotent and auditable.
 
 ## 13. Usage accounting
 - Monthly: 1,500 counted results/day.
@@ -151,29 +146,23 @@ Duplicate external transaction references must be rejected. Repeated admin confi
 - Duplicate rows, failed attempts, retries, and failed requests must not consume the customer allowance.
 - Exact comparison tests must be run on the same search before and after licensing integration to confirm extraction speed/results are not degraded.
 
-## 14. Customer account target sections
-- Subscription: plan, status, start/end.
-- Activation: current activation code and state.
-- Usage: counted results and monthly daily balance.
-- Payments: requests, proof/reference, review state.
-- Download: latest extension release + install instructions.
-- Renewal: plan selection and renewal request.
-- Referral: referral link, eligible conversions, commissions, payouts.
-- Account: profile/password/support.
-
-Email confirmation and password reset require a configured outbound email provider before production enablement.
+## 14. Customer-facing release surface
+- Landing page with pricing, feature proof, payment instructions and FAQ.
+- Manual USDT / RedotPay payment instructions loaded from backend settings.
+- WhatsApp handoff for payment proof and support.
+- Chrome extension activation-code screen showing active/expired/owner state.
+- Privacy Policy, Terms, Refund and Acceptable Use pages.
+- No registration/login UI for customers in the current release.
 
 ## 15. Admin target sections
-- Dashboard.
-- Customers.
-- Subscriptions.
+- Dashboard metrics.
 - Activation codes/licenses.
-- Payments.
-- Affiliates/referrals/payouts.
-- Plans/settings.
+- Owner code management.
+- Sales/product settings.
 - Audit log.
+- Manual payment verification remains an operational step outside automatic customer activation.
 
-Payment confirmation, renewals, and entitlement creation must be safe against double click/retry.
+Code generation, renewals/extensions, revocation and device resets must be safe against double click/retry.
 
 ## 16. Extension UI target
 - Keep Maps Hunter Pro colors and identity.
@@ -192,24 +181,23 @@ Payment confirmation, renewals, and entitlement creation must be safe against do
 ## 17. Security baseline
 - D1 administration endpoints require protected admin authentication.
 - `ADMIN_TOKEN` is a Cloudflare Worker secret and must never be committed.
-- Passwords are salted PBKDF2 hashes; never plaintext.
-- Session tokens are stored server-side as hashes and expire.
+- Any legacy account passwords remain salted PBKDF2 hashes; never plaintext.
+- Admin session tokens are stored server-side as hashes and expire; the browser stores the temporary admin token in `sessionStorage` only.
 - Owner code is hashed server-side and is not committed.
 - Audit logs cover authentication, activation, payment confirmation, entitlement/license actions and critical admin actions.
-- Customer authorization must prevent horizontal access to other customer data.
+- If legacy customer-account endpoints are ever re-enabled, authorization must prevent horizontal access to other customer data.
 - Backups and restoration must be tested before paid launch.
 
 ## 18. Launch gates
-1. Finish landing/pricing flow.
-2. Complete customer account UI and email provider integration.
-3. Complete admin payment/code operations and payment settings.
-4. Link extension code-only activation and validate usage accounting.
-5. Finalize affiliate attribution window, payout threshold, refund/self-referral rules.
-6. Redesign extension UI after approving the mockup.
-7. Run full end-to-end purchase/activation/renewal tests and rollback tests.
-8. Verify Chrome Web Store privacy/policy declarations against actual behavior.
-9. Limited paid pilot.
-10. Public launch only after pilot issues are closed.
+1. Landing page, pricing, policies and five-language SEO are production-ready.
+2. Protected admin dashboard can generate, extend, revoke and inspect activation codes.
+3. Owner code works with permanent test access and is never embedded in source.
+4. Extension activation and usage accounting pass regression tests without changing the extraction algorithm.
+5. Release ZIP builds reproducibly and passes secret/remote-code checks.
+6. Chrome Web Store privacy/policy declarations match actual permissions and data behavior.
+7. Live smoke test: one Monthly code, one Annual code, one Owner code, export to XLSX/CSV/JSON/Table.
+8. Limited paid pilot.
+9. Public launch only after pilot issues are closed.
 
 ## 19. Change log
 ### 2026-09-05
@@ -234,5 +222,15 @@ Payment confirmation, renewals, and entitlement creation must be safe against do
 - Added `GET /api/payment-methods` so wallet/network/account values are configured from backend settings rather than hard-coded or invented.
 - Added `POST /api/payments/:paymentRef/submit` for transaction reference/proof submission; this never auto-activates a subscription.
 - Preserved admin-only payment approval and duplicate external-reference protection.
-- Locked delivery order: landing/pricing → customer account → admin/payments/codes → extension activation → referrals → extension redesign → launch testing.
+- Locked launch order for the manual-only release: landing/pricing → admin codes/settings → extension activation → release checks → pilot → public launch.
 - Device allowance remains intentionally undecided until Anas approves a number; do not create a new commercial device promise before that decision.
+
+### 2026-09-12 — 8.3.1 completion
+- Corrected project documentation to the current manual-only commercial flow with no customer website account requirement.
+- Moved admin session tokens from persistent `localStorage` to `sessionStorage` and removed the prefilled admin username from the login page.
+- Polished the admin dashboard without changing licensing behavior.
+- Bumped the extension release to **8.3.1**.
+- Fixed the extension release packager to use the current `panel-v2.html` / `panel-v2.js` files.
+- Added CI release checks that validate JavaScript, build static pages, generate the ZIP and upload the 8.3.1 package artifact.
+- Added server-side localized SEO metadata for `/en`, `/ar`, `/ru`, `/de`, `/es`, with canonical, `hreflang`, Open Graph URL and a complete sitemap.
+- Root `/` now permanently redirects to `/en`; extraction logic remains unchanged.
