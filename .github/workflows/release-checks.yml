@@ -59,17 +59,22 @@ jobs:
         run: node scripts/build.mjs
       - name: Build extension release
         run: node scripts/release-extension.mjs
+      - name: Resolve extension version
+        id: ext
+        run: echo "version=$(node -p "require('./extension/manifest.json').version")" >> "$GITHUB_OUTPUT"
       - name: Verify release version
+        env:
+          EXT_VERSION: ${{ steps.ext.outputs.version }}
         run: |
-          test -f release/maps-hunter-pro-extension-8.3.1.zip
-          test -f release/maps-hunter-pro-extension-8.3.1.sha256
-          test -f release/maps-hunter-pro-extension-8.3.1-contents.txt
+          test -f "release/maps-hunter-pro-extension-${EXT_VERSION}.zip"
+          test -f "release/maps-hunter-pro-extension-${EXT_VERSION}.sha256"
+          test -f "release/maps-hunter-pro-extension-${EXT_VERSION}-contents.txt"
       - name: Upload extension package
         uses: actions/upload-artifact@v4
         with:
-          name: maps-hunter-pro-extension-8.3.1
+          name: maps-hunter-pro-extension-${{ steps.ext.outputs.version }}
           path: |
-            release/maps-hunter-pro-extension-8.3.1.zip
-            release/maps-hunter-pro-extension-8.3.1.sha256
-            release/maps-hunter-pro-extension-8.3.1-contents.txt
+            release/maps-hunter-pro-extension-${{ steps.ext.outputs.version }}.zip
+            release/maps-hunter-pro-extension-${{ steps.ext.outputs.version }}.sha256
+            release/maps-hunter-pro-extension-${{ steps.ext.outputs.version }}-contents.txt
           if-no-files-found: error
