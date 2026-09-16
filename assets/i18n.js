@@ -2,6 +2,14 @@ const MHP_META={"en":["Maps Hunter Pro — Google Maps Lead Extraction Chrome Ex
 const MHP_LANGS=['en','ar','ru','de','es'];
 const MHP_LANG_SHORT={en:'EN',ar:'ع',ru:'RU',de:'DE',es:'ES'};
 const MHP_LANG_NAME={en:'English',ar:'العربية',ru:'Русский',de:'Deutsch',es:'Español'};
+const MHP_CONFIRMED_PAYMENT={binance:'752783284',redotpay:'1831390337',usdt:'TLY5RXDg3waF1W7G5BStX8pp8ATxqaiKJS',network:'TRC20'};
+const MHP_PAYMENT_UI={
+  en:{binance:'Send with your Binance ID.',redot:'Pay with your RedotPay ID.',usdt:'USDT transfer on TRC20.',wallet:'Wallet address',network:'Network',copyId:'Copy ID',copyAddress:'Copy Address',showQr:'Show QR',copied:'Copied',modalTitle:'USDT payment',modalText:'Scan the QR code or copy the wallet address below.',value:'Wallet address',close:'Close'},
+  ar:{binance:'ادفع باستخدام Binance ID.',redot:'ادفع باستخدام RedotPay ID.',usdt:'تحويل USDT عبر شبكة TRC20.',wallet:'عنوان المحفظة',network:'الشبكة',copyId:'نسخ ID',copyAddress:'نسخ العنوان',showQr:'عرض QR',copied:'تم النسخ',modalTitle:'دفع USDT',modalText:'امسح رمز QR أو انسخ عنوان المحفظة بالأسفل.',value:'عنوان المحفظة',close:'إغلاق'},
+  ru:{binance:'Оплата через Binance ID.',redot:'Оплата через RedotPay ID.',usdt:'Перевод USDT по сети TRC20.',wallet:'Адрес кошелька',network:'Сеть',copyId:'Копировать ID',copyAddress:'Копировать адрес',showQr:'Показать QR',copied:'Скопировано',modalTitle:'Оплата USDT',modalText:'Отсканируйте QR-код или скопируйте адрес кошелька ниже.',value:'Адрес кошелька',close:'Закрыть'},
+  de:{binance:'Mit Binance ID bezahlen.',redot:'Mit RedotPay ID bezahlen.',usdt:'USDT-Transfer über TRC20.',wallet:'Wallet-Adresse',network:'Netzwerk',copyId:'ID kopieren',copyAddress:'Adresse kopieren',showQr:'QR anzeigen',copied:'Kopiert',modalTitle:'USDT-Zahlung',modalText:'QR-Code scannen oder die Wallet-Adresse unten kopieren.',value:'Wallet-Adresse',close:'Schließen'},
+  es:{binance:'Paga con tu Binance ID.',redot:'Paga con tu RedotPay ID.',usdt:'Transferencia USDT por TRC20.',wallet:'Dirección de la billetera',network:'Red',copyId:'Copiar ID',copyAddress:'Copiar dirección',showQr:'Ver QR',copied:'Copiado',modalTitle:'Pago USDT',modalText:'Escanea el código QR o copia la dirección de la billetera.',value:'Dirección de la billetera',close:'Cerrar'}
+};
 
 function installChangaTheme(){
   if(!document.getElementById('mhp-changa-font')){
@@ -9,6 +17,13 @@ function installChangaTheme(){
     link.id='mhp-changa-font';
     link.rel='stylesheet';
     link.href='https://fonts.googleapis.com/css2?family=Changa:wght@400;500;600;700;800&display=swap';
+    document.head.appendChild(link);
+  }
+  if(!document.getElementById('mhp-ui-polish')){
+    const link=document.createElement('link');
+    link.id='mhp-ui-polish';
+    link.rel='stylesheet';
+    link.href='assets/ui-polish.css';
     document.head.appendChild(link);
   }
   if(!document.getElementById('mhp-language-font-fixes')){
@@ -62,6 +77,75 @@ function updateLanguageControl(lang){
   });
 }
 
+function setTextIfChanged(el,value){if(el&&typeof value==='string'&&el.textContent!==value)el.textContent=value}
+function isCopiedState(text){return ['Copied','تم النسخ','Скопировано','Kopiert','Copiado'].includes(String(text||'').trim())}
+function setCopyButton(btn,normal,copied){
+  if(!btn)return;
+  const current=btn.textContent.trim();
+  if(isCopiedState(current))setTextIfChanged(btn,copied);
+  else setTextIfChanged(btn,normal);
+  btn.dataset.originalText=normal;
+  if(btn.disabled&&!isCopiedState(btn.textContent.trim()))btn.disabled=false;
+}
+
+function polishPaymentUI(lang=document.documentElement.lang||'en'){
+  const t=MHP_PAYMENT_UI[lang]||MHP_PAYMENT_UI.en;
+  const wrap=document.querySelector('.manual-payments');
+  if(!wrap)return;
+  const binance=wrap.querySelector('[data-payment-method="binance"]');
+  const redot=wrap.querySelector('[data-payment-method="redotpay"]');
+  const usdt=wrap.querySelector('[data-payment-method="usdt"]');
+
+  for(const card of [binance,redot,usdt])if(card?.classList.contains('payment-unavailable'))card.classList.remove('payment-unavailable');
+
+  const binanceValue=document.getElementById('binanceId');
+  if(binanceValue&&(!binanceValue.textContent.trim()||binanceValue.textContent.trim()==='—'||/unavailable|غير متاح/i.test(binanceValue.textContent)))setTextIfChanged(binanceValue,MHP_CONFIRMED_PAYMENT.binance);
+  const redotValue=document.getElementById('redotpayAccount');
+  if(redotValue&&(!redotValue.textContent.trim()||redotValue.textContent.trim()==='—'||/unavailable|غير متاح/i.test(redotValue.textContent)))setTextIfChanged(redotValue,MHP_CONFIRMED_PAYMENT.redotpay);
+  const usdtValue=document.getElementById('usdtAddress');
+  if(usdtValue&&(!usdtValue.textContent.trim()||usdtValue.textContent.trim()==='—'||/unavailable|غير متاح/i.test(usdtValue.textContent)))setTextIfChanged(usdtValue,MHP_CONFIRMED_PAYMENT.usdt);
+
+  setTextIfChanged(binance?.querySelector('.pay-brand span'),t.binance);
+  setTextIfChanged(redot?.querySelector('.pay-brand span'),t.redot);
+  setTextIfChanged(usdt?.querySelector('.pay-brand span'),t.usdt);
+
+  const usdtLabel=usdt?.querySelector('.pay-value-wrap label');
+  setTextIfChanged(usdtLabel,t.wallet);
+  const network=document.getElementById('usdtNetwork');
+  setTextIfChanged(network,`${t.network}: ${MHP_CONFIRMED_PAYMENT.network}`);
+
+  setCopyButton(binance?.querySelector('.copy-trigger'),t.copyId,t.copied);
+  setCopyButton(redot?.querySelector('.copy-trigger'),t.copyId,t.copied);
+  setCopyButton(usdt?.querySelector('.copy-trigger'),t.copyAddress,t.copied);
+  const qr=usdt?.querySelector('.qr-trigger');
+  if(qr){setTextIfChanged(qr,t.showQr);if(qr.disabled)qr.disabled=false}
+
+  const modal=document.getElementById('paymentModal');
+  if(modal){
+    const title=document.getElementById('paymentModalTitle');
+    const subtitle=document.getElementById('paymentModalSubtitle');
+    const small=modal.querySelector('.payment-modal-value small');
+    const close=modal.querySelector('.payment-modal-close');
+    if(!modal.hidden){setTextIfChanged(title,t.modalTitle);setTextIfChanged(subtitle,t.modalText)}
+    setTextIfChanged(small,t.value);
+    if(close)close.setAttribute('aria-label',t.close);
+    setCopyButton(modal.querySelector('.copy-trigger'),t.copyAddress,t.copied);
+  }
+}
+
+function installPaymentPolishObserver(){
+  const wrap=document.querySelector('.manual-payments');
+  if(!wrap||wrap.dataset.polishObserved)return;
+  wrap.dataset.polishObserved='1';
+  let scheduled=false;
+  const run=()=>{scheduled=false;polishPaymentUI(document.documentElement.lang||'en')};
+  const observer=new MutationObserver(()=>{if(!scheduled){scheduled=true;queueMicrotask(run)}});
+  observer.observe(wrap,{subtree:true,childList:true,attributes:true,attributeFilter:['class','disabled']});
+  const modalHost=document.body;
+  if(modalHost)observer.observe(modalHost,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','disabled','class']});
+  polishPaymentUI(document.documentElement.lang||'en');
+}
+
 function applyLanguage(lang){
   if(!MHP_LANGS.includes(lang))lang='en';
   const dict=(window.MHP_LOCALES||{})[lang];
@@ -74,6 +158,7 @@ function applyLanguage(lang){
     if(Object.prototype.hasOwnProperty.call(dict,key))el.textContent=dict[key];
   });
   updateLanguageControl(lang);
+  polishPaymentUI(lang);
   const [title,description]=MHP_META[lang];
   document.title=title;
   const md=document.querySelector('meta[name="description"]');
@@ -151,6 +236,10 @@ function initLanguageSwitcher(){
   if(MHP_LANGS.includes(route))saved=route;
   const browser=(navigator.language||'en').slice(0,2).toLowerCase();
   applyLanguage(saved||(MHP_LANGS.includes(browser)?browser:'en'));
+  installPaymentPolishObserver();
+  setTimeout(()=>polishPaymentUI(document.documentElement.lang||'en'),0);
+  setTimeout(()=>polishPaymentUI(document.documentElement.lang||'en'),600);
+  setTimeout(()=>polishPaymentUI(document.documentElement.lang||'en'),1800);
 }
 
 document.addEventListener('DOMContentLoaded',initLanguageSwitcher);
