@@ -1,43 +1,92 @@
-/* Payment-method header cleanup: icon only, no label/description behind it. */
+/* Payment-method header: keep custom icons, restore the clean original card rhythm. */
 #payments .manual-payments .pay-brand{
   display:flex!important;
+  flex-direction:row!important;
   align-items:center!important;
-  justify-content:center!important;
-  min-height:52px!important;
+  justify-content:flex-start!important;
   width:100%!important;
-  gap:0!important;
+  min-height:0!important;
+  gap:11px!important;
+  text-align:start!important;
 }
 
+/* Keep only the method name beside the icon; hide the extra descriptive sentence. */
 #payments .manual-payments .pay-brand>div{
+  display:block!important;
+  min-width:0!important;
+}
+#payments .manual-payments .pay-brand strong{
+  display:block!important;
+  margin:0!important;
+  font-size:18px!important;
+  line-height:1.15!important;
+  font-weight:800!important;
+  white-space:nowrap!important;
+}
+#payments .manual-payments .pay-brand span:not(.pay-logo){
   display:none!important;
 }
 
+/* Custom payment mark only — never render the older inline SVG underneath it. */
 #payments .manual-payments .pay-logo{
-  margin:0 auto!important;
+  margin:0!important;
+  flex:0 0 48px!important;
+  width:48px!important;
+  height:48px!important;
   font-size:0!important;
   line-height:0!important;
   text-indent:0!important;
-  flex:0 0 50px!important;
-  width:50px!important;
-  height:50px!important;
 }
-
 #payments .manual-payments .pay-logo::before,
 #payments .manual-payments .pay-logo::after{
   content:none!important;
   display:none!important;
 }
-
-/* The custom mark is the CSS background image; suppress the old inline SVG completely. */
 #payments .manual-payments .pay-logo>svg{
   display:none!important;
 }
 
+/* Keep the original tidy proportions of the cards. */
+#payments .manual-payments .pay-value-wrap,
+#payments .manual-payments .pay-actions{
+  width:100%!important;
+}
+#payments .manual-payments [data-payment-method="binance"],
+#payments .manual-payments [data-payment-method="redotpay"]{
+  justify-content:flex-start!important;
+}
+
+/* USDT remains the full-width row, with the same visual language as the two cards above. */
+#payments .manual-payments [data-payment-method="usdt"] .pay-brand{
+  align-self:center!important;
+}
+
 @media(max-width:760px){
-  #payments .manual-payments .pay-brand{min-height:44px!important}
+  #payments .manual-payments .pay-brand{
+    gap:8px!important;
+  }
+  #payments .manual-payments .pay-brand strong{
+    font-size:15px!important;
+    line-height:1.15!important;
+  }
   #payments .manual-payments .pay-logo{
-    width:44px!important;
-    height:44px!important;
-    flex-basis:44px!important;
+    width:38px!important;
+    height:38px!important;
+    flex-basis:38px!important;
+  }
+  #payments .manual-payments [data-payment-method="binance"],
+  #payments .manual-payments [data-payment-method="redotpay"]{
+    aspect-ratio:1/1!important;
+  }
+}
+
+@media(max-width:390px){
+  #payments .manual-payments .pay-brand strong{
+    font-size:14px!important;
+  }
+  #payments .manual-payments .pay-logo{
+    width:36px!important;
+    height:36px!important;
+    flex-basis:36px!important;
   }
 }
