@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Maps Hunter Pro",
-  "version": "8.3.1",
+  "version": "8.3.2",
   "description": "Instant Google Maps result capture with direct extraction and professional export.",
   "permissions": [
     "activeTab",
@@ -17,7 +17,7 @@
     "https://maps-hunter-pro-api.anas98gha.workers.dev/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background-wrapper.js"
   },
   "action": {
     "default_title": "Maps Hunter Pro"
