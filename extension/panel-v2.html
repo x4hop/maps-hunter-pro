@@ -47,7 +47,48 @@
         </div>
         <div class="tag-list" id="cityTags" aria-label="City tags"></div>
       </div>
-      <div class="instant-mode"><span class="instant-dot"></span><div><strong>Instant capture</strong><small>Every Google Maps result is saved the moment it appears.</small></div><b>MAX SPEED</b></div>
+
+      <div class="instant-mode">
+        <span class="instant-dot"></span>
+        <div><strong>Direct Maps capture</strong><small>Reads each Google Maps detail page; business websites are not opened.</small></div>
+        <span style="display:flex;gap:5px;align-items:center">
+          <select id="countryCode" aria-label="Phone country code" title="Phone country code" style="max-width:88px;height:31px;border:1px solid #d8eadf;border-radius:8px;background:#fff;color:#2f7355;font-size:10px;font-weight:800">
+            <option value="">Auto CC</option>
+            <option value="218">+218 LY</option>
+            <option value="20">+20 EG</option>
+            <option value="216">+216 TN</option>
+            <option value="213">+213 DZ</option>
+            <option value="212">+212 MA</option>
+            <option value="966">+966 SA</option>
+            <option value="971">+971 UAE</option>
+            <option value="974">+974 QA</option>
+            <option value="965">+965 KW</option>
+            <option value="973">+973 BH</option>
+            <option value="968">+968 OM</option>
+            <option value="962">+962 JO</option>
+            <option value="961">+961 LB</option>
+            <option value="964">+964 IQ</option>
+            <option value="90">+90 TR</option>
+            <option value="49">+49 DE</option>
+            <option value="44">+44 UK</option>
+            <option value="33">+33 FR</option>
+            <option value="39">+39 IT</option>
+            <option value="34">+34 ES</option>
+            <option value="7">+7 RU</option>
+            <option value="1">+1 US/CA</option>
+          </select>
+          <select id="workerCount" aria-label="Concurrent Maps tabs" title="Concurrent Maps tabs" style="max-width:68px;height:31px;border:1px solid #d8eadf;border-radius:8px;background:#fff;color:#2f7355;font-size:10px;font-weight:800">
+            <option value="1">1 tab</option>
+            <option value="2">2 tabs</option>
+            <option value="3">3 tabs</option>
+            <option value="4">4 tabs</option>
+            <option value="5">5 tabs</option>
+            <option value="6" selected>6 tabs</option>
+            <option value="7">7 tabs</option>
+            <option value="8">8 tabs</option>
+          </select>
+        </span>
+      </div>
 
       <button id="startBtn" class="primary-action" type="button"><span>Start Search</span><b>→</b></button>
 
@@ -82,7 +123,7 @@
       <button id="saveLicense" class="primary-action" type="button"><span>Activate code</span><b>✓</b></button>
       <div id="licenseStatusBox" class="activation-state"><strong>Checking activation…</strong><span>Please wait.</span></div>
       <div class="license-meta"><div><span>Status</span><b id="licenseStateText">Checking</b></div><div><span>Expires</span><b id="expiresText">—</b></div></div>
-      <footer><span>Maps Hunter Pro v8.2.6</span><a href="https://maps-hunter-pro-preview.anas98gha.workers.dev/privacy.html" target="_blank">Privacy</a></footer>
+      <footer><span>Maps Hunter Pro v8.3.2</span><a href="https://maps-hunter-pro-preview.anas98gha.workers.dev/privacy.html" target="_blank">Privacy</a></footer>
     </div>
   </section>
 
