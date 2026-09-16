@@ -26,31 +26,20 @@
     <div class="search-card">
       <div class="section-heading"><div><small>NEW SEARCH</small><h1>Find businesses faster</h1></div><span id="phaseBadge">Ready</span></div>
 
-      <div class="tag-field tag-card" data-tag-kind="keyword">
-        <div class="tag-field-head">
-          <div><strong>Search types</strong><small>What businesses do you want?</small></div>
-          <span>Enter ↵</span>
-        </div>
-        <div class="tag-editor" id="keywordEditor">
-          <input id="keywordInput" type="text" placeholder="Type a niche, e.g. Restaurants" autocomplete="off" aria-label="Add search type">
-        </div>
-        <div class="tag-list" id="keywordTags" aria-label="Search type tags"></div>
-      </div>
+      <label class="input-group">
+        <span>Search type</span>
+        <input id="keyword" type="text" placeholder="e.g. Restaurants" autocomplete="off" aria-label="Business search type">
+      </label>
 
-      <div class="tag-field tag-card" data-tag-kind="city">
-        <div class="tag-field-head">
-          <div><strong>Cities</strong><small>Where should Maps Hunter search?</small></div>
-          <span>Enter ↵</span>
-        </div>
-        <div class="tag-editor" id="cityEditor">
-          <input id="cityInput" type="text" placeholder="Type a city, e.g. Tripoli" autocomplete="off" aria-label="Add city">
-        </div>
-        <div class="tag-list" id="cityTags" aria-label="City tags"></div>
-      </div>
+      <label class="input-group cities-group">
+        <span>Cities</span>
+        <textarea id="citiesInput" placeholder="Tripoli&#10;Benghazi&#10;Misrata" aria-label="Cities, one per line"></textarea>
+        <small>One city per line, or separate with commas.</small>
+      </label>
 
       <div class="instant-mode">
         <span class="instant-dot"></span>
-        <div><strong>Direct Maps capture</strong><small>Reads each Google Maps detail page; business websites are not opened.</small></div>
+        <div><strong>Direct Maps capture</strong><small>Reads Google Maps detail pages only; business websites are not opened.</small></div>
         <span style="display:flex;gap:5px;align-items:center">
           <select id="countryCode" aria-label="Phone country code" title="Phone country code" style="max-width:88px;height:31px;border:1px solid #d8eadf;border-radius:8px;background:#fff;color:#2f7355;font-size:10px;font-weight:800">
             <option value="">Auto CC</option>
@@ -94,7 +83,7 @@
 
       <div class="live-card">
         <div class="live-orbit" id="liveOrbit"><div><small>LEADS</small><strong id="leadCount">0</strong><span>collected</span></div></div>
-        <div class="live-copy"><strong id="statusTitle">Ready to search</strong><p id="statusText">Add search types and cities as tags.</p><div class="mini-progress"><i id="progressBar"></i></div></div>
+        <div class="live-copy"><strong id="statusTitle">Ready to search</strong><p id="statusText">Enter a search type and at least one city.</p><div class="mini-progress"><i id="progressBar"></i></div></div>
       </div>
 
       <div class="run-actions">
