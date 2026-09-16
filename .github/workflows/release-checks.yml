@@ -24,6 +24,9 @@ jobs:
           node-version: '22'
       - name: Syntax checks
         run: |
+          node --check assets/app.js
+          node --check assets/i18n.js
+          node --check assets/manual-i18n.js
           node --check admin/admin.js
           node --check backend/src/index.js
           node --check deploy/preview-worker.js
