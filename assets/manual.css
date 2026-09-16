@@ -39,3 +39,23 @@
 body.modal-open{overflow:hidden}
 @media(max-width:1000px){.manual-payments{grid-template-columns:1fr}}
 @media(max-width:700px){.manual-payment-flow{padding:18px}.payment-modal-dialog{padding:18px}.pay-card{text-align:start}}
+
+/* 2026 SaaS payment surface */
+.manual-payments{gap:20px}
+.pay-card{position:relative;min-height:310px;padding:26px;border-radius:26px;background:linear-gradient(180deg,rgba(255,255,255,.96),rgba(255,250,245,.9));box-shadow:0 18px 50px rgba(72,49,29,.07);overflow:hidden;transition:transform .3s ease,box-shadow .3s ease,border-color .3s ease,opacity .2s ease,filter .2s ease}
+.pay-card:before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,transparent,var(--brand),transparent);opacity:.68}
+.pay-card:hover{transform:translateY(-7px);border-color:#dec0a2;box-shadow:0 28px 72px rgba(72,49,29,.12)}
+.pay-brand{align-items:flex-start}.pay-brand strong{font-size:22px;letter-spacing:-.02em}.pay-brand span{font-size:13.5px;line-height:1.55}
+.pay-logo{width:60px;height:60px;border-radius:19px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.7),0 10px 25px rgba(55,43,32,.08)}
+.pay-logo svg{width:34px;height:34px}
+.logo-usdt{background:linear-gradient(145deg,#e7fbf3,#d9f3e9);color:#26a17b}
+.logo-binance{background:linear-gradient(145deg,#fff8df,#ffefb4)}
+.logo-redotpay{background:linear-gradient(145deg,#fff4f1,#ffe5df)}
+.pay-value-wrap{padding:14px;border:1px solid rgba(231,216,201,.86);border-radius:18px;background:rgba(255,253,250,.74)}
+.pay-value-wrap code{background:#fff;border-style:solid;font-size:14px}
+.pay-actions .btn{flex:1;min-width:120px}
+.manual-payment-flow{max-width:860px;padding:28px;border-radius:24px;background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,250,245,.85));backdrop-filter:blur(12px)}
+.payment-modal-dialog{border-radius:28px;box-shadow:0 40px 110px rgba(27,20,15,.28)}
+.payment-qr-frame{background:linear-gradient(145deg,#fff,#fbf5ef)}
+@media(max-width:1000px){.manual-payments{grid-template-columns:repeat(2,minmax(0,1fr))}.pay-card:last-child{grid-column:1/-1;max-width:calc(50% - 10px);width:100%;justify-self:center}}
+@media(max-width:720px){.manual-payments{grid-template-columns:1fr}.pay-card:last-child{grid-column:auto;max-width:none}.pay-card{min-height:0;padding:22px}.pay-card:hover{transform:none}}

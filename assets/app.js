@@ -1,6 +1,6 @@
 const API_BASE=window.MHP_API_BASE||'';
-const CONFIRMED_PAYMENT={binanceId:'752783284',redotpayId:'1831390337'};
-const BLOCKED_USDT_ADDRESSES=new Set(['TLY5RXDg3waF1W7G5BStX8pp8ATxqaiKJS']);
+const CONFIRMED_PAYMENT={binanceId:'752783284',redotpayId:'1831390337',usdtAddress:'TLY5RXDg3waF1W7G5BStX8pp8ATxqaiKJS',usdtNetwork:'TRC20'};
+const BLOCKED_USDT_ADDRESSES=new Set();
 let plansPayload=null,paymentPayload=null,selectedPlan='';
 
 async function getJson(path){
@@ -85,10 +85,11 @@ function applyPayments(payload){
   if(rp)rp.textContent=effectiveRedot||localeText('Unavailable','غير متاح');
   setMethodDisabled('redotpay',!effectiveRedot||(r&&r.enabled===false));
 
-  const safeUsdt=isSafeUsdtConfig(u);
-  const network=String(u?.network||'TRC20').trim()||'TRC20';
+  const effectiveUsdt=(u?.enabled===true&&u?.address)?u:{enabled:true,network:CONFIRMED_PAYMENT.usdtNetwork,address:CONFIRMED_PAYMENT.usdtAddress};
+  const safeUsdt=isSafeUsdtConfig(effectiveUsdt);
+  const network=String(effectiveUsdt?.network||CONFIRMED_PAYMENT.usdtNetwork).trim()||'TRC20';
   if(n)n.textContent=`Network: ${network}`;
-  if(ad)ad.textContent=safeUsdt?String(u.address).trim():localeText('Unavailable — address not verified','غير متاح — العنوان غير موثّق');
+  if(ad)ad.textContent=safeUsdt?String(effectiveUsdt.address).trim():localeText('Unavailable — address not verified','غير متاح — العنوان غير موثّق');
   if(status)status.textContent=safeUsdt?localeText(`USDT transfer on ${network}. Verify the network before sending.`,`تحويل USDT على شبكة ${network}. تحقق من الشبكة قبل الإرسال.`):localeText('Temporarily unavailable until the USDT TRC20 deposit address is verified.','غير متاح مؤقتًا حتى يتم التحقق من عنوان إيداع USDT TRC20.');
   document.querySelectorAll('[data-usdt-action]').forEach(btn=>btn.disabled=!safeUsdt);
   setMethodDisabled('usdt',!safeUsdt);
@@ -105,6 +106,23 @@ function openPaymentModal(type,title,value,subtitle){
 }
 function closePaymentModal(){const modal=document.getElementById('paymentModal'),img=document.getElementById('paymentQrImage');if(!modal)return;modal.hidden=true;modal.setAttribute('aria-hidden','true');if(img)img.removeAttribute('src');document.body.classList.remove('modal-open')}
 function bindPlans(){document.querySelectorAll('[data-mhp-plan]').forEach(a=>{if(a.dataset.boundPlan)return;a.dataset.boundPlan='1';a.addEventListener('click',()=>{selectedPlan=a.dataset.mhpPlan||'';updateWhatsApp()})})}
+function initSaasScrollExperience(){
+  document.documentElement.classList.add('js-scroll');
+  let progress=document.querySelector('.scroll-progress');
+  if(!progress){progress=document.createElement('div');progress.className='scroll-progress';progress.setAttribute('aria-hidden','true');document.body.prepend(progress)}
+  const header=document.querySelector('.site-header');
+  const updateScroll=()=>{const max=Math.max(1,document.documentElement.scrollHeight-innerHeight),ratio=Math.min(1,Math.max(0,scrollY/max));progress.style.transform=`scaleX(${ratio})`;header?.classList.toggle('is-scrolled',scrollY>18)};
+  updateScroll();addEventListener('scroll',updateScroll,{passive:true});addEventListener('resize',updateScroll,{passive:true});
+
+  const revealTargets=[...document.querySelectorAll('.section-title,.card,.excel-shell,.price-card,.referral,.manual-payments,.manual-payment-flow,.faq details')];
+  revealTargets.forEach((el,i)=>{el.classList.add('reveal');el.style.setProperty('--reveal-delay',`${Math.min((i%6)*55,275)}ms`)});
+  if('IntersectionObserver'in window){const revealObserver=new IntersectionObserver(entries=>{entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');revealObserver.unobserve(entry.target)}})},{threshold:.12,rootMargin:'0px 0px -6%'});revealTargets.forEach(el=>revealObserver.observe(el))}else revealTargets.forEach(el=>el.classList.add('is-visible'));
+
+  const navLinks=[...document.querySelectorAll('.nav-links a[href^="#"]')];
+  const sections=navLinks.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  if('IntersectionObserver'in window&&sections.length){const sectionObserver=new IntersectionObserver(entries=>{const visible=entries.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];if(!visible)return;navLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')===`#${visible.target.id}`))},{rootMargin:'-24% 0px -58%',threshold:[0,.15,.35,.55]});sections.forEach(sec=>sectionObserver.observe(sec))}
+}
+
 function bindPaymentActions(){
   document.querySelectorAll('.copy-trigger').forEach(btn=>{if(btn.dataset.boundCopy)return;btn.dataset.boundCopy='1';btn.addEventListener('click',async()=>{if(btn.disabled)return;const value=btn.dataset.copyValue||textOf(btn.dataset.copyTarget);if(!value||/unavailable|غير متاح/i.test(value))return;try{await copyText(value);flashCopy(btn)}catch(e){console.warn('Copy failed',e)}})});
   document.querySelectorAll('.qr-trigger').forEach(btn=>{if(btn.dataset.boundQr)return;btn.dataset.boundQr='1';btn.addEventListener('click',()=>{if(btn.disabled)return;const value=textOf(btn.dataset.qrTarget),network=textOf('usdtNetwork').replace(/^Network:\s*/i,'')||'TRC20';openPaymentModal(btn.dataset.qrType||'usdt',`USDT (${network})`,value,localeText(`Network: ${network}. Confirm it matches the sender wallet before paying.`,`الشبكة: ${network}. تأكد أنها مطابقة لمحفظة الإرسال قبل الدفع.`))})});
@@ -113,7 +131,7 @@ function bindPaymentActions(){
 }
 
 document.addEventListener('DOMContentLoaded',async()=>{
-  upgradePaymentsUI();bindPlans();bindPaymentActions();
+  upgradePaymentsUI();bindPlans();bindPaymentActions();initSaasScrollExperience();
   const [plans,pay]=await Promise.all([getJson('/api/plans'),getJson('/api/payment-methods')]);
   applyPlans(plans);applyPayments(pay);
 });
