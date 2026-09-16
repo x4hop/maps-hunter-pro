@@ -1,152 +1,219 @@
-/* Payment card refinement: repair Binance + RedotPay only. USDT stays untouched. */
+/* Payment methods — final clean layout.
+   Show only: custom icon + method name + send details + actions.
+   Payment instructions/code-delivery guidance lives in the separate flow section. */
 
-/* Two top methods use a compact three-row card: brand / value / action. */
-#payments .manual-payments [data-payment-method="binance"],
-#payments .manual-payments [data-payment-method="redotpay"]{
-  display:grid!important;
-  grid-template-rows:auto minmax(0,1fr) auto!important;
-  align-content:stretch!important;
+#payments .manual-payments{
   align-items:stretch!important;
-  gap:10px!important;
-  min-width:0!important;
 }
 
-#payments .manual-payments [data-payment-method="binance"] .pay-brand,
-#payments .manual-payments [data-payment-method="redotpay"] .pay-brand{
+/* Never show the instructional sentence inside a payment method card. */
+#payments .manual-payments .pay-brand>div{
+  display:block!important;
+  min-width:0!important;
+}
+#payments .manual-payments .pay-brand span:not(.pay-logo){
+  display:none!important;
+}
+
+/* One clean header language for all three methods. */
+#payments .manual-payments .pay-brand{
   display:flex!important;
   flex-direction:row!important;
   align-items:center!important;
   justify-content:flex-start!important;
-  width:100%!important;
   min-width:0!important;
   min-height:0!important;
-  gap:10px!important;
+  width:100%!important;
+  gap:11px!important;
   margin:0!important;
   text-align:start!important;
 }
-
-/* Show only the method name next to the custom icon. */
-#payments .manual-payments [data-payment-method="binance"] .pay-brand>div,
-#payments .manual-payments [data-payment-method="redotpay"] .pay-brand>div{
-  display:block!important;
-  min-width:0!important;
-}
-#payments .manual-payments [data-payment-method="binance"] .pay-brand strong,
-#payments .manual-payments [data-payment-method="redotpay"] .pay-brand strong{
+#payments .manual-payments .pay-brand strong{
   display:block!important;
   margin:0!important;
-  font-size:17px!important;
-  line-height:1.1!important;
-  font-weight:800!important;
+  color:var(--color-black)!important;
+  font-size:18px!important;
+  line-height:1.15!important;
+  font-weight:900!important;
   white-space:nowrap!important;
   overflow:hidden!important;
   text-overflow:ellipsis!important;
 }
-#payments .manual-payments [data-payment-method="binance"] .pay-brand span:not(.pay-logo),
-#payments .manual-payments [data-payment-method="redotpay"] .pay-brand span:not(.pay-logo){
-  display:none!important;
-}
 
-/* Keep the new custom marks; never render the old inline SVG behind them. */
-#payments .manual-payments [data-payment-method="binance"] .pay-logo,
-#payments .manual-payments [data-payment-method="redotpay"] .pay-logo{
+/* Keep only the new custom mark. The older inline SVG must never appear beneath it. */
+#payments .manual-payments .pay-logo{
   margin:0!important;
-  flex:0 0 44px!important;
-  width:44px!important;
-  height:44px!important;
+  flex:0 0 46px!important;
+  width:46px!important;
+  height:46px!important;
   font-size:0!important;
   line-height:0!important;
   text-indent:0!important;
 }
-#payments .manual-payments [data-payment-method="binance"] .pay-logo::before,
-#payments .manual-payments [data-payment-method="binance"] .pay-logo::after,
-#payments .manual-payments [data-payment-method="redotpay"] .pay-logo::before,
-#payments .manual-payments [data-payment-method="redotpay"] .pay-logo::after{
+#payments .manual-payments .pay-logo::before,
+#payments .manual-payments .pay-logo::after{
   content:none!important;
   display:none!important;
 }
-#payments .manual-payments [data-payment-method="binance"] .pay-logo>svg,
-#payments .manual-payments [data-payment-method="redotpay"] .pay-logo>svg{
+#payments .manual-payments .pay-logo>svg{
   display:none!important;
 }
 
-/* The middle value block is compact and vertically balanced. */
+/* Binance + RedotPay: equal compact cards, no forced square. */
+#payments .manual-payments [data-payment-method="binance"],
+#payments .manual-payments [data-payment-method="redotpay"]{
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:flex-start!important;
+  align-items:stretch!important;
+  aspect-ratio:auto!important;
+  min-height:0!important;
+  padding:18px!important;
+  gap:12px!important;
+}
 #payments .manual-payments [data-payment-method="binance"] .pay-value-wrap,
 #payments .manual-payments [data-payment-method="redotpay"] .pay-value-wrap{
   width:100%!important;
-  align-self:center!important;
-  align-content:center!important;
   min-width:0!important;
+  margin:0!important;
+  padding:11px 12px!important;
+  gap:6px!important;
 }
-
 #payments .manual-payments [data-payment-method="binance"] .pay-actions,
 #payments .manual-payments [data-payment-method="redotpay"] .pay-actions{
   width:100%!important;
-  margin-top:0!important;
-  align-self:end!important;
+  margin-top:auto!important;
+  display:flex!important;
+}
+#payments .manual-payments [data-payment-method="binance"] .pay-actions .btn,
+#payments .manual-payments [data-payment-method="redotpay"] .pay-actions .btn{
+  width:100%!important;
+  flex:1 1 100%!important;
+}
+
+/* USDT: full-width send-details row. */
+#payments .manual-payments [data-payment-method="usdt"]{
+  display:grid!important;
+  grid-template-columns:minmax(150px,.7fr) minmax(0,1.55fr) minmax(190px,.8fr)!important;
+  grid-template-areas:"brand value actions"!important;
+  align-items:center!important;
+  aspect-ratio:auto!important;
+  min-height:0!important;
+  padding:18px!important;
+  gap:14px!important;
+}
+#payments .manual-payments [data-payment-method="usdt"] .pay-brand{
+  grid-area:brand!important;
+  align-self:center!important;
+  grid-column:auto!important;
+}
+#payments .manual-payments [data-payment-method="usdt"] .pay-value-wrap{
+  grid-area:value!important;
+  width:100%!important;
+  min-width:0!important;
+  align-self:stretch!important;
+  align-content:center!important;
+  margin:0!important;
+}
+#payments .manual-payments [data-payment-method="usdt"] .pay-actions{
+  grid-area:actions!important;
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:8px!important;
+  min-width:0!important;
+  width:100%!important;
+  margin:0!important;
+}
+
+/* Send details should be the visual focus, not extra prose. */
+#payments .manual-payments .pay-value-wrap label{
+  margin:0!important;
+  line-height:1.2!important;
+}
+#payments .manual-payments .pay-value-wrap code{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
 }
 
 @media(max-width:760px){
+  /* Keep Binance + RedotPay side-by-side, but let their height follow their content. */
   #payments .manual-payments [data-payment-method="binance"],
   #payments .manual-payments [data-payment-method="redotpay"]{
-    aspect-ratio:1/1!important;
+    aspect-ratio:auto!important;
+    min-height:168px!important;
     padding:12px!important;
-    gap:7px!important;
+    gap:9px!important;
   }
 
-  #payments .manual-payments [data-payment-method="binance"] .pay-brand,
-  #payments .manual-payments [data-payment-method="redotpay"] .pay-brand{
-    gap:7px!important;
+  #payments .manual-payments .pay-brand{
+    gap:8px!important;
   }
-
-  #payments .manual-payments [data-payment-method="binance"] .pay-logo,
-  #payments .manual-payments [data-payment-method="redotpay"] .pay-logo{
+  #payments .manual-payments .pay-brand strong{
+    font-size:14.5px!important;
+    line-height:1.1!important;
+  }
+  #payments .manual-payments .pay-logo{
     width:36px!important;
     height:36px!important;
     flex-basis:36px!important;
     background-size:21px 21px!important;
   }
 
-  #payments .manual-payments [data-payment-method="binance"] .pay-brand strong,
-  #payments .manual-payments [data-payment-method="redotpay"] .pay-brand strong{
-    font-size:14px!important;
-    line-height:1.05!important;
-  }
-
   #payments .manual-payments [data-payment-method="binance"] .pay-value-wrap,
   #payments .manual-payments [data-payment-method="redotpay"] .pay-value-wrap{
-    padding:7px 8px!important;
-    gap:3px!important;
+    padding:8px!important;
+    gap:4px!important;
     border-radius:9px!important;
   }
   #payments .manual-payments [data-payment-method="binance"] .pay-value-wrap label,
   #payments .manual-payments [data-payment-method="redotpay"] .pay-value-wrap label{
-    font-size:8.5px!important;
-    line-height:1.1!important;
-    letter-spacing:.03em!important;
+    font-size:9px!important;
+    line-height:1.15!important;
+    letter-spacing:0!important;
   }
   #payments .manual-payments [data-payment-method="binance"] .pay-value-wrap code,
   #payments .manual-payments [data-payment-method="redotpay"] .pay-value-wrap code{
-    padding:5px 6px!important;
-    font-size:11px!important;
+    padding:6px 7px!important;
+    font-size:11.5px!important;
     line-height:1.2!important;
     border-radius:7px!important;
   }
   #payments .manual-payments [data-payment-method="binance"] .pay-actions .btn,
   #payments .manual-payments [data-payment-method="redotpay"] .pay-actions .btn{
-    min-height:31px!important;
-    padding:5px 7px!important;
-    font-size:10.5px!important;
+    min-height:34px!important;
+    padding:6px 8px!important;
+    font-size:11px!important;
     line-height:1.1!important;
     border-radius:8px!important;
   }
+
+  /* USDT stays the full-width rectangle and stacks cleanly on phones. */
+  #payments .manual-payments [data-payment-method="usdt"]{
+    grid-template-columns:1fr!important;
+    grid-template-areas:"brand" "value" "actions"!important;
+    padding:13px!important;
+    gap:9px!important;
+  }
+  #payments .manual-payments [data-payment-method="usdt"] .pay-actions{
+    grid-template-columns:1fr 1fr!important;
+    gap:7px!important;
+  }
 }
 
-/* Extremely narrow phones: protect the content from being squeezed by a hard square. */
-@media(max-width:350px){
+@media(max-width:390px){
   #payments .manual-payments [data-payment-method="binance"],
   #payments .manual-payments [data-payment-method="redotpay"]{
-    aspect-ratio:auto!important;
-    min-height:154px!important;
+    min-height:164px!important;
+    padding:10px!important;
+  }
+  #payments .manual-payments .pay-brand strong{
+    font-size:13.5px!important;
+  }
+  #payments .manual-payments .pay-logo{
+    width:34px!important;
+    height:34px!important;
+    flex-basis:34px!important;
+    background-size:20px 20px!important;
   }
 }
