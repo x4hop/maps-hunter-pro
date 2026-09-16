@@ -41,6 +41,8 @@ jobs:
         run: |
           node tests/test_payment_safety.mjs
           node tests/test_payment_api.mjs
+      - name: Current migration-chain check
+        run: python3 tests/test_current_migration_chain.py
       - name: Build static pages
         run: node scripts/build.mjs
       - name: Build extension release
