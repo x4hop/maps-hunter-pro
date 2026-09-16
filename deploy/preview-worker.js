@@ -9,7 +9,8 @@ const LANGS=Object.keys(META);
 const page=async(env,name)=>{const r=await env.DB.prepare('SELECT chunk FROM static_blobs WHERE name=? ORDER BY seq').bind(name).all(),b64=(r.results||[]).map(x=>x.chunk).join('');if(!b64)return null;const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text()};
 const headers={'content-type':'text/html;charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'strict-origin-when-cross-origin','content-security-policy':"default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://wa.me"};
 function removeExcelSummary(html){
-  return html.replace(/<div class="excel-summary">(?:\s*<div class="mini">[\s\S]*?<\/div>){4}\s*<\/div>/,'');
+  html=html.replace(/<div class="excel-summary">(?:\s*<div class="mini">[\s\S]*?<\/div>){4}\s*<\/div>/,'');
+  return html.replace('</head>','<style>.excel-summary{display:none!important;height:0!important;margin:0!important;padding:0!important;overflow:hidden!important}</style></head>');
 }
 function localized(html,lang,origin){
   html=removeExcelSummary(html)
