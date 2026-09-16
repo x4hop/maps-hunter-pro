@@ -1,1 +1,228 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Maps Hunter Pro — Admin</title><style>:root{--bg:#f5f2ee;--card:#fff;--text:#25211e;--muted:#756d65;--line:#e6ddd5;--accent:#d97745;--accent2:#b85e31;--ok:#1d7d52;--bad:#a63f32;--side:#241f1b}*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at top right,#fff7f0 0,transparent 35%),var(--bg);color:var(--text)}button,input,select,textarea{font:inherit}.hidden{display:none!important}.login{min-height:100vh;display:grid;place-items:center;padding:24px}.login-card{width:min(420px,100%);background:var(--card);border:1px solid var(--line);border-radius:20px;padding:28px;box-shadow:0 20px 60px #00000010}.brand{font-weight:800;font-size:22px;margin-bottom:18px}.field{display:grid;gap:7px;margin:12px 0}.field label{font-size:13px;color:var(--muted)}input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--text)}button{border:0;border-radius:10px;padding:11px 14px;cursor:pointer}.primary{background:var(--accent);color:#fff}.primary:hover{background:var(--accent2)}.ghost{background:#f3ece6;color:var(--text);border:1px solid var(--line)}.danger{background:#fff0ee;color:var(--bad);border:1px solid #efd1cc}.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}.side{background:linear-gradient(180deg,var(--side),#332b25);color:#fff;padding:22px 14px;border-right:1px solid #ffffff10}.side .brand{padding:0 8px 16px}.nav{display:grid;gap:6px}.nav button{background:transparent;color:#ddd;text-align:left}.nav button.active,.nav button:hover{background:#ffffff14;color:#fff}.main{padding:30px;overflow:auto;max-width:1600px;width:100%;margin:0 auto}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px}.view{display:none}.view.active{display:block}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 10px 32px #3b2a1c0a}.metric b{font-size:30px;display:block;margin-top:7px;letter-spacing:-.04em}.muted{color:var(--muted);font-size:13px}.row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.row .field{min-width:160px;flex:1}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px;background:#fff}table{width:100%;border-collapse:collapse;min-width:880px}th,td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{background:#faf7f3}.pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#f1ece7}.pill.active{background:#e7f6ee;color:var(--ok)}.pill.revoked,.pill.expired{background:#fdecea;color:var(--bad)}.mono{font-family:ui-monospace,monospace}.actions{display:flex;gap:6px;flex-wrap:wrap}.actions button{padding:7px 9px;font-size:12px}.code-output{min-height:130px;font-family:ui-monospace,monospace}.notice{padding:12px;border-radius:10px;background:#fff7e9;border:1px solid #f3dfbc;font-size:13px}.toast{position:fixed;right:20px;bottom:20px;background:#2f2924;color:#fff;padding:12px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s}.toast.show{opacity:1}.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}@media(max-width:900px){.app{grid-template-columns:1fr}.side{position:sticky;top:0;z-index:3}.nav{grid-template-columns:repeat(5,1fr)}.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:600px){.main{padding:16px}.grid,.settings-grid{grid-template-columns:1fr}.nav{grid-template-columns:repeat(2,1fr)}}</style></head><body><div id="login" class="login"><div class="login-card"><div class="brand">Maps Hunter Pro · Admin</div><p class="muted">Manual licensing console. Customers do not have website accounts.</p><form id="loginForm"><div class="field"><label>Username</label><input id="username" autocomplete="username" placeholder="Admin username" required></div><div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Password" required></div><button class="primary" style="width:100%">Open dashboard</button></form><p id="loginError" class="muted"></p></div></div><div id="app" class="app hidden"><aside class="side"><div class="brand">Maps Hunter Pro</div><div class="nav"><button data-view="dashboard" class="active">Dashboard</button><button data-view="licenses">Activation codes</button><button data-view="owner">Owner code</button><button data-view="settings">Settings</button><button data-view="logs">Logs</button></div></aside><main class="main"><div class="top"><div><div class="muted" style="font-weight:700;color:#b85e31;text-transform:uppercase;letter-spacing:.08em">Secure operations console</div><h1 id="title" style="margin:.2rem 0">Dashboard</h1><div class="muted">Manual payment → manual code → extension activation</div></div><button id="logout" class="ghost">Logout</button></div><section id="dashboard" class="view active"><div class="grid"><div class="card metric"><span class="muted">Unused codes</span><b id="mUnused">0</b></div><div class="card metric"><span class="muted">Active licenses</span><b id="mActive">0</b></div><div class="card metric"><span class="muted">Expiring ≤3 days</span><b id="mSoon">0</b></div><div class="card metric"><span class="muted">Leads today</span><b id="mLeads">0</b></div></div><div class="card" style="margin-top:16px"><h3>Simple sales flow</h3><p>1) Customer pays using Binance ID, USDT network transfer, or RedotPay. 2) Customer sends screenshot + transaction reference/address on WhatsApp. 3) You verify payment. 4) Generate a code here and send it to the customer. 5) The code starts on first activation.</p></div></section><section id="licenses" class="view"><div class="card"><h2>Generate activation codes</h2><div class="row"><div class="field"><label>Plan</label><select id="genPlan"><option value="monthly">Monthly</option><option value="annual">Annual</option></select></div><div class="field"><label>Quantity</label><input id="genCount" type="number" min="1" max="50" value="1"></div><div class="field" style="flex:2"><label>Note (optional)</label><input id="genNote" placeholder="Customer / payment note"></div><button id="generate" class="primary">Generate</button></div><div id="generatedBox" class="hidden" style="margin-top:14px"><div class="notice">Codes are shown in full only now. Save/send them before leaving this page.</div><textarea id="generatedCodes" class="code-output" readonly></textarea><button id="copyCodes" class="ghost">Copy codes</button></div></div><div class="card" style="margin-top:16px"><div class="row"><div class="field"><label>Search by exact code, hint or note</label><input id="licenseSearch" placeholder="MHP-… or note"></div><button id="searchLicenses" class="ghost">Search</button><button id="refreshLicenses" class="ghost">Refresh</button></div></div><div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>ID</th><th>Code hint</th><th>Plan</th><th>Status</th><th>Activated</th><th>Expires</th><th>Devices</th><th>Used today</th><th>Note</th><th>Actions</th></tr></thead><tbody id="licensesBody"></tbody></table></div></section><section id="owner" class="view"><div class="card"><h2>Permanent Owner Code</h2><p class="muted">Unlimited owner access. No customer account and no expiry. A new code replaces the previous code.</p><p id="ownerStatus"></p><button id="rotateOwner" class="primary">Create / replace owner code</button> <button id="revokeOwner" class="danger">Revoke</button><div id="ownerCodeBox" class="hidden" style="margin-top:14px"><div class="notice">This code is shown once. Save it securely.</div><textarea id="ownerCode" class="code-output" readonly></textarea><button id="copyOwner" class="ghost">Copy</button></div></div></section><section id="settings" class="view"><div class="card"><h2>Sales & product settings</h2><div class="settings-grid"><div class="field"><label>Monthly price USD</label><input id="sMonthly" type="number"></div><div class="field"><label>Annual price USD</label><input id="sAnnual" type="number"></div><div class="field"><label>Monthly daily limit</label><input id="sLimit" type="number"></div><div class="field"><label>Allowed devices per code</label><input id="sDevices" type="number" min="1" max="10"></div><div class="field"><label>Binance ID</label><input id="sBinanceId"></div><div class="field"><label>USDT network</label><input id="sUsdtNetwork"></div><div class="field"><label>USDT address</label><input id="sUsdtAddress"></div><div class="field"><label>RedotPay ID/account</label><input id="sRedot"></div><div class="field"><label>WhatsApp / support contact</label><input id="sSupport" placeholder="+218…"></div><div class="field"><label>Extension version</label><input id="sVersion"></div><div class="field"><label>Extension download URL</label><input id="sDownload"></div></div><button id="saveSettings" class="primary">Save settings</button></div></section><section id="logs" class="view"><div class="card"><div class="row"><div class="field"><label>Search logs</label><input id="logSearch"></div><button id="refreshLogs" class="ghost">Refresh</button></div></div><div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Time</th><th>Event</th><th>Target</th><th>Result</th><th>Metadata</th></tr></thead><tbody id="logsBody"></tbody></table></div></section></main></div><div id="toast" class="toast"></div><script>window.MHP_API_BASE='https://maps-hunter-pro-api.anas98gha.workers.dev'</script><script src="./admin.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#F95C4B">
+<title>Maps Hunter Pro — Admin</title>
+<style>
+:root{
+  --color-paper:#F6F4F1;
+  --color-stone:#E4DED2;
+  --color-coral:#F95C4B;
+  --color-black:#000000;
+  --background:var(--color-paper);
+  --surface:var(--color-stone);
+  --primary:var(--color-coral);
+  --text:var(--color-black);
+  --muted:rgba(0,0,0,.58);
+  --line:rgba(0,0,0,.16);
+}
+*{box-sizing:border-box}
+html{background:var(--background)}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--background);color:var(--text);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+
+.login{min-height:100vh;display:grid;place-items:center;padding:28px;background:linear-gradient(135deg,var(--color-paper) 0 66%,var(--color-stone) 66%)}
+.login-card{position:relative;width:min(430px,100%);background:var(--color-stone);border:1.5px solid var(--color-black);border-radius:22px;padding:30px;box-shadow:10px 10px 0 var(--color-black)}
+.login-card:before{content:"MHP";display:grid;place-items:center;width:52px;height:52px;margin-bottom:22px;border:1.5px solid var(--color-black);border-radius:14px;background:var(--color-coral);font-size:13px;font-weight:900;box-shadow:4px 4px 0 var(--color-black)}
+.brand{font-weight:900;font-size:22px;letter-spacing:-.03em;margin-bottom:18px}
+.field{display:grid;gap:7px;margin:13px 0}
+.field label{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+input,select,textarea{width:100%;padding:12px 13px;border:1.5px solid rgba(0,0,0,.24);border-radius:10px;background:var(--color-paper);color:var(--text);outline:none;transition:border-color .15s ease,box-shadow .15s ease}
+input:focus,select:focus,textarea:focus{border-color:var(--color-black);box-shadow:0 0 0 3px rgba(249,92,75,.22)}
+button{border:1.5px solid var(--color-black);border-radius:10px;padding:11px 14px;font-weight:850;transition:transform .15s ease,box-shadow .15s ease}
+button:hover{transform:translateY(-1px)}
+.primary{background:var(--color-coral);color:var(--color-black);box-shadow:3px 3px 0 var(--color-black)}
+.primary:hover{box-shadow:5px 5px 0 var(--color-black)}
+.ghost{background:var(--color-paper);color:var(--text)}
+.danger{background:var(--color-paper);color:var(--color-black);border-color:var(--color-coral);box-shadow:3px 3px 0 var(--color-coral)}
+
+.app{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;background:var(--color-black);color:var(--color-paper);padding:22px 15px;border-right:1px solid var(--color-black)}
+.side .brand{display:flex;align-items:center;gap:11px;padding:0 8px 22px;margin:0}
+.side .brand:before{content:"MH";display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border:1.5px solid var(--color-paper);border-radius:12px;background:var(--color-coral);color:var(--color-black);font-size:12px;box-shadow:3px 3px 0 var(--color-paper)}
+.nav{display:grid;gap:7px}
+.nav button{position:relative;background:transparent;border-color:transparent;color:rgba(246,244,241,.7);text-align:left;box-shadow:none;padding:12px 13px}
+.nav button.active,.nav button:hover{background:var(--color-coral);border-color:var(--color-paper);color:var(--color-black);transform:none}
+.nav button.active:after{content:"";position:absolute;right:11px;top:50%;width:7px;height:7px;border-radius:50%;background:var(--color-black);transform:translateY(-50%)}
+
+.main{padding:34px;overflow:auto;max-width:1600px;width:100%;margin:0 auto}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin-bottom:26px;padding-bottom:23px;border-bottom:1.5px solid var(--color-black)}
+.kicker{font-size:11px;font-weight:900;color:var(--color-black);text-transform:uppercase;letter-spacing:.12em;display:inline-block;padding:6px 9px;border:1px solid var(--color-black);border-radius:999px;background:var(--color-coral)}
+#title{margin:9px 0 3px;font-size:38px;line-height:1;letter-spacing:-.045em}
+.view{display:none}.view.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.card{background:var(--color-stone);border:1.5px solid var(--color-black);border-radius:16px;padding:20px;box-shadow:5px 5px 0 rgba(0,0,0,.13)}
+.card h2,.card h3{letter-spacing:-.02em}
+.card h2{margin-top:0}
+.card p{line-height:1.65}
+.metric{min-height:130px;display:flex;flex-direction:column;justify-content:space-between}
+.metric:nth-child(even){background:var(--color-paper)}
+.metric b{font-size:38px;display:block;margin-top:12px;letter-spacing:-.055em;line-height:1}
+.metric:after{content:"";width:34px;height:5px;border-radius:999px;background:var(--color-coral);margin-top:13px}
+.muted{color:var(--muted);font-size:13px}
+.row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.row .field{min-width:160px;flex:1}
+.settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+
+.table-wrap{overflow:auto;border:1.5px solid var(--color-black);border-radius:14px;background:var(--color-paper);box-shadow:5px 5px 0 rgba(0,0,0,.12)}
+table{width:100%;border-collapse:collapse;min-width:880px}
+th,td{padding:12px 13px;border-bottom:1px solid rgba(0,0,0,.12);text-align:left;font-size:13px;vertical-align:middle}
+th{position:sticky;top:0;background:var(--color-black);color:var(--color-paper);font-size:11px;text-transform:uppercase;letter-spacing:.05em;z-index:1}
+tbody tr:nth-child(even){background:rgba(228,222,210,.55)}
+tbody tr:hover{background:rgba(249,92,75,.1)}
+.pill{display:inline-block;padding:5px 9px;border:1px solid rgba(0,0,0,.22);border-radius:999px;background:var(--color-stone);font-weight:800}
+.pill.active{background:var(--color-black);color:var(--color-paper);border-color:var(--color-black)}
+.pill.revoked,.pill.expired{background:var(--color-coral);color:var(--color-black);border-color:var(--color-black)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.actions button{padding:7px 9px;font-size:12px;box-shadow:none}
+.code-output{min-height:130px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;margin:10px 0}
+.notice{padding:13px 14px;border:1.5px solid var(--color-black);border-radius:10px;background:var(--color-coral);font-size:13px;font-weight:700}
+.toast{position:fixed;right:22px;bottom:22px;z-index:20;background:var(--color-black);color:var(--color-paper);border:1.5px solid var(--color-coral);padding:12px 16px;border-radius:10px;box-shadow:5px 5px 0 var(--color-coral);opacity:0;pointer-events:none;transform:translateY(8px);transition:.18s}
+.toast.show{opacity:1;transform:none}
+
+@media(max-width:1050px){
+  .app{grid-template-columns:1fr}
+  .side{position:sticky;height:auto;z-index:3;padding:12px 14px}
+  .side .brand{display:none}
+  .nav{grid-template-columns:repeat(5,1fr);gap:6px}
+  .nav button{text-align:center;padding:10px 7px;font-size:12px}
+  .nav button.active:after{display:none}
+  .grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:650px){
+  .main{padding:20px 15px 32px}
+  .top{align-items:flex-start}
+  #title{font-size:32px}
+  .grid,.settings-grid{grid-template-columns:1fr}
+  .nav{grid-template-columns:repeat(3,1fr)}
+  .card{padding:17px}
+  .row{align-items:stretch}
+  .row .field{min-width:100%;margin:5px 0}
+}
+</style>
+</head>
+<body>
+<div id="login" class="login">
+  <div class="login-card">
+    <div class="brand">Maps Hunter Pro · Admin</div>
+    <p class="muted">Manual licensing console. Customers do not have website accounts.</p>
+    <form id="loginForm">
+      <div class="field"><label>Username</label><input id="username" autocomplete="username" placeholder="Admin username" required></div>
+      <div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Password" required></div>
+      <button class="primary" style="width:100%">Open dashboard</button>
+    </form>
+    <p id="loginError" class="muted"></p>
+  </div>
+</div>
+
+<div id="app" class="app hidden">
+  <aside class="side">
+    <div class="brand">Maps Hunter Pro</div>
+    <div class="nav">
+      <button data-view="dashboard" class="active">Dashboard</button>
+      <button data-view="licenses">Activation codes</button>
+      <button data-view="owner">Owner code</button>
+      <button data-view="settings">Settings</button>
+      <button data-view="logs">Logs</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="top">
+      <div>
+        <div class="kicker">Secure operations console</div>
+        <h1 id="title">Dashboard</h1>
+        <div class="muted">Manual payment → manual code → extension activation</div>
+      </div>
+      <button id="logout" class="ghost">Logout</button>
+    </div>
+
+    <section id="dashboard" class="view active">
+      <div class="grid">
+        <div class="card metric"><span class="muted">Unused codes</span><b id="mUnused">0</b></div>
+        <div class="card metric"><span class="muted">Active licenses</span><b id="mActive">0</b></div>
+        <div class="card metric"><span class="muted">Expiring ≤3 days</span><b id="mSoon">0</b></div>
+        <div class="card metric"><span class="muted">Leads today</span><b id="mLeads">0</b></div>
+      </div>
+      <div class="card" style="margin-top:18px">
+        <h3>Simple sales flow</h3>
+        <p>1) Customer pays using Binance ID, USDT network transfer, or RedotPay. 2) Customer sends screenshot + transaction reference/address on WhatsApp. 3) You verify payment. 4) Generate a code here and send it to the customer. 5) The code starts on first activation.</p>
+      </div>
+    </section>
+
+    <section id="licenses" class="view">
+      <div class="card">
+        <h2>Generate activation codes</h2>
+        <div class="row">
+          <div class="field"><label>Plan</label><select id="genPlan"><option value="monthly">Monthly</option><option value="annual">Annual</option></select></div>
+          <div class="field"><label>Quantity</label><input id="genCount" type="number" min="1" max="50" value="1"></div>
+          <div class="field" style="flex:2"><label>Note (optional)</label><input id="genNote" placeholder="Customer / payment note"></div>
+          <button id="generate" class="primary">Generate</button>
+        </div>
+        <div id="generatedBox" class="hidden" style="margin-top:14px">
+          <div class="notice">Codes are shown in full only now. Save/send them before leaving this page.</div>
+          <textarea id="generatedCodes" class="code-output" readonly></textarea>
+          <button id="copyCodes" class="ghost">Copy codes</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:18px">
+        <div class="row">
+          <div class="field"><label>Search by exact code, hint or note</label><input id="licenseSearch" placeholder="MHP-… or note"></div>
+          <button id="searchLicenses" class="ghost">Search</button>
+          <button id="refreshLicenses" class="ghost">Refresh</button>
+        </div>
+      </div>
+      <div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>ID</th><th>Code hint</th><th>Plan</th><th>Status</th><th>Activated</th><th>Expires</th><th>Devices</th><th>Used today</th><th>Note</th><th>Actions</th></tr></thead><tbody id="licensesBody"></tbody></table></div>
+    </section>
+
+    <section id="owner" class="view">
+      <div class="card">
+        <h2>Permanent Owner Code</h2>
+        <p class="muted">Unlimited owner access. No customer account and no expiry. A new code replaces the previous code.</p>
+        <p id="ownerStatus"></p>
+        <button id="rotateOwner" class="primary">Create / replace owner code</button>
+        <button id="revokeOwner" class="danger">Revoke</button>
+        <div id="ownerCodeBox" class="hidden" style="margin-top:14px">
+          <div class="notice">This code is shown once. Save it securely.</div>
+          <textarea id="ownerCode" class="code-output" readonly></textarea>
+          <button id="copyOwner" class="ghost">Copy</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="settings" class="view">
+      <div class="card">
+        <h2>Sales & product settings</h2>
+        <div class="settings-grid">
+          <div class="field"><label>Monthly price USD</label><input id="sMonthly" type="number"></div>
+          <div class="field"><label>Annual price USD</label><input id="sAnnual" type="number"></div>
+          <div class="field"><label>Monthly daily limit</label><input id="sLimit" type="number"></div>
+          <div class="field"><label>Allowed devices per code</label><input id="sDevices" type="number" min="1" max="10"></div>
+          <div class="field"><label>Binance ID</label><input id="sBinanceId"></div>
+          <div class="field"><label>USDT network</label><input id="sUsdtNetwork"></div>
+          <div class="field"><label>USDT address</label><input id="sUsdtAddress"></div>
+          <div class="field"><label>RedotPay ID/account</label><input id="sRedot"></div>
+          <div class="field"><label>WhatsApp / support contact</label><input id="sSupport" placeholder="+218…"></div>
+          <div class="field"><label>Extension version</label><input id="sVersion"></div>
+          <div class="field"><label>Extension download URL</label><input id="sDownload"></div>
+        </div>
+        <button id="saveSettings" class="primary">Save settings</button>
+      </div>
+    </section>
+
+    <section id="logs" class="view">
+      <div class="card"><div class="row"><div class="field"><label>Search logs</label><input id="logSearch"></div><button id="refreshLogs" class="ghost">Refresh</button></div></div>
+      <div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>Time</th><th>Event</th><th>Target</th><th>Result</th><th>Metadata</th></tr></thead><tbody id="logsBody"></tbody></table></div>
+    </section>
+  </main>
+</div>
+<div id="toast" class="toast"></div>
+<script>window.MHP_API_BASE='https://maps-hunter-pro-api.anas98gha.workers.dev'</script>
+<script src="./admin.js"></script>
+</body>
+</html>
