@@ -11,7 +11,7 @@ Maps Hunter Pro is a Chrome extension and web system for discovering, organizing
 - Monthly daily limit: **1,500 leads/day**.
 - Annual plan: **$100 / year**.
 - Annual daily extraction: **Unlimited**.
-- Customer payment methods: **USDT** and **RedotPay** with manual admin review.
+- Customer payment methods: **Binance ID**, **USDT**, and **RedotPay** with manual admin review. USDT remains unavailable until a verified TRC20 deposit address is configured.
 - Affiliate commission target: **50% on first purchase** and **20% on renewals**; affiliate automation is not a launch dependency for the manual-only release.
 - Renewals are handled manually using the existing activation code/customer payment record; no customer website account is required.
 - The Chrome extension does **not** require customer login. It uses an activation/license code only.
@@ -39,7 +39,7 @@ The approved landing-page structure is:
 5. Professional Excel preview.
 6. Pricing.
 7. Referral / affiliate section.
-8. Manual USDT / RedotPay payment explanation.
+8. Manual Binance ID / USDT / RedotPay payment explanation.
 9. FAQ.
 10. Footer policies.
 
@@ -129,7 +129,7 @@ Anas must always be able to test the extension without a customer account.
 
 ## 12. Commercial activation flow
 1. Customer chooses Monthly or Annual on the landing page.
-2. Customer pays manually using the published USDT or RedotPay details.
+2. Customer pays manually using the published Binance ID, verified USDT details, or RedotPay details.
 3. Customer sends the payment screenshot plus transaction reference/address through the published WhatsApp support channel.
 4. Anas/admin verifies that the payment actually arrived.
 5. Admin generates a Monthly or Annual activation code from the protected admin dashboard and sends it to the customer.
@@ -148,7 +148,7 @@ No customer website account is required in this release. Payment proof alone mus
 
 ## 14. Customer-facing release surface
 - Landing page with pricing, feature proof, payment instructions and FAQ.
-- Manual USDT / RedotPay payment instructions loaded from backend settings.
+- Manual Binance ID / USDT / RedotPay payment instructions, with payment values sourced from backend settings or explicitly confirmed safe defaults; unverified USDT addresses must stay disabled.
 - WhatsApp handoff for payment proof and support.
 - Chrome extension activation-code screen showing active/expired/owner state.
 - Privacy Policy, Terms, Refund and Acceptable Use pages.
@@ -234,3 +234,10 @@ Code generation, renewals/extensions, revocation and device resets must be safe 
 - Added CI release checks that validate JavaScript, build static pages, generate the ZIP and upload the 8.3.1 package artifact.
 - Added server-side localized SEO metadata for `/en`, `/ar`, `/ru`, `/de`, `/es`, with canonical, `hreflang`, Open Graph URL and a complete sitemap.
 - Root `/` now permanently redirects to `/en`; extraction logic remains unchanged.
+
+### 2026-09-16 — Payment surface and preview sync
+- Added Binance ID alongside RedotPay and USDT to the manual payment surface.
+- Kept USDT disabled unless the backend returns a verified TRC20 address; the previously unverified address remains blocked.
+- Synced confirmed Binance/RedotPay payment values and WhatsApp support contact into the production D1 settings.
+- Built the current landing page from `main`, stored it as `landing-v11-payments`, backed up the previous active landing blob, and switched the preview landing content to the new payment build.
+- Updated `deploy/preview-worker.js` so the next Worker deployment reads `landing-v11-payments`.
