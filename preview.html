@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Maps Hunter Pro Preview</title>
+</head>
+<body>
+  <script>
+    fetch('./index.html',{cache:'no-store'})
+      .then(r=>{if(!r.ok)throw new Error('index.html '+r.status);return r.text()})
+      .then(html=>{
+        html=html
+          .replaceAll('href="/assets/','href="assets/')
+          .replaceAll('src="/assets/','src="assets/')
+          .replaceAll('href="/privacy.html"','href="privacy.html"')
+          .replaceAll('href="/terms.html','href="terms.html');
+        document.open();
+        document.write(html);
+        document.close();
+      })
+      .catch(err=>{document.body.innerHTML='<pre style="font-family:system-ui;padding:24px">Preview failed: '+String(err)+'</pre>'});
+  </script>
+</body>
+</html>
