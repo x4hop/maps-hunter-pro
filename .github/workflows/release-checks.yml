@@ -29,6 +29,7 @@ jobs:
           node --check assets/manual-i18n.js
           node --check admin/admin.js
           node --check backend/src/index.js
+          node --check backend/src/entry.js
           node --check deploy/preview-worker.js
           node --check extension/background.js
           node --check extension/content.js
@@ -37,7 +38,9 @@ jobs:
           node --check extension/panel-v2.js
           node --check extension/xlsx-export.js
       - name: Payment safety regression check
-        run: node tests/test_payment_safety.mjs
+        run: |
+          node tests/test_payment_safety.mjs
+          node tests/test_payment_api.mjs
       - name: Build static pages
         run: node scripts/build.mjs
       - name: Build extension release
