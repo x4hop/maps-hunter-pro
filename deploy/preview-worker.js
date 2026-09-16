@@ -6,21 +6,30 @@ const META={
   es:{lang:'es',dir:'ltr',title:'Maps Hunter Pro — extracción de leads de Google Maps',description:'Encuentra, organiza y exporta leads empresariales de Google Maps a Excel, CSV y JSON con formato telefónico internacional.',locale:'es_ES'}
 };
 const LANGS=Object.keys(META);
-const page=async(env,name)=>{const r=await env.DB.prepare('SELECT chunk FROM static_blobs WHERE name=? ORDER BY seq').bind(name).all(),b64=(r.results||[]).map(x=>x.chunk).join('');if(!b64)return null;const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text()};
-const headers={'content-type':'text/html;charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'strict-origin-when-cross-origin','content-security-policy':"default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://wa.me"};
-function removeExcelSummary(html){
-  html=html.replace(/<div class="excel-summary">(?:\s*<div class="mini">[\s\S]*?<\/div>){4}\s*<\/div>/,'');
-  return html.replace('</head>','<style>.excel-summary{display:none!important;height:0!important;margin:0!important;padding:0!important;overflow:hidden!important}</style></head>');
+const HTML_HEADERS={
+  'content-type':'text/html;charset=utf-8',
+  'cache-control':'no-store',
+  'x-content-type-options':'nosniff',
+  'referrer-policy':'strict-origin-when-cross-origin',
+  'content-security-policy':"default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://wa.me"
+};
+
+async function assetText(env,path){
+  const url=new URL(path,'https://assets.local');
+  const res=await env.ASSETS.fetch(new Request(url));
+  if(!res.ok)return null;
+  return res.text();
 }
+
 function localized(html,lang,origin){
-  html=removeExcelSummary(html)
-    .replace("if(/^https?:\/\//i.test(raw))return raw;","if(/^https?:\/\//i.test(raw))return String(raw).split(/[?#]/)[0];")
-    .replace("const base=waNumber(paymentPayload?.support)||a.getAttribute('href')||'';","const base=(waNumber(paymentPayload?.support)||a.getAttribute('href')||'').split(/[?#]/)[0];")
-    .replace("const base=waNumber(paymentPayload?.support)||waNumber(a.getAttribute('href'))||'';","const base=(waNumber(paymentPayload?.support)||a.getAttribute('href')||'').split(/[?#]/)[0];")
-    .replace("if(base){const sep=base.includes('?')?'&':'?';a.href=`${base}${sep}text=${encodeURIComponent(msg)}`}","if(base)a.href=`${base}?text=${encodeURIComponent(msg)}`");
-  const m=META[lang]||META.en,canonical=`${origin}/${lang}`;
+  const m=META[lang]||META.en;
+  const canonical=`${origin}/${lang}`;
   const alternates=LANGS.map(x=>`<link rel="alternate" hreflang="${x}" href="${origin}/${x}" />`).join('')+`<link rel="alternate" hreflang="x-default" href="${origin}/en" />`;
-  return html.replace('<html lang="en" dir="ltr">',`<html lang="${m.lang}" dir="${m.dir}">`)
+  if(!html.includes('/assets/payment-icon-clean.css')){
+    html=html.replace('</head>','<link rel="stylesheet" href="/assets/payment-icon-clean.css"></head>');
+  }
+  return html
+    .replace('<html lang="en" dir="ltr">',`<html lang="${m.lang}" dir="${m.dir}">`)
     .replace(/<title>[\s\S]*?<\/title>/,`<title>${m.title}</title>`)
     .replace(/<meta name="description" content="[^"]*" \/>/,`<meta name="description" content="${m.description}" />`)
     .replace(/<meta property="og:title" content="[^"]*" \/>/,`<meta property="og:title" content="${m.title}" />`)
@@ -30,4 +39,42 @@ function localized(html,lang,origin){
     .replace(/<meta name="twitter:description" content="[^"]*" \/>/,`<meta name="twitter:description" content="${m.description}" />`)
     .replace('<!-- Add an absolute canonical URL here after the production domain is connected. -->',`<link rel="canonical" href="${canonical}" />${alternates}<meta property="og:url" content="${canonical}" />`);
 }
-export default{async fetch(req,env){const u=new URL(req.url);if(u.pathname.startsWith('/api/'))return env.API.fetch(req);if(u.pathname==='/privacy.html'){const html=await page(env,'privacy-v7');return html?new Response(html,{headers}):new Response('Page not found',{status:404})}if(u.pathname==='/terms.html'){const html=await page(env,'terms-v6');return html?new Response(html,{headers}):new Response('Page not found',{status:404})}if(u.pathname==='/robots.txt')return new Response('User-agent: *\nAllow: /\nSitemap: '+u.origin+'/sitemap.xml\n',{headers:{'content-type':'text/plain;charset=utf-8','cache-control':'public,max-age=3600'}});if(u.pathname==='/sitemap.xml'){const urls=[...LANGS.map(l=>`<url><loc>${u.origin}/${l}</loc><changefreq>weekly</changefreq><priority>${l==='en'?'1.0':'0.9'}</priority></url>`),`<url><loc>${u.origin}/privacy.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>`,`<url><loc>${u.origin}/terms.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>`].join('');return new Response(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`,{headers:{'content-type':'application/xml;charset=utf-8','cache-control':'public,max-age=3600'}})}const normalized=u.pathname.replace(/\/$/,'');if(u.pathname==='/'||normalized==='')return Response.redirect(`${u.origin}/en`,301);const lang=normalized.slice(1);if(LANGS.includes(lang)){const html=await page(env,'landing-v11-payments');return html?new Response(localized(html,lang,u.origin),{headers}):new Response('Page not found',{status:404})}return new Response('Not found',{status:404,headers:{'content-type':'text/plain;charset=utf-8','x-content-type-options':'nosniff'}})}};
+
+async function htmlAsset(env,path){
+  const html=await assetText(env,path);
+  return html?new Response(html,{headers:HTML_HEADERS}):new Response('Page not found',{status:404,headers:{'content-type':'text/plain;charset=utf-8'}});
+}
+
+export default{
+  async fetch(req,env){
+    const u=new URL(req.url);
+
+    if(u.pathname.startsWith('/api/'))return env.API.fetch(req);
+
+    if(u.pathname==='/robots.txt'){
+      return new Response(`User-agent: *\nAllow: /\nSitemap: ${u.origin}/sitemap.xml\n`,{headers:{'content-type':'text/plain;charset=utf-8','cache-control':'public,max-age=3600'}});
+    }
+
+    if(u.pathname==='/sitemap.xml'){
+      const urls=[...LANGS.map(l=>`<url><loc>${u.origin}/${l}</loc><changefreq>weekly</changefreq><priority>${l==='en'?'1.0':'0.9'}</priority></url>`),`<url><loc>${u.origin}/privacy.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>`,`<url><loc>${u.origin}/terms.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>`].join('');
+      return new Response(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`,{headers:{'content-type':'application/xml;charset=utf-8','cache-control':'public,max-age=3600'}});
+    }
+
+    if(u.pathname==='/'||u.pathname==='')return Response.redirect(`${u.origin}/en`,301);
+    if(u.pathname==='/privacy.html')return htmlAsset(env,'/privacy.html');
+    if(u.pathname==='/terms.html')return htmlAsset(env,'/terms.html');
+
+    const normalized=u.pathname.replace(/\/$/,'');
+    const lang=normalized.slice(1);
+    if(LANGS.includes(lang)){
+      const html=await assetText(env,'/index.html');
+      return html?new Response(localized(html,lang,u.origin),{headers:HTML_HEADERS}):new Response('Page not found',{status:404});
+    }
+
+    if(u.pathname.startsWith('/assets/'))return env.ASSETS.fetch(req);
+
+    const asset=await env.ASSETS.fetch(req);
+    if(asset.ok)return asset;
+    return new Response('Not found',{status:404,headers:{'content-type':'text/plain;charset=utf-8','x-content-type-options':'nosniff'}});
+  }
+};
