@@ -8,7 +8,7 @@ const META={
 const LANGS=Object.keys(META);
 const HTML_HEADERS={
   'content-type':'text/html;charset=utf-8',
-  'cache-control':'no-store',
+  'cache-control':'public,max-age=300,must-revalidate',
   'x-content-type-options':'nosniff',
   'referrer-policy':'strict-origin-when-cross-origin',
   'content-security-policy':"default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://wa.me"
@@ -29,7 +29,7 @@ function localized(html,lang,origin){
     html=html.replace('</head>','<link rel="stylesheet" href="/assets/payment-icon-clean.css"></head>');
   }
   return html
-    .replace('<html lang="en" dir="ltr">',`<html lang="${m.lang}" dir="${m.dir}">`)
+    .replace(/<html lang="[^"]+" dir="[^"]+">/,`<html lang="${m.lang}" dir="${m.dir}">`)
     .replace(/<title>[\s\S]*?<\/title>/,`<title>${m.title}</title>`)
     .replace(/<meta name="description" content="[^"]*" \/>/,`<meta name="description" content="${m.description}" />`)
     .replace(/<meta property="og:title" content="[^"]*" \/>/,`<meta property="og:title" content="${m.title}" />`)
@@ -67,7 +67,7 @@ export default{
     const normalized=u.pathname.replace(/\/$/,'');
     const lang=normalized.slice(1);
     if(LANGS.includes(lang)){
-      const html=await assetText(env,'/index.html');
+      const html=await assetText(env,`/${lang}/index.html`)||await assetText(env,'/index.html');
       return html?new Response(localized(html,lang,u.origin),{headers:HTML_HEADERS}):new Response('Page not found',{status:404});
     }
 

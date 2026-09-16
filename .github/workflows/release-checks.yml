@@ -31,18 +31,30 @@ jobs:
           node --check backend/src/index.js
           node --check backend/src/entry.js
           node --check deploy/preview-worker.js
+          node --check scripts/build-frontend-cloudflare.mjs
           node --check extension/background.js
           node --check extension/content.js
           node --check extension/data.js
           node --check extension/license-client.js
           node --check extension/panel-v2.js
           node --check extension/xlsx-export.js
-      - name: Payment safety regression check
+      - name: Payment and licensing regression checks
         run: |
           node tests/test_payment_safety.mjs
           node tests/test_payment_api.mjs
+          node tests/test_single_device_policy.mjs
       - name: Current migration-chain check
         run: python3 tests/test_current_migration_chain.py
+      - name: Build Cloudflare localized frontend
+        run: node scripts/build-frontend-cloudflare.mjs
+      - name: Verify localized SEO pages
+        run: |
+          test -f dist/frontend/en/index.html
+          test -f dist/frontend/ar/index.html
+          test -f dist/frontend/ru/index.html
+          test -f dist/frontend/de/index.html
+          test -f dist/frontend/es/index.html
+          grep -q 'dir="rtl"' dist/frontend/ar/index.html
       - name: Build static pages
         run: node scripts/build.mjs
       - name: Build extension release
