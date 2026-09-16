@@ -1,5 +1,8 @@
 .manual-payments{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:stretch}
-.pay-card{display:flex;flex-direction:column;gap:18px;padding:22px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(180deg,#fff 0%,#fcfaf8 100%);box-shadow:0 18px 40px #00000008}
+.pay-card{display:flex;flex-direction:column;gap:18px;padding:22px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(180deg,#fff 0%,#fcfaf8 100%);box-shadow:0 18px 40px #00000008;transition:opacity .2s ease,border-color .2s ease,filter .2s ease}
+.pay-card.payment-unavailable{opacity:.68;filter:saturate(.55);border-style:dashed}
+.pay-card.payment-unavailable .pay-value-wrap code{background:#f3f0ed;color:var(--muted)}
+.pay-card button:disabled{cursor:not-allowed;opacity:.5;transform:none!important;box-shadow:none!important}
 .pay-brand{display:flex;align-items:center;gap:14px}
 .pay-brand strong{display:block;font-size:20px;line-height:1.2}
 .pay-brand span{display:block;margin-top:4px;font-size:13px;color:var(--muted)}
