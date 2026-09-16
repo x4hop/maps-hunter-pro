@@ -14,7 +14,8 @@
           .replaceAll('href="/assets/','href="assets/')
           .replaceAll('src="/assets/','src="assets/')
           .replaceAll('href="/privacy.html"','href="privacy.html"')
-          .replaceAll('href="/terms.html','href="terms.html');
+          .replaceAll('href="/terms.html','href="terms.html')
+          .replace('</head>','<link rel="stylesheet" href="assets/payment-icon-clean.css"></head>');
         document.open();
         document.write(html);
         document.close();
