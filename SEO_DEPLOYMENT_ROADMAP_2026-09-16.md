@@ -1,36 +1,19 @@
-# Maps Hunter Pro — SEO, Deployment & Production Roadmap
+# Maps Hunter Pro — SEO & Production Roadmap
 
 Date: 2026-09-16
 
-## Source of truth
+## 1. Production architecture
 
-- `main` in `x4hop/maps-hunter-pro` is the only source of truth.
-- Do not serve an old landing-page HTML blob from D1.
-- Frontend production Worker: `maps-hunter-pro-preview`.
-- Frontend assets: `dist/frontend` through Cloudflare Workers Static Assets.
+- `main` is the only source of truth.
+- Current landing page design is preserved.
+- Frontend is deployed as Cloudflare Workers Static Assets from `dist/frontend`.
+- Frontend Worker: `maps-hunter-pro-preview`.
 - Backend service binding: `API -> maps-hunter-pro-api`.
-- Backend Worker: `maps-hunter-pro-api`.
+- Landing HTML must not come from D1.
 
-## Payment architecture
+## 2. Language SEO structure
 
-- Payment verification remains manual through WhatsApp.
-- Binance ID and RedotPay may be managed by the backend/admin settings API.
-- USDT TRC20 is a manual frontend payment method and is not published by `/api/payment-methods`.
-- The public frontend contains the current manual USDT TRC20 address and QR/copy UX.
-- Do not reintroduce USDT into the payment API unless the product architecture is intentionally changed later.
-
-## Licensing architecture
-
-- Customer plans: Monthly (30 days) and Annual (365 days).
-- Every customer activation code supports exactly one device.
-- The backend enforces the one-device rule; the admin UI cannot raise it.
-- Existing customer licenses are normalized to `device_limit = 1` when licensing/admin routes run.
-- If an older license already has multiple trusted devices, the oldest trusted binding remains and additional trusted bindings are blocked.
-- Owner access remains a separate non-customer owner mechanism.
-
-## Multilingual SEO
-
-Target routes:
+Indexable routes:
 
 - `/en`
 - `/ar`
@@ -38,86 +21,143 @@ Target routes:
 - `/de`
 - `/es`
 
-Implementation rules:
+Implementation:
 
-1. Build localized HTML for every supported language from the same `index.html` and the existing locale dictionaries.
-2. Serve localized HTML directly from Cloudflare Static Assets so important page copy exists before client-side JavaScript runs.
-3. Keep self-referencing canonical URLs per language.
-4. Add reciprocal `hreflang` for all languages and `x-default -> /en`.
-5. Keep `/` as a permanent redirect to `/en`.
-6. Generate `robots.txt` and `sitemap.xml` from the frontend Worker.
-7. Keep titles, descriptions, Open Graph metadata and Twitter metadata localized.
-8. Keep one responsive HTML implementation for desktop/mobile; do not create separate mobile URLs.
-9. Keep structured data focused on accurate product/software information. FAQ content can remain useful to users, but should not be treated as a Google FAQ rich-result growth tactic.
-10. Avoid hidden keyword blocks, doorway pages, duplicated city pages, or search-engine-only content.
+- Generate localized HTML at build time for every language.
+- `/` permanently redirects to `/en`.
+- Arabic HTML uses `dir="rtl"`.
+- Language picker navigates to the language URL instead of only changing local JavaScript state.
+- Add a self-canonical to every language page.
+- Add reciprocal `hreflang` links for EN/AR/RU/DE/ES plus `x-default -> /en`.
+- Publish all five routes in `sitemap.xml`.
+- Publish `robots.txt` with the sitemap URL.
+- Localize title, meta description, Open Graph and Twitter metadata.
 
-## Content growth after technical SEO
+## 3. On-page SEO
 
-- Publish useful English-first content around Google Maps lead research, exporting Google Maps data, international phone formatting, Excel lead workflows, sales prospecting workflows, agency research and local-business research.
-- Localize only pages that have real translated content and search value.
-- Add internal links from educational content to the relevant product sections and language landing pages.
-- Build comparison/use-case pages only where they provide unique user value rather than near-duplicate SEO pages.
-- Add original screenshots, workflow examples and export examples where useful.
+Keep the visual layout unchanged while improving meaning and crawlability:
 
-## Performance and UX
+- One clear H1 focused on Google Maps lead extraction.
+- Explain real product capabilities only: structured Maps data, international phone formatting and Excel/CSV/JSON/table exports.
+- Keep Monthly/Annual pricing, manual activation and one-device policy clear.
+- Use natural language, not keyword stuffing.
+- Keep FAQ for user clarity; do not depend on FAQ rich results as an SEO growth tactic.
+- Keep SoftwareApplication/Product-style structured data accurate to the actual offer.
+- Add meaningful alt text when real product screenshots are added.
 
-- Preserve the current visual identity and responsive design.
-- Keep critical landing assets on Cloudflare Static Assets.
-- Avoid unnecessary third-party JavaScript.
+## 4. Manual payment architecture
+
+All payment methods are manual frontend content:
+
+- Binance ID
+- USDT TRC20
+- RedotPay ID
+
+Rules:
+
+- Do not fetch payment methods from the API.
+- Do not expose payment credentials in admin settings.
+- Customer sends screenshot + transaction reference/address through WhatsApp.
+- Admin verifies the payment manually.
+- Only after verification is a Monthly or Annual activation code created/extended.
+
+## 5. Licensing
+
+- Monthly = 30 days, up to 1,500 accepted results/day.
+- Annual = 365 days, no commercial daily platform limit.
+- Every customer code supports one device only.
+- Backend enforces device limit = 1.
+- Admin can reset the single device binding for support cases.
+
+## 6. Technical SEO
+
+- Serve localized HTML directly from Static Assets.
+- Keep HTTP 200 for valid language pages and 301 from `/` to `/en`.
+- Avoid client-only translated primary content.
+- Avoid doorway pages, city-page duplication and hidden keyword text.
+- Keep mobile and desktop on the same responsive URLs.
+- Keep canonical URLs consistent with final production host.
+- Ensure privacy/terms remain crawlable but low-priority in sitemap.
+
+## 7. Performance
+
+- Keep critical CSS/JS small and local where possible.
+- Avoid unnecessary third-party scripts.
 - Monitor LCP, INP and CLS after production deployment.
-- Keep mobile payment controls readable and touch-friendly.
+- Keep payment and CTA controls touch-friendly on mobile.
+- Preserve the approved page aesthetics while reducing render-blocking work where safe.
 
-## CI/CD
+## 8. Content growth plan
 
-Frontend:
+After technical SEO is live and indexed, build high-value content around real user intent:
 
-1. Build `dist/frontend`.
-2. Generate localized HTML for EN/AR/RU/DE/ES.
-3. Validate Worker syntax.
-4. Deploy with `deploy/wrangler.frontend.jsonc`.
-5. Verify Static Assets and `API` service binding.
+- How to extract Google Maps business leads responsibly.
+- Google Maps lead research workflows for agencies.
+- Exporting Google Maps results to Excel/CSV/JSON.
+- International phone-number formatting in lead lists.
+- Cleaning and organizing local-business prospect lists.
+- Practical outreach preparation workflows using exported business data.
+- Product tutorials with original screenshots and export examples.
 
-Backend:
+Start with English pages based on real Search Console queries, then localize pages that have actual search demand and quality translations.
 
-1. Validate backend syntax and regression tests.
-2. Deploy with `backend/wrangler.toml`.
-3. Verify D1 binding and public API endpoints.
+## 9. Internal linking
 
-Required GitHub secret for Wrangler workflows:
+- Link educational content to `/en` and relevant product sections.
+- For translated articles, link to the matching language landing route.
+- Use descriptive anchors rather than repetitive exact-match keyword anchors.
+- Keep navigation shallow so important pages are reachable within a few clicks.
 
-- `CLOUDFLARE_API_TOKEN`
+## 10. Search Console rollout
 
-Cloudflare account:
+After final production host/domain is confirmed:
 
-- Account ID: `90d77a67b5686c9a9eec64a2d3749e0b`
+1. Verify the domain/property in Google Search Console.
+2. Submit `/sitemap.xml`.
+3. Inspect `/en`, `/ar`, `/ru`, `/de`, `/es` individually.
+4. Confirm selected canonical and hreflang behavior.
+5. Track indexing, impressions, CTR, countries and Core Web Vitals.
+6. Improve titles/descriptions using real query data rather than guessed keyword repetition.
 
-## Production verification checklist
+## 11. CI/CD gates
 
-After every production deployment verify:
+Release checks must validate:
 
-- `/en` returns English localized HTML.
-- `/ar` returns Arabic HTML with `dir="rtl"`.
-- `/ru` returns Russian localized HTML.
-- `/de` returns German localized HTML.
-- `/es` returns Spanish localized HTML.
-- Canonical and hreflang annotations are present.
-- `/robots.txt` is reachable.
-- `/sitemap.xml` contains the five language URLs.
-- `/api/health` succeeds.
-- `/api/plans` returns the current Monthly/Annual commercial rules.
-- `/api/payment-methods` returns Binance and RedotPay and does not publish USDT.
-- Manual USDT copy/QR UI works from the frontend configuration.
-- Admin generates only Monthly/Annual customer codes.
-- A new customer code can bind only one device.
-- A second new device receives `DEVICE_LIMIT_REACHED`.
-- Frontend Worker has Static Assets and `API -> maps-hunter-pro-api`; it must not depend on D1 for landing HTML.
+- JavaScript syntax.
+- Manual-payment architecture.
+- One-device licensing policy.
+- Localized HTML generation.
+- Arabic RTL output.
+- Extension packaging using the version from `extension/manifest.json`.
 
-## Search Console follow-up
+Frontend deploy:
 
-After the production URL/domain is final:
+- Build `dist/frontend`.
+- Deploy using `deploy/wrangler.frontend.jsonc`.
 
-- Verify the domain/property in Google Search Console.
-- Submit `/sitemap.xml`.
-- Inspect `/en`, `/ar`, `/ru`, `/de`, `/es` with URL Inspection.
-- Track indexing, search queries, countries, CTR and Core Web Vitals.
-- Rework titles/descriptions based on real query data instead of keyword stuffing.
+Backend deploy:
+
+- Deploy using `backend/wrangler.toml`.
+
+Wrangler GitHub workflows require `CLOUDFLARE_API_TOKEN`.
+
+## 12. Production smoke test
+
+After deployment verify:
+
+- `/en`
+- `/ar`
+- `/ru`
+- `/de`
+- `/es`
+- `/robots.txt`
+- `/sitemap.xml`
+- `/api/health`
+- `/api/plans`
+- `/api/payment-methods` returns `PAYMENTS_MANUAL_ONLY` and the frontend does not use it.
+- Binance, USDT and RedotPay display directly from manual frontend data.
+- WhatsApp screenshot-verification flow works.
+- Monthly/Annual admin code creation works.
+- New activation binds to one device.
+- Second different device is rejected until reset.
+- Cloudflare frontend Worker has Static Assets and `API -> maps-hunter-pro-api` with no D1 landing HTML dependency.
