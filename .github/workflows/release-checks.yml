@@ -36,6 +36,8 @@ jobs:
           node --check extension/license-client.js
           node --check extension/panel-v2.js
           node --check extension/xlsx-export.js
+      - name: Payment safety regression check
+        run: node tests/test_payment_safety.mjs
       - name: Build static pages
         run: node scripts/build.mjs
       - name: Build extension release
