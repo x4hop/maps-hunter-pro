@@ -14,7 +14,7 @@
   "host_permissions": [
     "https://www.google.com/*",
     "https://maps.google.com/*",
-    "https://maps-hunter-pro-api.anas98gha.workers.dev/*"
+    "https://mapshunterpro.com/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com"
