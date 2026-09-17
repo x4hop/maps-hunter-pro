@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "maps-hunter-pro-api",
+  "main": "./deploy/unified-worker.js",
+  "compatibility_date": "2026-09-17",
+  "assets": {
+    "directory": "./dist/frontend",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "maps-hunter-pro",
+      "database_id": "21beb48b-da1d-4828-9a69-001fd6c798de",
+      "migrations_dir": "backend/migrations"
+    }
+  ],
+  "triggers": {
+    "crons": ["17 3 * * *"]
+  },
+  "observability": {
+    "enabled": true
+  }
+}
