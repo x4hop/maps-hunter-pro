@@ -3,6 +3,16 @@
   "name": "maps-hunter-pro-api",
   "main": "./deploy/unified-worker.js",
   "compatibility_date": "2026-09-17",
+  "routes": [
+    {
+      "pattern": "mapshunterpro.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.mapshunterpro.com",
+      "custom_domain": true
+    }
+  ],
   "assets": {
     "directory": "./dist/frontend",
     "binding": "ASSETS",
