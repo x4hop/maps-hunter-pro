@@ -1,0 +1,61 @@
+name: Apply Maps Hunter Pro logo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-logo.yml'
+      - 'assets/logo.svg'
+      - 'extension/icons/logo.svg'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-logo:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update logo references
+        shell: python
+        run: |
+          from pathlib import Path
+
+          # Public website: replace text badge with the new visual logo.
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('<span class="brand-mark">MH</span>', '<img class="brand-mark brand-logo" src="/assets/logo.svg" alt="Maps Hunter Pro logo" width="48" height="48">')
+          if '/assets/logo.svg' in s and '<link rel="icon" href="/assets/logo.svg" type="image/svg+xml">' not in s:
+              s = s.replace('</head>', '<link rel="icon" href="/assets/logo.svg" type="image/svg+xml">\n</head>', 1)
+          p.write_text(s, encoding='utf-8')
+
+          # Admin: use the same logo on login and sidebar via CSS backgrounds.
+          p = Path('admin/index.html')
+          s = p.read_text(encoding='utf-8')
+          old_login = '.login-card:before{content:"MHP";display:grid;place-items:center;width:52px;height:52px;margin-bottom:22px;border:1.5px solid var(--color-black);border-radius:14px;background:var(--color-coral);font-size:13px;font-weight:900;box-shadow:4px 4px 0 var(--color-black)}'
+          new_login = '.login-card:before{content:"";display:block;width:52px;height:52px;margin-bottom:22px;border:1.5px solid var(--color-black);border-radius:14px;background:url("/assets/logo.svg") center/cover no-repeat;box-shadow:4px 4px 0 var(--color-black)}'
+          s = s.replace(old_login, new_login)
+          old_side = '.side .brand:before{content:"MH";display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border:1.5px solid var(--color-paper);border-radius:12px;background:var(--color-coral);color:var(--color-black);font-size:12px;box-shadow:3px 3px 0 var(--color-paper)}'
+          new_side = '.side .brand:before{content:"";display:block;width:42px;height:42px;flex:0 0 42px;border:1.5px solid var(--color-paper);border-radius:12px;background:url("/assets/logo.svg") center/cover no-repeat;box-shadow:3px 3px 0 var(--color-paper)}'
+          s = s.replace(old_side, new_side)
+          if '<link rel="icon" href="/assets/logo.svg" type="image/svg+xml">' not in s:
+              s = s.replace('</head>', '<link rel="icon" href="/assets/logo.svg" type="image/svg+xml">\n</head>', 1)
+          p.write_text(s, encoding='utf-8')
+
+          # Chrome extension panel header.
+          p = Path('extension/panel-v2.html')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('src="icons/icon128.png" alt="Maps Hunter Pro"', 'src="icons/logo.svg" alt="Maps Hunter Pro"')
+          p.write_text(s, encoding='utf-8')
+      - name: Commit logo integration
+        run: |
+          if git diff --quiet; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html admin/index.html extension/panel-v2.html
+          git commit -m "Apply new logo across site, admin and extension [skip ci]"
+          git push
