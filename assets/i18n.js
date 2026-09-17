@@ -9,15 +9,15 @@ const MHP_LANGS=['en','ar','ru','de','es'];
 const MHP_LANG_SHORT={en:'EN',ar:'ع',ru:'RU',de:'DE',es:'ES'};
 const MHP_LANG_NAME={en:'English',ar:'العربية',ru:'Русский',de:'Deutsch',es:'Español'};
 
-function installChangaTheme(){
+function installReadexTheme(){
   if(!document.getElementById('mhp-readex-font')){
     const link=document.createElement('link');link.id='mhp-readex-font';link.rel='stylesheet';link.href='https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700;800&display=swap';document.head.appendChild(link);
   }
   if(!document.getElementById('mhp-ui-polish')){
-    const link=document.createElement('link');link.id='mhp-ui-polish';link.rel='stylesheet';link.href='assets/ui-polish.css';document.head.appendChild(link);
+    const link=document.createElement('link');link.id='mhp-ui-polish';link.rel='stylesheet';link.href='/assets/ui-polish.css';document.head.appendChild(link);
   }
   if(!document.getElementById('mhp-layout-polish')){
-    const link=document.createElement('link');link.id='mhp-layout-polish';link.rel='stylesheet';link.href='assets/layout-polish.css';document.head.appendChild(link);
+    const link=document.createElement('link');link.id='mhp-layout-polish';link.rel='stylesheet';link.href='/assets/layout-polish.css';document.head.appendChild(link);
   }
   if(!document.getElementById('mhp-language-font-fixes')){
     const style=document.createElement('style');style.id='mhp-language-font-fixes';style.textContent=`
@@ -60,7 +60,7 @@ function positionLanguageMenu(){
 }
 
 function initLanguageSwitcher(){
-  installChangaTheme();
+  installReadexTheme();
   const toggle=document.getElementById('langToggle'),menu=document.getElementById('languageMenu'),switcher=document.getElementById('languageSwitcher');if(!toggle||!menu||!switcher)return;
   toggle.addEventListener('click',event=>{event.stopPropagation();const open=menu.classList.toggle('open');toggle.setAttribute('aria-expanded',String(open));if(open)requestAnimationFrame(positionLanguageMenu)});
   menu.addEventListener('click',event=>{const item=event.target.closest('[data-lang]');if(!item)return;const target=item.dataset.lang;if(!MHP_LANGS.includes(target))return;const next=`/${target}${location.search||''}${location.hash||''}`;if(location.pathname.replace(/\/$/,'')!==`/${target}`)location.assign(next);else{menu.classList.remove('open');toggle.setAttribute('aria-expanded','false');applyLanguage(target)}});
