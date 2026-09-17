@@ -10,8 +10,8 @@
 <main class="app-shell">
   <header class="topbar">
     <div class="brand">
-      <img src="icons/icon128.png" alt="">
-      <div><strong>Maps Hunter <em>Pro</em></strong><span>Instant Google Maps extractor</span></div>
+      <img src="icons/icon128.png" alt="Maps Hunter Pro">
+      <div><strong>Maps Hunter <em>Pro</em></strong><span>Google Maps lead extractor</span></div>
     </div>
     <span id="licenseChip" class="license-chip">Checking…</span>
   </header>
@@ -20,74 +20,45 @@
     <button class="nav-tab active" data-page="searchPage" type="button"><span>⌕</span>Search</button>
     <button class="nav-tab" data-page="resultsPage" type="button"><span>▦</span>Results <b id="tabLeadCount">0</b></button>
     <button class="nav-tab" data-page="licensePage" type="button"><span>◆</span>Activation</button>
+    <button class="nav-tab" data-page="settingsPage" type="button"><span>⚙</span>Settings</button>
   </nav>
 
   <section id="searchPage" class="page active">
     <div class="search-card">
-      <div class="section-heading"><div><small>NEW SEARCH</small><h1>Find businesses faster</h1></div><span id="phaseBadge">Ready</span></div>
+      <div class="section-heading">
+        <div><small>NEW SEARCH</small><h1>Find businesses faster</h1></div>
+        <span id="phaseBadge">Ready</span>
+      </div>
 
       <label class="input-group">
         <span>Search type</span>
-        <input id="keyword" type="text" placeholder="e.g. Restaurants" autocomplete="off" aria-label="Business search type">
+        <input id="keyword" type="text" placeholder="e.g. Dentists" autocomplete="off" aria-label="Business search type">
       </label>
 
       <label class="input-group cities-group">
-        <span>Cities</span>
-        <textarea id="citiesInput" placeholder="Tripoli&#10;Benghazi&#10;Misrata" aria-label="Cities, one per line"></textarea>
-        <small>One city per line, or separate with commas.</small>
+        <span>Locations</span>
+        <textarea id="citiesInput" placeholder="Berlin, Germany&#10;Paris, France&#10;Madrid, Spain" aria-label="Locations, one per line"></textarea>
+        <small>Write the location naturally. Include the country when useful, e.g. Berlin, Germany.</small>
       </label>
 
       <div class="instant-mode">
         <span class="instant-dot"></span>
-        <div><strong>Direct Maps capture</strong><small>Reads Google Maps detail pages only; business websites are not opened.</small></div>
-        <span style="display:flex;gap:5px;align-items:center">
-          <select id="countryCode" aria-label="Phone country code" title="Phone country code" style="max-width:88px;height:31px;border:1px solid #d8eadf;border-radius:8px;background:#fff;color:#2f7355;font-size:10px;font-weight:800">
-            <option value="">Auto CC</option>
-            <option value="218">+218 LY</option>
-            <option value="20">+20 EG</option>
-            <option value="216">+216 TN</option>
-            <option value="213">+213 DZ</option>
-            <option value="212">+212 MA</option>
-            <option value="966">+966 SA</option>
-            <option value="971">+971 UAE</option>
-            <option value="974">+974 QA</option>
-            <option value="965">+965 KW</option>
-            <option value="973">+973 BH</option>
-            <option value="968">+968 OM</option>
-            <option value="962">+962 JO</option>
-            <option value="961">+961 LB</option>
-            <option value="964">+964 IQ</option>
-            <option value="90">+90 TR</option>
-            <option value="49">+49 DE</option>
-            <option value="44">+44 UK</option>
-            <option value="33">+33 FR</option>
-            <option value="39">+39 IT</option>
-            <option value="34">+34 ES</option>
-            <option value="7">+7 RU</option>
-            <option value="1">+1 US/CA</option>
-          </select>
-          <select id="workerCount" aria-label="Concurrent Maps tabs" title="Concurrent Maps tabs" style="max-width:68px;height:31px;border:1px solid #d8eadf;border-radius:8px;background:#fff;color:#2f7355;font-size:10px;font-weight:800">
-            <option value="1">1 tab</option>
-            <option value="2">2 tabs</option>
-            <option value="3">3 tabs</option>
-            <option value="4">4 tabs</option>
-            <option value="5">5 tabs</option>
-            <option value="6" selected>6 tabs</option>
-            <option value="7">7 tabs</option>
-            <option value="8">8 tabs</option>
-          </select>
-        </span>
+        <div>
+          <strong>Maps-only extraction</strong>
+          <small>Collect all Google Maps results first, then extract detail pages in parallel. Business websites are never opened.</small>
+        </div>
+        <b id="workerSummary">6 TABS</b>
       </div>
 
       <button id="startBtn" class="primary-action" type="button"><span>Start Search</span><b>→</b></button>
 
       <div class="live-card">
         <div class="live-orbit" id="liveOrbit"><div><small>LEADS</small><strong id="leadCount">0</strong><span>collected</span></div></div>
-        <div class="live-copy"><strong id="statusTitle">Ready to search</strong><p id="statusText">Enter a search type and at least one city.</p><div class="mini-progress"><i id="progressBar"></i></div></div>
+        <div class="live-copy"><strong id="statusTitle">Ready to search</strong><p id="statusText">Enter a search type and at least one location.</p><div class="mini-progress"><i id="progressBar"></i></div></div>
       </div>
 
       <div class="run-actions">
-        <button id="skipCityBtn" type="button" disabled>Skip city</button>
+        <button id="skipCityBtn" type="button" disabled>Skip location</button>
         <button id="stopBtn" class="danger" type="button" disabled>Stop search</button>
       </div>
     </div>
@@ -96,8 +67,21 @@
   <section id="resultsPage" class="page">
     <div class="results-card">
       <div class="results-hero"><span>COLLECTED</span><strong id="resultTotal">0</strong><small>businesses saved</small></div>
-      <div class="stat-grid"><div><strong id="phoneCount">0</strong><span>Phones</span></div><div><strong id="emailCount">0</strong><span>Emails</span></div><div><strong id="socialCount">0</strong><span>Social</span></div></div>
-      <div class="export-section"><div class="section-label">EXPORT RESULTS</div><button id="excelBtn" class="export-main" type="button"><span>XLSX</span><strong>Excel</strong><small>Recommended</small></button><div class="export-grid"><button id="csvBtn" type="button"><b>CSV</b><span>Spreadsheet</span></button><button id="jsonBtn" type="button"><b>JSON</b><span>Raw data</span></button><button id="openSheetBtn" type="button"><b>TABLE</b><span>View all</span></button></div></div>
+      <div class="stat-grid">
+        <div><strong id="phoneCount">0</strong><span>Phones</span></div>
+        <div><strong id="emailCount">0</strong><span>Emails</span></div>
+        <div><strong id="socialCount">0</strong><span>Social</span></div>
+      </div>
+      <div class="export-section">
+        <div class="section-label">EXPORT RESULTS</div>
+        <button id="excelBtn" class="export-main" type="button"><span>XLSX</span><strong>Excel</strong><small>Recommended</small></button>
+        <div class="export-grid">
+          <button id="csvBtn" type="button"><b>CSV</b><span>Spreadsheet</span></button>
+          <button id="jsonBtn" type="button"><b>JSON</b><span>Raw data</span></button>
+          <button id="openSheetBtn" type="button"><b>TABLE</b><span>View all</span></button>
+        </div>
+      </div>
+      <div class="results-subhead"><strong>Latest results</strong><span>Newest first</span></div>
       <div id="recentResults" class="recent-results"><div class="empty-state">Your latest businesses will appear here.</div></div>
       <button id="clearBtn" class="clear-button" type="button">Clear saved results</button>
     </div>
@@ -111,8 +95,47 @@
       <label class="input-group"><span>Activation code</span><input id="licenseKey" type="text" placeholder="MHP-…" autocomplete="off" spellcheck="false"></label>
       <button id="saveLicense" class="primary-action" type="button"><span>Activate code</span><b>✓</b></button>
       <div id="licenseStatusBox" class="activation-state"><strong>Checking activation…</strong><span>Please wait.</span></div>
-      <div class="license-meta"><div><span>Status</span><b id="licenseStateText">Checking</b></div><div><span>Expires</span><b id="expiresText">—</b></div></div>
-      <footer><span>Maps Hunter Pro v8.3.2</span><a href="https://maps-hunter-pro-preview.anas98gha.workers.dev/privacy.html" target="_blank">Privacy</a></footer>
+      <div class="license-meta">
+        <div><span>Status</span><b id="licenseStateText">Checking</b></div>
+        <div><span>Expires</span><b id="expiresText">—</b></div>
+      </div>
+      <footer><span>Maps Hunter Pro v8.3.4</span><a href="https://maps-hunter-pro-preview.anas98gha.workers.dev/privacy.html" target="_blank">Privacy</a></footer>
+    </div>
+  </section>
+
+  <section id="settingsPage" class="page">
+    <div class="settings-card">
+      <div class="section-heading">
+        <div><small>EXTRACTION</small><h1>Settings</h1></div>
+        <span class="settings-chip">Saved automatically</span>
+      </div>
+
+      <div class="setting-block">
+        <div class="setting-copy"><strong>Parallel Maps tabs</strong><small>How many Google Maps detail pages can be processed at the same time.</small></div>
+        <select id="workerCount" aria-label="Concurrent Maps tabs">
+          <option value="1">1 tab</option>
+          <option value="2">2 tabs</option>
+          <option value="3">3 tabs</option>
+          <option value="4">4 tabs</option>
+          <option value="5">5 tabs</option>
+          <option value="6">6 tabs</option>
+          <option value="7">7 tabs</option>
+          <option value="8">8 tabs</option>
+        </select>
+      </div>
+
+      <div class="setting-block locked-setting">
+        <div class="setting-copy"><strong>Scan results first</strong><small>The tool finishes collecting Google Maps result links before opening detail tabs.</small></div>
+        <span class="setting-state">ON</span>
+      </div>
+
+      <div class="setting-block locked-setting">
+        <div class="setting-copy"><strong>Open business websites</strong><small>Disabled for speed. If Maps does not show email or social data, those fields stay empty.</small></div>
+        <span class="setting-state off">OFF</span>
+      </div>
+
+      <div class="settings-note"><b>No country-code selector</b><span>Country context comes from the location you type and from the Google Maps address, such as “Berlin, Germany”.</span></div>
+      <button id="resetSettings" class="clear-button" type="button">Reset extraction settings</button>
     </div>
   </section>
 
