@@ -1,13 +1,14 @@
 # Maps Hunter Pro — Current Production Truth
 
-Last updated: 2026-09-16
+Last updated: 2026-09-17
 
 ## Source of truth
 
 - Repository: `x4hop/maps-hunter-pro`
 - Branch: `main`
 - `main` is the only source of truth for frontend, backend, admin and extension.
-- Do not restore older D1-hosted landing HTML or older payment architecture.
+- Do not restore older D1-hosted landing/admin HTML.
+- Do not restore the old split frontend/API/admin deployment architecture.
 
 ## Product and plans
 
@@ -21,20 +22,19 @@ Last updated: 2026-09-16
 
 ## Manual payment model
 
-All payment methods are manual and are published directly on the landing page:
+All payment methods are manual and published directly on the landing page:
 
 - Binance ID: `752783284`
-- USDT: TRC20 manual wallet shown on the public page
+- USDT: manual TRC20 wallet shown on the public page
 - RedotPay ID: `1831390337`
 
 Rules:
 
 - Payment methods do **not** come from the API.
-- `/api/payment-methods` is not part of the production customer flow.
 - Customer sends a payment screenshot plus transaction reference/address through WhatsApp.
-- Admin verifies payment manually before issuing/renewing an activation code.
+- Admin verifies payment manually before issuing or renewing an activation code.
 - Payment proof never auto-activates access.
-- Admin settings must not be used to change payment credentials.
+- Admin settings are not the source of payment credentials.
 
 ## Public language routes
 
@@ -51,9 +51,54 @@ Rules:
 - `/` permanently redirects to `/en`.
 - Arabic uses `dir="rtl"`; all others use LTR.
 - Language selection navigates to the matching URL; do not use `?lang=` as the canonical language architecture.
-- Build localized HTML for every route so important translated content exists before client-side JS runs.
+- Build localized HTML for every route so important translated content exists before client-side JavaScript runs.
 - Every language route has a self-referencing canonical plus reciprocal `hreflang` and `x-default`.
 - All five routes appear in the sitemap.
+
+## Unified Cloudflare production architecture
+
+Cloudflare remains the hosting platform for the complete product.
+
+Production Worker:
+
+- Worker name: `maps-hunter-pro-api`
+- Workers.dev host: `https://maps-hunter-pro-api.anas98gha.workers.dev`
+- Entry point: `deploy/unified-worker.js`
+- Wrangler source of truth: `wrangler.jsonc`
+- Static Assets: `dist/frontend`
+- D1 binding: `DB`
+- D1 database: `maps-hunter-pro`
+
+The same Worker serves:
+
+- landing page and language routes
+- static assets
+- `/admin/`
+- `/api/*`
+- `/robots.txt`
+- `/sitemap.xml`
+
+There is no Service Binding between separate frontend and API Workers in the new architecture. Landing/admin HTML is not read from D1.
+
+Legacy Cloudflare resources to remove after successful unified deployment:
+
+- `maps-hunter-pro-preview`
+- `maps-hunter-pro-admin`
+- any old Maps Hunter Pages/build resources that are confirmed unused
+
+Never delete the production D1 until a verified backup/export exists.
+
+## Cloudflare ↔ GitHub deployment
+
+Use Cloudflare Workers Builds native GitHub integration.
+
+- Repository: `x4hop/maps-hunter-pro`
+- Production branch: `main`
+- Root directory: `/`
+- Build command: `node scripts/build-frontend-cloudflare.mjs`
+- Deploy command: `npx --yes wrangler@4 deploy --config wrangler.jsonc`
+
+Do not use GitHub Actions with `CLOUDFLARE_API_TOKEN` for production deployment. The old token-based deployment workflows were removed.
 
 ## Frontend
 
@@ -63,11 +108,14 @@ Rules:
 - `assets/manual-i18n.js`: localized copy overrides and presentation polish.
 - `assets/i18n.js`: language routing/switching only; it must not own payment credentials.
 - `assets/app.js`: manual payment rendering, plan display, WhatsApp handoff and interaction behavior.
-- Preserve the current approved design and responsive layout.
+- Preserve the approved design and responsive layout.
 
 ## Backend
 
-Cloudflare Worker: `maps-hunter-pro-api`
+Backend code:
+
+- `backend/src/index.js`
+- `backend/src/entry.js`
 
 Production responsibilities:
 
@@ -77,7 +125,7 @@ Production responsibilities:
 - `POST /api/usage/consume`
 - protected `/api/admin/*`
 
-Payment-method data is not a backend responsibility in the current architecture.
+Payment-method data is not a backend responsibility.
 
 ## Licensing
 
@@ -90,7 +138,11 @@ Payment-method data is not a backend responsibility in the current architecture.
 
 ## Admin
 
-Admin dashboard responsibilities:
+Admin URL in the unified Worker:
+
+- `/admin/`
+
+Admin responsibilities:
 
 - Generate Monthly or Annual activation codes.
 - Show status, expiry, usage and the one-device binding.
@@ -99,55 +151,52 @@ Admin dashboard responsibilities:
 - Manage owner code separately.
 - Review audit logs.
 
-Admin does not manage payment-method credentials in the current manual-payment architecture.
+Admin does not manage payment-method credentials.
 
-## Cloudflare ownership
+## Extension compatibility
 
-- Account: Anas
-- Account ID: `90d77a67b5686c9a9eec64a2d3749e0b`
-- Workers subdomain: `anas98gha.workers.dev`
-- D1: `maps-hunter-pro`
-- D1 ID: `21beb48b-da1d-4828-9a69-001fd6c798de`
-- API Worker: `maps-hunter-pro-api`
-- Admin Worker: `maps-hunter-pro-admin`
-- Frontend Worker: `maps-hunter-pro-preview`
+The extension continues to call:
 
-Frontend Worker requirements:
+`https://maps-hunter-pro-api.anas98gha.workers.dev`
 
-- Static Assets source: `dist/frontend`
-- Service binding: `API -> maps-hunter-pro-api`
-- No D1 binding for landing-page HTML.
-- Do not use an old HTML copy stored in D1.
+Keeping the unified Worker name as `maps-hunter-pro-api` preserves compatibility with installed extension builds while moving the landing page and admin into the same production Worker.
 
-## CI/CD
+## CI
 
-Frontend deployment:
+GitHub Actions is validation/release packaging only. It does not deploy Cloudflare.
 
-1. Build `dist/frontend` from `main`.
-2. Generate localized `/en /ar /ru /de /es` HTML.
-3. Validate Worker syntax.
-4. Deploy `deploy/wrangler.frontend.jsonc`.
+Release checks validate:
 
-Backend deployment:
+- JavaScript syntax
+- manual-payment architecture
+- one-device licensing policy
+- migration chain
+- localized EN/AR/RU/DE/ES HTML generation
+- Arabic RTL output
+- admin static asset generation
+- extension release packaging
 
-1. Validate backend and licensing tests.
-2. Deploy `backend/wrangler.toml`.
+## Production verification
 
-GitHub Wrangler workflows require repository secret:
+Before considering a deployment complete, verify:
 
-- `CLOUDFLARE_API_TOKEN`
+- `/en`, `/ar`, `/ru`, `/de`, `/es`
+- `/robots.txt`
+- `/sitemap.xml`
+- `/admin/`
+- `/api/health`
+- `/api/plans`
+- Binance, USDT and RedotPay display directly from frontend manual data
+- WhatsApp payment-proof flow
+- new Monthly and Annual codes bind to one device only
+- second different device is rejected until admin resets the binding
+- landing/admin HTML is served from Static Assets and not D1
 
-## Launch verification
+## Safe Cloudflare cleanup order
 
-Before treating a deployment as production-ready, verify:
-
-- `/en`, `/ar`, `/ru`, `/de`, `/es` all return their own localized HTML.
-- Arabic is RTL.
-- Canonical/hreflang and `/sitemap.xml` are correct.
-- `/api/health` and `/api/plans` succeed.
-- Frontend does not request `/api/payment-methods`.
-- Binance, USDT and RedotPay values display from the frontend manual configuration.
-- WhatsApp payment-proof link works.
-- New Monthly/Annual codes bind to one device only.
-- A second different device is rejected until admin resets the binding.
-- Frontend Worker uses Static Assets and the API service binding, not D1 landing HTML.
+1. Export/backup the current D1 database.
+2. Deploy and verify the unified `maps-hunter-pro-api` Worker from `main`.
+3. Confirm extension/API compatibility.
+4. Delete legacy `maps-hunter-pro-preview` and `maps-hunter-pro-admin` Workers.
+5. Delete only other Maps Hunter Cloudflare resources confirmed unused.
+6. Keep the unified Worker and the required D1 database as the production system.
