@@ -12,6 +12,8 @@ This repository uses one Cloudflare Worker as the production application.
 - Static assets: `/dist/frontend`
 - D1 binding: `DB`
 - D1 database: `maps-hunter-pro`
+- Production domain: `https://mapshunterpro.com`
+- Secondary hostname: `https://www.mapshunterpro.com`
 
 The same Worker serves:
 
@@ -50,7 +52,9 @@ Cloudflare Workers Builds creates and manages its deployment token inside Cloudf
 5. D1 is only for application data, licensing, usage and admin state.
 6. Payment methods are manual frontend content; payment credentials are not served by the API.
 7. Monthly and Annual activation codes are limited to one device by backend enforcement.
-8. The extension keeps using `https://maps-hunter-pro-api.anas98gha.workers.dev` so installed versions remain compatible.
+8. The extension uses `https://mapshunterpro.com` as its production API origin, with API calls under `/api/*`.
+9. The admin console uses same-origin `/api/admin/*` requests under `https://mapshunterpro.com/admin/`.
+10. `mapshunterpro.com` and `www.mapshunterpro.com` are Cloudflare Worker Custom Domains for `maps-hunter-pro-api`.
 
 ## Safe reset order
 
