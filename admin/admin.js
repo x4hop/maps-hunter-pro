@@ -1,5 +1,5 @@
 (()=>{
-const $=id=>document.getElementById(id),API=window.MHP_API_BASE||'',TOKEN='mhp_admin_session';
+const $=id=>document.getElementById(id),API='',TOKEN='mhp_admin_session';
 let token=sessionStorage.getItem(TOKEN)||'';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date=v=>v?new Date(v.endsWith?.('Z')?v:v+'Z').toLocaleString():'—';
