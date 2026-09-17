@@ -2,7 +2,7 @@ const MHP_META={
   en:['Maps Hunter Pro — Google Maps Lead Extraction Chrome Extension','Find, organize and export Google Maps business leads to Excel, CSV and JSON with international phone formatting.'],
   ar:['Maps Hunter Pro — استخراج بيانات الأنشطة التجارية من Google Maps','استخرج ونظّم وصدّر بيانات الأنشطة التجارية من Google Maps إلى Excel وCSV وJSON مع تنسيق أرقام الهاتف الدولي.'],
   ru:['Maps Hunter Pro — экспорт бизнес-лидов из Google Maps','Находите, систематизируйте и экспортируйте бизнес-лиды из Google Maps в Excel, CSV и JSON с международным форматом телефонов.'],
-  de:['Maps Hunter Pro — Google Maps Lead-Extraktion für Chrome','Unternehmens-Leads aus Google Maps finden, organisieren und nach Excel, CSV und JSON mit internationalem Telefonnummerнformat exportieren.'],
+  de:['Maps Hunter Pro — Google Maps Lead-Extraktion für Chrome','Unternehmens-Leads aus Google Maps finden, organisieren und nach Excel, CSV und JSON mit internationalem Telefonnummernformat exportieren.'],
   es:['Maps Hunter Pro — extracción de leads de Google Maps','Encuentra, organiza y exporta leads empresariales de Google Maps a Excel, CSV y JSON con formato telefónico internacional.']
 };
 const MHP_LANGS=['en','ar','ru','de','es'];
@@ -14,7 +14,10 @@ function installChangaTheme(){
     const link=document.createElement('link');link.id='mhp-readex-font';link.rel='stylesheet';link.href='https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700;800&display=swap';document.head.appendChild(link);
   }
   if(!document.getElementById('mhp-ui-polish')){
-    const link=document.createElement('link');link.id='mhp-ui-polish';link.rel='stylesheet';link.href='/assets/ui-polish.css';document.head.appendChild(link);
+    const link=document.createElement('link');link.id='mhp-ui-polish';link.rel='stylesheet';link.href='assets/ui-polish.css';document.head.appendChild(link);
+  }
+  if(!document.getElementById('mhp-layout-polish')){
+    const link=document.createElement('link');link.id='mhp-layout-polish';link.rel='stylesheet';link.href='assets/layout-polish.css';document.head.appendChild(link);
   }
   if(!document.getElementById('mhp-language-font-fixes')){
     const style=document.createElement('style');style.id='mhp-language-font-fixes';style.textContent=`
