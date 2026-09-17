@@ -59,6 +59,8 @@ jobs:
           grep -q 'dir="rtl"' dist/frontend/ar/index.html
           grep -q '"name": "maps-hunter-pro-api"' wrangler.jsonc
           grep -q 'deploy/unified-worker.js' wrangler.jsonc
+      - name: Wrangler production dry run
+        run: npx --yes wrangler@4 deploy --dry-run --outdir dist/wrangler-dry-run --config wrangler.jsonc
       - name: Build static pages
         run: node scripts/build.mjs
       - name: Build extension release
