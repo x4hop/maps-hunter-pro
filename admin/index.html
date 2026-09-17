@@ -27,7 +27,7 @@ button{cursor:pointer}
 
 .login{min-height:100vh;display:grid;place-items:center;padding:28px;background:linear-gradient(135deg,var(--color-paper) 0 66%,var(--color-stone) 66%)}
 .login-card{position:relative;width:min(430px,100%);background:var(--color-stone);border:1.5px solid var(--color-black);border-radius:22px;padding:30px;box-shadow:10px 10px 0 var(--color-black)}
-.login-card:before{content:"MHP";display:grid;place-items:center;width:52px;height:52px;margin-bottom:22px;border:1.5px solid var(--color-black);border-radius:14px;background:var(--color-coral);font-size:13px;font-weight:900;box-shadow:4px 4px 0 var(--color-black)}
+.login-card:before{content:"";display:block;width:52px;height:52px;margin-bottom:22px;border:1.5px solid var(--color-black);border-radius:14px;background:url("/assets/logo.svg") center/cover no-repeat;box-shadow:4px 4px 0 var(--color-black)}
 .brand{font-weight:900;font-size:22px;letter-spacing:-.03em;margin-bottom:18px}
 .field{display:grid;gap:7px;margin:13px 0}
 .field label{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.05em}
@@ -43,7 +43,7 @@ button:hover{transform:translateY(-1px)}
 .app{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:100vh}
 .side{position:sticky;top:0;height:100vh;background:var(--color-black);color:var(--color-paper);padding:22px 15px;border-right:1px solid var(--color-black)}
 .side .brand{display:flex;align-items:center;gap:11px;padding:0 8px 22px;margin:0}
-.side .brand:before{content:"MH";display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border:1.5px solid var(--color-paper);border-radius:12px;background:var(--color-coral);color:var(--color-black);font-size:12px;box-shadow:3px 3px 0 var(--color-paper)}
+.side .brand:before{content:"";display:block;width:42px;height:42px;flex:0 0 42px;border:1.5px solid var(--color-paper);border-radius:12px;background:url("/assets/logo.svg") center/cover no-repeat;box-shadow:3px 3px 0 var(--color-paper)}
 .nav{display:grid;gap:7px}
 .nav button{position:relative;background:transparent;border-color:transparent;color:rgba(246,244,241,.7);text-align:left;box-shadow:none;padding:12px 13px}
 .nav button.active,.nav button:hover{background:var(--color-coral);border-color:var(--color-paper);color:var(--color-black);transform:none}
@@ -105,6 +105,7 @@ tbody tr:hover{background:rgba(249,92,75,.1)}
   .row .field{min-width:100%;margin:5px 0}
 }
 </style>
+<link rel="icon" href="/assets/logo.svg" type="image/svg+xml">
 </head>
 <body>
 <div id="login" class="login">
