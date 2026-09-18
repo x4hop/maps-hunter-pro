@@ -11,11 +11,11 @@
 
 ## 1. ما هو Maps Hunter Pro؟
 
-Maps Hunter Pro إضافة Chrome مخصصة لبحث الأعمال المحلية من Google Maps وبناء قوائم Leads منظمة. المستخدم يحدد أنواع الأنشطة والمواقع، الأداة تجمع روابط النتائج، تفتح صفحات تفاصيل Google Maps في تبويبات خلفية محدودة التوازي، تستخرج بيانات النشاط، ثم — عندما يوجد موقع رسمي — تفحص صفحات عامة من موقع النشاط في Service Worker للعثور على بريد إلكتروني وروابط اجتماعية عامة. بعدها تحفظ النتيجة محليًا وتتيح التصدير إلى XLSX/CSV/JSON وجدول النتائج.
+Maps Hunter Pro إضافة Chrome مخصصة لبحث الأعمال المحلية من Google Maps وبناء قوائم Leads منظمة. المستخدم يحدد أنواع الأنشطة والمواقع، الأداة تجمع روابط النتائج، تفتح صفحات تفاصيل Google Maps في تبويبات خلفية محدودة التوازي، وتستخرج بيانات النشاط والبريد الإلكتروني إن كان ظاهرًا مباشرة داخل Google Maps. لا تفتح الأداة ولا تجلب موقع النشاط للبحث عن البريد. بعدها تحفظ النتيجة محليًا وتتيح التصدير إلى XLSX/CSV/JSON وجدول النتائج.
 
 المنتج يتكون من خمس طبقات مترابطة:
 
-1. **Chrome Extension**: البحث، الجمع، الاستخراج، enrichment، التخزين المحلي والتصدير.
+1. **Chrome Extension**: البحث، الجمع، استخراج بيانات Google Maps والبريد الظاهر فيها، التخزين المحلي والتصدير.
 2. **Public Website**: صفحة المنتج، الأسعار، الدفع اليدوي، اللغات، المقالات وSEO.
 3. **Licensing API**: التحقق من كود التفعيل والجهاز والاستهلاك اليومي.
 4. **Admin Console**: إنشاء الأكواد، تمديد/تحويل Lifetime، Reset Device، Revoke، الإعدادات والـlogs.
@@ -145,21 +145,16 @@ Maps Hunter Pro إضافة Chrome مخصصة لبحث الأعمال المحل�
 - إذا لم يظهر phone ولا website، تتم إعادة قراءة قصيرة واحدة لتجنب حفظ نتيجة قبل اكتمال الـrender.
 - بعد الاستخراج يغلق worker tab.
 
-### المرحلة E — Email-first website enrichment
+### المرحلة E — Email-first من Google Maps فقط
 
-إذا ظهر website رسمي:
+بعد تحميل صفحة تفاصيل Maps:
 
-1. قبل commit النهائي للـlead ينتقل status إلى `Finding email`.
-2. لا يفتح الموقع كتَبويب مرئي؛ الـService Worker يستخدم `fetch` للـHTML العام.
-3. Contact enrichment يعمل بتزامن مستقل محدود إلى 5 عمليات.
-4. لكل موقع سقف حتى 12 صفحة تقريبًا.
-5. يبدأ من الصفحة الرئيسية، ثم يكتشف روابط مثل contact/about/team/legal/imprint وغيرها.
-6. يجرب decoding لبعض صيغ إخفاء البريد، ومنها Cloudflare email protection وصيغ `[at]`, `[dot]` وأشكال HTML entities.
-7. يجمع email(s) وروابط social العامة المدعومة.
-8. إذا لم يجد email يمكن أن يستعمل robots.txt/sitemap كfallback لاكتشاف صفحات اتصال/قانونية مخفية عن navigation.
-9. فشل enrichment لا يسقط بيانات Google Maps؛ تحفظ النتيجة الأساسية.
-
-مهم: وصف “الأداة لا تفحص مواقع الأنشطة” أصبح قديمًا وغير صحيح ويجب ألا يعود إلى Privacy/Store docs.
+1. البريد الإلكتروني هو أولوية الاتصال الأولى داخل بيانات Google Maps نفسها.
+2. يتم البحث في النص/HTML والخصائص والروابط الموجودة داخل صفحة Maps فقط.
+3. إذا ظهر أكثر من بريد، تفضّل الأداة البريد المرتبط بدومين الموقع المعروض وعناوين الأعمال الشائعة مثل `info`, `contact`, `office`, `booking`.
+4. بعدها تُستكمل بقية حقول Maps مثل الهاتف والعنوان والموقع والتقييم والمراجعات.
+5. لا يتم فتح موقع النشاط ولا عمل `fetch` له ولا فحص contact/about/imprint/robots/sitemap.
+6. إذا لم يعرض Google Maps بريدًا، يبقى حقل البريد فارغًا ولا نؤخر النتيجة بمحاولة خارج Maps.
 
 ## 9. الحقول التي يمكن أن تحتويها النتيجة
 
@@ -337,11 +332,11 @@ Maps Hunter Pro إضافة Chrome مخصصة لبحث الأعمال المحل�
 وصف المتجر/Privacy يجب أن يطابق السلوك الحقيقي:
 
 - بيانات business results تبقى محلية.
-- extension تعالج public website HTML المرتبط بنتائج Maps للعثور على بيانات اتصال عامة.
+- extension لا تجلب public website HTML؛ البريد وبيانات الاتصال تأتي من Google Maps فقط عندما تكون ظاهرة هناك.
 - لا ترسل lead dataset إلى licensing API.
 - ترسل activation/device/request usage fields المطلوبة فقط.
 - لا remote executable JS/WASM.
-- broad HTTP/HTTPS host permissions لها سبب enrichment، ولذلك يجب شرحها بوضوح للمراجع.
+- لا نطلب broad HTTP/HTTPS host permissions؛ الصلاحيات تقتصر على Google Maps/Google و`mapshunterpro.com` للترخيص.
 - Reviewer يحصل على Customer Review Code، وليس Admin credentials أو Owner Code.
 - لا ندعي اعتماد Google أو ضمان قبول المتجر.
 
@@ -358,7 +353,7 @@ Maps Hunter Pro إضافة Chrome مخصصة لبحث الأعمال المحل�
 
 بوابة الإصدار يجب أن تشمل:
 
-- `node --check` لكل JS الحساس: Frontend/Admin/Backend/Worker/Extension overrides/enrichment/export.
+- `node --check` لكل JS الحساس: Frontend/Admin/Backend/Worker/Extension overrides/export.
 - payment architecture tests.
 - frontend payment copy fallback regression.
 - Lifetime/currency regression.
@@ -388,7 +383,7 @@ Maps Hunter Pro إضافة Chrome مخصصة لبحث الأعمال المحل�
 11. `robots.txt`, `sitemap.xml`, canonical/hreflang.
 12. مقالات blog الأساسية.
 13. لا console errors حرجة.
-14. بعد release الإضافة: activation + one-device + Maps scan + extraction + website enrichment + Results + XLSX/CSV/JSON.
+14. بعد release الإضافة: activation + one-device + Maps scan + Maps-only email extraction + Results + XLSX/CSV/JSON.
 
 ## 24. حادثة 2026-09-18 وما تعلمناه
 
@@ -424,7 +419,7 @@ Maps Hunter Pro إضافة Chrome مخصصة لبحث الأعمال المحل�
 - توحيد Cloudflare Worker + Static Assets + D1.
 - ربط domain ومسارات اللغات الخمس.
 - تحسين multilingual homepage SEO دون redesign جذري.
-- إضافة Email-first/background website contact enrichment.
+- تثبيت Email-first من بيانات Google Maps فقط، بدون دخول أو Fetch لمواقع الأنشطة.
 - إضافة مدونة SEO وأول pillar article.
 - إضافة مقال businesses without websites.
 - إضافة برنامج comparison content ومقال PhantomBuster EN/AR.
@@ -438,7 +433,7 @@ Maps Hunter Pro إضافة Chrome مخصصة لبحث الأعمال المحل�
 
 - نجاح كل regression tests على فرع الإصلاح.
 - تأكيد عدم فقد `$` أو ترجمة أو قيمة دفع.
-- تحديث docs/privacy/store manifest test لتطابق website enrichment وLifetime.
+- تحديث docs/privacy/store manifest test لتطابق Maps-only email extraction وLifetime.
 - Merge الإصلاح إلى `main` فقط بعد نجاح البوابة.
 - انتظار Cloudflare deploy ثم إعادة اختبار Production فعليًا، خصوصًا Copy.
 
@@ -447,8 +442,8 @@ Maps Hunter Pro إضافة Chrome مخصصة لبحث الأعمال المحل�
 - إضافة smoke automation للصفحات العامة وطرق الدفع.
 - اختبار E2E دوري للإضافة على Google Maps مع fixture/manual release checklist.
 - مراقبة changes في DOM Google Maps لأن selectors عرضة للتغير.
-- إضافة قياسات structured للأخطاء ومعدل email-found بدون إرسال lead data.
-- تقييم تقليل host permissions إن أمكن مستقبلًا دون قتل enrichment.
+- إضافة قياسات structured للأخطاء ومعدل email-found من Maps بدون إرسال lead data.
+- إبقاء host permissions بأضيق نطاق ممكن: Google Maps/Google + `mapshunterpro.com` فقط.
 
 ### P1 — SEO والنمو
 
@@ -483,4 +478,4 @@ Maps Hunter Pro إضافة Chrome مخصصة لبحث الأعمال المحل�
 
 ## 28. قاعدة منع تكرار التخريب
 
-لا تعدل Frontend/Payment/Licensing/Extension/SEO كجزر منفصلة. قبل أي merge اسأل: ما الملفات التي تمثل نفس الحقيقة؟ مثال تغيير Annual→Lifetime يمس الصفحة، translations، API plans، Admin، migration compatibility، Terms، README/PROJECT، tests وstructured data. أي تغيير في سلوك enrichment يمس Manifest permissions وPrivacy وDATA_FLOW وChrome Web Store brief. الاختبارات يجب أن تحرس هذه العلاقات، وليس مجرد syntax.
+لا تعدل Frontend/Payment/Licensing/Extension/SEO كجزر منفصلة. قبل أي merge اسأل: ما الملفات التي تمثل نفس الحقيقة؟ مثال تغيير Annual→Lifetime يمس الصفحة، translations، API plans، Admin، migration compatibility، Terms، README/PROJECT، tests وstructured data. أي تغيير في سلوك استخراج البريد يمس Manifest permissions وPrivacy وDATA_FLOW وChrome Web Store brief. الاختبارات يجب أن تحرس هذه العلاقات، وليس مجرد syntax.
