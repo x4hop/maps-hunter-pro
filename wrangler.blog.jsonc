@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "maps-hunter-pro-blog",
+  "main": "./deploy/blog-worker.js",
+  "compatibility_date": "2026-09-18",
+  "routes": [
+    {"pattern":"mapshunterpro.com/blog*","zone_name":"mapshunterpro.com"},
+    {"pattern":"mapshunterpro.com/sitemap.xml*","zone_name":"mapshunterpro.com"}
+  ],
+  "kv_namespaces": [
+    {"binding":"BLOG_CONTENT","id":"82a21ef8b38f4de58c7b0ff1a464fc22"}
+  ]
+}
