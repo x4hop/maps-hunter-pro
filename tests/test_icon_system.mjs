@@ -6,7 +6,7 @@ const sprite=readFileSync('assets/mhp-icons.svg','utf8');
 const styles=readFileSync('assets/styles.css','utf8');
 const polish=readFileSync('assets/ui-polish.css','utf8');
 
-const forbidden=['✓','⌕','☎','↗','★','∞','↔'];
+const forbidden=['✓','⌕','⌖','☎','↗','★','∞','↔'];
 for(const glyph of forbidden){
   assert.ok(!html.includes(glyph),`Homepage must not use text/emoji icon glyph ${glyph}`);
 }
