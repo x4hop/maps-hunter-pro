@@ -69,7 +69,7 @@ Production worker:
 
 - Worker: `maps-hunter-pro-api`
 - Custom domains: `mapshunterpro.com`, `www.mapshunterpro.com`
-- Workers.dev API host retained for installed extensions
+- `workers.dev` and preview URLs are disabled for production; extension/API traffic uses `https://mapshunterpro.com`.
 - Entry: `deploy/unified-worker.js`
 - Wrangler: `wrangler.jsonc`
 - Static assets: `dist/frontend`
@@ -111,28 +111,22 @@ High-level pipeline:
 3. Open Google Maps search.
 4. Collect/deduplicate place URLs by scrolling Maps results.
 5. Extract each place detail in background Maps tabs with configurable concurrency (1–8; default 6).
-6. When a business website is present, fetch public pages in the extension service worker and search for public email/social links before committing the lead.
+6. Extract public email/social data only when Google Maps itself exposes it in the listing/detail content; do not open or fetch the business website.
 7. Consume one licensed usage unit with an idempotent request ID.
 8. Save the lead to `chrome.storage.local`.
 9. Persist queue/runtime state so interrupted jobs can resume.
 10. Export to Excel, CSV, JSON, or the Results table.
 
-## Website contact enrichment
+## Maps-only contact extraction
 
-`extension/contact-enrichment.js` performs background HTTP(S) fetches; it does **not** open business websites in visible tabs.
+`extension/maps-page-overrides.js` extracts public contact fields directly from the selected Google Maps listing/detail page.
 
-- Maximum contact-fetch concurrency: 5.
-- Maximum pages checked per business site: 12.
-- Starts with the business website.
-- Follows likely contact/about/team/legal/imprint pages.
-- Uses `robots.txt` and sitemap URLs as a fallback when useful.
-- Parses normal emails plus common public obfuscation patterns.
-- Scores same-domain and generic contact addresses.
-- Collects supported Facebook, Instagram, LinkedIn, X/Twitter, YouTube and TikTok links.
-- No remote JavaScript/WASM is executed by the extension.
+- Business websites are never opened or fetched for email/social enrichment.
+- Email candidates are read from visible Maps text, HTML and relevant Maps-page attributes/links.
+- When multiple emails are exposed by Maps, same-domain/common business-contact addresses are preferred.
+- Website URL is still exported when Google Maps provides it, but it is not crawled.
+- Host permissions are limited to Google Maps/Google plus `mapshunterpro.com` for licensing.
 - Business result data stays in local extension storage; the licensing API does not receive the lead list.
-
-Because this workflow fetches arbitrary public business websites selected through Maps results, the current manifest declares broad HTTP/HTTPS host access. Store/privacy documentation must match that fact.
 
 ## Export
 
@@ -204,7 +198,7 @@ A production change is not complete until these pass:
 - Monthly/Lifetime public-source consistency checks;
 - one-device licensing checks;
 - current migration-chain checks;
-- Manifest/permissions checks matching website enrichment behavior;
+- Manifest/permissions checks matching Maps-only extraction behavior;
 - localized Cloudflare build (EN/AR/RU/DE/ES + RTL Arabic);
 - Wrangler dry run;
 - extension release packaging.

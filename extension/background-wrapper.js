@@ -1,9 +1,8 @@
-// Load the stable engine, Maps extraction overrides, then background contact enrichment.
+// Load the stable Google Maps extraction engine and Maps-only overrides.
 importScripts("background.js");
 importScripts("maps-page-overrides.js");
 importScripts("country-query-overrides.js");
 importScripts("location-phone-overrides.js");
-importScripts("contact-enrichment.js");
 importScripts("performance-overrides.js");
 
 try {
@@ -11,5 +10,6 @@ try {
 } catch (e) {}
 
 try {
-  state.enrichWebsites = true;
+  // Product rule: never fetch or open business websites for contact enrichment.
+  state.enrichWebsites = false;
 } catch (e) {}

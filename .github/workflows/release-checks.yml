@@ -37,7 +37,6 @@ jobs:
           node --check extension/maps-page-overrides.js
           node --check extension/country-query-overrides.js
           node --check extension/location-phone-overrides.js
-          node --check extension/contact-enrichment.js
           node --check extension/content.js
           node --check extension/data.js
           node --check extension/license-client.js

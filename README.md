@@ -41,8 +41,6 @@ npx --yes wrangler@4 deploy --dry-run --outdir dist/wrangler-dry-run --config wr
 node scripts/release-extension.mjs
 ```
 
-
-
 ## Completed UI milestones
 
 ### Branded SVG icon system — completed 2026-09-18
@@ -83,6 +81,6 @@ Production upgrades are additive migrations under `backend/migrations/`; never r
 
 ## Extension/data model
 
-Google Maps result/detail data and contact-enrichment results stay in `chrome.storage.local`. The extension fetches public business website pages in the background when a Maps listing has a website in order to discover public email/social links. Lead data is not uploaded to the licensing API. The licensing service receives only activation/device/usage fields required to enforce access and product limits.
+Google Maps result/detail data stays in `chrome.storage.local`. Email is extracted only when it is exposed directly by the selected Google Maps listing/detail content; business websites are not opened or fetched for contact enrichment. Lead data is not uploaded to the licensing API. The licensing service receives only activation/device/usage fields required to enforce access and product limits.
 
 Read `PROJECT.md`, `DATA_FLOW.md`, `CHROME_WEB_STORE.md`, `privacy.html`, `terms.html`, and `docs/MAPS_HUNTER_PRO_MASTER_ROADMAP_AR.md` before changing production behavior.

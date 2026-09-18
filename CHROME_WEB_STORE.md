@@ -1,48 +1,38 @@
-# Chrome Web Store submission brief
-
-Updated: 2026-09-18
+# Maps Hunter Pro — Chrome Web Store brief
 
 ## Single purpose
 
-User-initiated business research from Google Maps: collect public business listing data, enrich collected businesses from their public websites for business email/social links, keep results locally, and export XLSX/CSV/JSON.
+User-initiated business research from Google Maps: collect public business listing data, keep results locally, and export XLSX/CSV/JSON. When Google Maps itself exposes a public email address, the extension can include it in the saved result.
 
 ## Host permissions
 
-The current production manifest requests `http://*/*` and `https://*/*`. The reason is functional: after the user chooses Google Maps keywords/cities, the extension may fetch the public website linked by each collected business to locate public contact/about/legal pages, email addresses and social profile links. Those pages are processed in the extension service worker and are not opened as visible tabs.
+The production manifest is intentionally limited to Google Maps/Google pages used by the extraction workflow plus `mapshunterpro.com` for activation and usage validation.
 
-Do not describe the product as Maps-only if website enrichment is enabled. Store listing, privacy policy and permission justification must all say the same thing.
+- `https://*.google.com/*`: collect and extract the user-requested Google Maps results.
+- `https://mapshunterpro.com/*`: license validation and usage accounting.
 
-## Privacy form
+The extension does **not** open or fetch business websites to search for emails or social profiles, so broad `http://*/*` / `https://*/*` host access is not required.
 
-Disclose, as applicable:
+## Data handling
 
-- activation/authentication information (activation code usage);
-- random installation/device identifier;
-- website content processed for the user-requested business research workflow;
-- product usage/diagnostic counts needed for licensing/limits.
+The extension processes:
+- public Google Maps business fields selected by the user;
+- public email/social data only when exposed directly in the selected Google Maps listing/detail content;
+- local queue/runtime state needed to resume extraction;
+- activation/device/usage identifiers required for licensing.
 
-State clearly:
+Business result data stays in `chrome.storage.local` and is not uploaded to the licensing API. The licensing API receives only activation/device/usage fields.
 
-- business result lists stay in local extension storage;
-- Maps Hunter Pro does not upload the user's business lead dataset to its licensing server;
-- public business website HTML is processed to derive public contact fields;
-- payment verification is manual through WhatsApp;
-- no Google endorsement is claimed.
+## Remote code
 
-## Reviewer access
+No remote JavaScript or WASM is executed. Extraction, export and UI code is packaged with the extension.
 
-Generate a dedicated reviewer activation code in `/admin/`; never provide the admin password. Manual payment is not required for store review. Reviewer steps: install → enter reviewer code → add keyword/city tags → Start → allow the scan/extraction to finish → inspect Results → export.
-
-## Claims to avoid
+## Review notes
 
 Do not claim Google endorsement, guaranteed Chrome Web Store approval, unlimited legal rights to Google content, guaranteed availability of emails/phones, or authorization inferred from competitor behavior.
 
-## Submission checklist
-
-- Manifest version and release ZIP match.
-- Permission justification matches actual website enrichment behavior.
-- Privacy policy matches `DATA_FLOW.md`.
-- One-device activation works for reviewer code.
-- No remote executable JS/WASM.
-- All UI is functional without developer mode assumptions.
-- Payment/marketing claims use Monthly + Lifetime terminology.
+Before store submission verify:
+- Manifest permissions match the Maps-only behavior.
+- Privacy policy says business websites are not fetched for enrichment.
+- Activation and one-device policy work.
+- Maps scan/extraction and XLSX/CSV/JSON exports work.
