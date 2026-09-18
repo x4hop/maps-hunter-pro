@@ -28,6 +28,15 @@ async function manualLocales(){
   return runInNewContext(`(${literal})`,Object.create(null),{timeout:1000});
 }
 
+async function seoLocales(){
+  const source=await readFile(resolve(root,'assets/seo-i18n.js'),'utf8');
+  const start=source.indexOf('const SEO=');
+  const end=source.indexOf(';\nfor(const [lang,vals]',start);
+  if(start<0||end<0)throw new Error('Unable to parse seo-i18n overrides');
+  const literal=source.slice(start+'const SEO='.length,end);
+  return runInNewContext(`(${literal})`,Object.create(null),{timeout:1000});
+}
+
 function renderLocalizedHtml(source,lang,dictionary){
   const dir=lang==='ar'?'rtl':'ltr';
   let html=source.replace('<html lang="en" dir="ltr">',`<html lang="${lang}" dir="${dir}">`);
@@ -50,8 +59,9 @@ await cp(resolve(root,'admin'),resolve(out,'admin'),{recursive:true});
 
 const source=await readFile(resolve(root,'index.html'),'utf8');
 const overrides=await manualLocales();
+const seoOverrides=await seoLocales();
 for(const lang of langs){
-  const dictionary={...(await baseLocale(lang)),...(overrides[lang]||{})};
+  const dictionary={...(await baseLocale(lang)),...(overrides[lang]||{}),...(seoOverrides[lang]||{})};
   const localized=renderLocalizedHtml(source,lang,dictionary);
   const dir=resolve(out,lang);
   await mkdir(dir,{recursive:true});

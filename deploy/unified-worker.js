@@ -1,11 +1,12 @@
 import backend from '../backend/src/entry.js';
 
+const PUBLIC_ORIGIN='https://mapshunterpro.com';
 const META={
-  en:{lang:'en',dir:'ltr',title:'Maps Hunter Pro — Google Maps Lead Extraction Chrome Extension',description:'Find, organize and export Google Maps business leads to Excel, CSV and JSON with international phone formatting.',locale:'en_US'},
-  ar:{lang:'ar',dir:'rtl',title:'Maps Hunter Pro — استخراج بيانات الأنشطة التجارية من Google Maps',description:'استخرج ونظّم وصدّر بيانات الأنشطة التجارية من Google Maps إلى Excel وCSV وJSON مع تنسيق أرقام الهاتف الدولي.',locale:'ar_LY'},
-  ru:{lang:'ru',dir:'ltr',title:'Maps Hunter Pro — экспорт бизнес-лидов из Google Maps',description:'Находите, систематизируйте и экспортируйте бизнес-лиды из Google Maps в Excel, CSV и JSON с международным форматом телефонов.',locale:'ru_RU'},
-  de:{lang:'de',dir:'ltr',title:'Maps Hunter Pro — Google Maps Lead-Extraktion für Chrome',description:'Unternehmens-Leads aus Google Maps finden, organisieren und nach Excel, CSV und JSON mit internationalem Telefonnummernformat exportieren.',locale:'de_DE'},
-  es:{lang:'es',dir:'ltr',title:'Maps Hunter Pro — extracción de leads de Google Maps',description:'Encuentra, organiza y exporta leads empresariales de Google Maps a Excel, CSV y JSON con formato telefónico internacional.',locale:'es_ES'}
+  en:{lang:'en',dir:'ltr',title:'Google Maps Scraper & Lead Extractor for Chrome | Maps Hunter Pro',description:'Extract structured business leads from Google Maps, including phones, websites, available emails and social links, then export clean data to Excel, CSV or JSON.',locale:'en_US'},
+  ar:{lang:'ar',dir:'rtl',title:'استخراج بيانات Google Maps والعملاء المحتملين | Maps Hunter Pro',description:'استخرج بيانات الأنشطة التجارية من Google Maps مثل الهاتف والموقع والبيانات المتاحة، ثم صدّر النتائج بشكل منظم إلى Excel أو CSV أو JSON.',locale:'ar_LY'},
+  ru:{lang:'ru',dir:'ltr',title:'Парсер Google Maps и сборщик лидов для Chrome | Maps Hunter Pro',description:'Собирайте структурированные данные компаний из Google Maps — телефоны, сайты, доступные email и соцсети — и экспортируйте результаты в Excel, CSV или JSON.',locale:'ru_RU'},
+  de:{lang:'de',dir:'ltr',title:'Google Maps Scraper & Lead-Extractor für Chrome | Maps Hunter Pro',description:'Extrahiere strukturierte Unternehmensdaten aus Google Maps – Telefonnummern, Websites, verfügbare E-Mails und Social Links – und exportiere sie in Excel, CSV oder JSON.',locale:'de_DE'},
+  es:{lang:'es',dir:'ltr',title:'Google Maps Scraper y Extractor de Leads | Maps Hunter Pro',description:'Extrae datos estructurados de negocios desde Google Maps, como teléfonos, sitios web, correos disponibles y redes sociales, y expórtalos a Excel, CSV o JSON.',locale:'es_ES'}
 };
 const LANGS=Object.keys(META);
 
@@ -14,6 +15,8 @@ const HTML_HEADERS={
   'cache-control':'public,max-age=300,must-revalidate',
   'x-content-type-options':'nosniff',
   'referrer-policy':'strict-origin-when-cross-origin',
+  'strict-transport-security':'max-age=31536000; includeSubDomains',
+  'permissions-policy':'camera=(), microphone=(), geolocation=()',
   'content-security-policy':"default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://wa.me"
 };
 const ADMIN_HEADERS={
@@ -41,8 +44,8 @@ async function assetText(env,path){
 
 function localized(html,lang,origin){
   const m=META[lang]||META.en;
-  const canonical=`${origin}/${lang}`;
-  const alternates=LANGS.map(x=>`<link rel="alternate" hreflang="${x}" href="${origin}/${x}" />`).join('')+`<link rel="alternate" hreflang="x-default" href="${origin}/en" />`;
+  const canonical=`${PUBLIC_ORIGIN}/${lang}`;
+  const alternates=LANGS.map(x=>`<link rel="alternate" hreflang="${x}" href="${PUBLIC_ORIGIN}/${x}" />`).join('')+`<link rel="alternate" hreflang="x-default" href="${PUBLIC_ORIGIN}/en" />`;
   if(!html.includes('/assets/payment-icon-clean.css'))html=html.replace('</head>','<link rel="stylesheet" href="/assets/payment-icon-clean.css"></head>');
   return html
     .replace(/<html lang="[^"]+" dir="[^"]+">/,`<html lang="${m.lang}" dir="${m.dir}">`)
@@ -58,12 +61,13 @@ function localized(html,lang,origin){
 
 async function handleSite(request,env){
   const u=new URL(request.url);
-  if(u.pathname==='/robots.txt')return new Response(`User-agent: *\nAllow: /\nSitemap: ${u.origin}/sitemap.xml\n`,{headers:{'content-type':'text/plain;charset=utf-8','cache-control':'public,max-age=3600'}});
+  if(u.hostname==='www.mapshunterpro.com')return Response.redirect(`${PUBLIC_ORIGIN}${u.pathname}${u.search}`,301);
+  if(u.pathname==='/robots.txt')return new Response(`User-agent: *\nAllow: /\nSitemap: ${PUBLIC_ORIGIN}/sitemap.xml\n`,{headers:{'content-type':'text/plain;charset=utf-8','cache-control':'public,max-age=3600'}});
   if(u.pathname==='/sitemap.xml'){
-    const urls=[...LANGS.map(l=>`<url><loc>${u.origin}/${l}</loc><changefreq>weekly</changefreq><priority>${l==='en'?'1.0':'0.9'}</priority></url>`),`<url><loc>${u.origin}/privacy.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>`,`<url><loc>${u.origin}/terms.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>`].join('');
+    const urls=[...LANGS.map(l=>`<url><loc>${PUBLIC_ORIGIN}/${l}</loc><changefreq>weekly</changefreq><priority>${l==='en'?'1.0':'0.9'}</priority></url>`),`<url><loc>${PUBLIC_ORIGIN}/privacy.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>`,`<url><loc>${PUBLIC_ORIGIN}/terms.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>`].join('');
     return new Response(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`,{headers:{'content-type':'application/xml;charset=utf-8','cache-control':'public,max-age=3600'}});
   }
-  if(u.pathname==='/'||u.pathname==='')return Response.redirect(`${u.origin}/en`,301);
+  if(u.pathname==='/'||u.pathname==='')return Response.redirect(`${PUBLIC_ORIGIN}/en`,301);
   if(u.pathname==='/admin')return Response.redirect(`${u.origin}/admin/`,301);
   if(u.pathname==='/admin/'||u.pathname==='/admin/index.html')return asset(env,'/admin/index.html',{...ADMIN_HEADERS,'content-type':'text/html;charset=utf-8'});
   if(u.pathname.startsWith('/admin/'))return asset(env,u.pathname,ADMIN_HEADERS);
