@@ -1,10 +1,12 @@
-import {cp,copyFile,mkdir,readFile,rm,writeFile} from 'node:fs/promises';
-import {resolve} from 'node:path';
+import {createHash} from 'node:crypto';
+import {cp,copyFile,mkdir,readFile,readdir,rm,writeFile} from 'node:fs/promises';
+import {relative,resolve} from 'node:path';
 import {runInNewContext} from 'node:vm';
 
 const root=resolve(new URL('..',import.meta.url).pathname);
 const out=resolve(root,'dist/frontend');
 const langs=['en','ar','ru','de','es'];
+const PUBLIC_ORIGIN='https://mapshunterpro.com';
 const GOOGLE_SITE_VERIFICATION='Rwt2LxDLsZnhc4H7unz17utjAmod8mHZ5AqVVtZCUoI';
 const CRITICAL_CSS_FILES=['styles.css','manual.css','payment-icon-clean.css','ui-polish.css','layout-polish.css'];
 
@@ -58,6 +60,122 @@ function renderLocalizedHtml(source,lang,dictionary,criticalStyles){
   return html;
 }
 
+const crcTable=(()=>{
+  const table=new Uint32Array(256);
+  for(let n=0;n<256;n++){
+    let c=n;
+    for(let k=0;k<8;k++)c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1);
+    table[n]=c>>>0;
+  }
+  return table;
+})();
+
+function crc32(data){
+  let c=0xffffffff;
+  for(const b of data)c=crcTable[(c^b)&0xff]^(c>>>8);
+  return (c^0xffffffff)>>>0;
+}
+
+function zipDateTime(){
+  const year=2026,month=9,day=18,hour=0,minute=0,second=0;
+  return {time:(hour<<11)|(minute<<5)|(second>>1),date:((year-1980)<<9)|(month<<5)|day};
+}
+
+function createZip(entries){
+  const localParts=[];
+  const centralParts=[];
+  let offset=0;
+  const dt=zipDateTime();
+  for(const entry of entries){
+    const name=Buffer.from(entry.name.replace(/\\/g,'/'),'utf8');
+    const data=Buffer.from(entry.data);
+    const crc=crc32(data);
+    const local=Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50,0);
+    local.writeUInt16LE(20,4);
+    local.writeUInt16LE(0x0800,6);
+    local.writeUInt16LE(0,8);
+    local.writeUInt16LE(dt.time,10);
+    local.writeUInt16LE(dt.date,12);
+    local.writeUInt32LE(crc,14);
+    local.writeUInt32LE(data.length,18);
+    local.writeUInt32LE(data.length,22);
+    local.writeUInt16LE(name.length,26);
+    local.writeUInt16LE(0,28);
+    localParts.push(local,name,data);
+
+    const central=Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50,0);
+    central.writeUInt16LE(20,4);
+    central.writeUInt16LE(20,6);
+    central.writeUInt16LE(0x0800,8);
+    central.writeUInt16LE(0,10);
+    central.writeUInt16LE(dt.time,12);
+    central.writeUInt16LE(dt.date,14);
+    central.writeUInt32LE(crc,16);
+    central.writeUInt32LE(data.length,20);
+    central.writeUInt32LE(data.length,24);
+    central.writeUInt16LE(name.length,28);
+    central.writeUInt16LE(0,30);
+    central.writeUInt16LE(0,32);
+    central.writeUInt16LE(0,34);
+    central.writeUInt16LE(0,36);
+    central.writeUInt32LE(0,38);
+    central.writeUInt32LE(offset,42);
+    centralParts.push(central,name);
+    offset+=local.length+name.length+data.length;
+  }
+  const centralDirectory=Buffer.concat(centralParts);
+  const end=Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50,0);
+  end.writeUInt16LE(0,4);
+  end.writeUInt16LE(0,6);
+  end.writeUInt16LE(entries.length,8);
+  end.writeUInt16LE(entries.length,10);
+  end.writeUInt32LE(centralDirectory.length,12);
+  end.writeUInt32LE(offset,16);
+  end.writeUInt16LE(0,20);
+  return Buffer.concat([...localParts,centralDirectory,end]);
+}
+
+async function walkFiles(dir){
+  const files=[];
+  for(const item of await readdir(dir,{withFileTypes:true})){
+    const full=resolve(dir,item.name);
+    if(item.isDirectory())files.push(...await walkFiles(full));
+    else if(item.isFile())files.push(full);
+  }
+  return files;
+}
+
+async function buildExtensionRelease(){
+  const extensionDir=resolve(root,'extension');
+  const manifest=JSON.parse(await readFile(resolve(extensionDir,'manifest.json'),'utf8'));
+  const files=await walkFiles(extensionDir);
+  const entries=[];
+  for(const file of files){
+    entries.push({name:relative(extensionDir,file).replace(/\\/g,'/'),data:await readFile(file)});
+  }
+  entries.sort((a,b)=>a.name.localeCompare(b.name));
+  const zip=createZip(entries);
+  const sha256=createHash('sha256').update(zip).digest('hex');
+  const downloadsDir=resolve(out,'downloads');
+  await mkdir(downloadsDir,{recursive:true});
+  const primaryName=`Maps-Hunter-Pro-v${manifest.version}-EMAIL-FIRST-FINAL.zip`;
+  const canonicalName=`maps-hunter-pro-extension-${manifest.version}.zip`;
+  await writeFile(resolve(downloadsDir,primaryName),zip);
+  await writeFile(resolve(downloadsDir,canonicalName),zip);
+  await writeFile(resolve(downloadsDir,`${canonicalName}.sha256`),`${sha256}  ${canonicalName}\n`,'utf8');
+  const release={
+    version:manifest.version,
+    download_url:`${PUBLIC_ORIGIN}/downloads/${primaryName}`,
+    canonical_download_url:`${PUBLIC_ORIGIN}/downloads/${canonicalName}`,
+    sha256
+  };
+  await writeFile(resolve(out,'release.json'),JSON.stringify(release,null,2)+'\n','utf8');
+  return {version:manifest.version,primaryName,canonicalName,sha256,files:entries.length,size:zip.length};
+}
+
 await rm(out,{recursive:true,force:true});
 await mkdir(out,{recursive:true});
 
@@ -80,4 +198,5 @@ for(const lang of langs){
   await writeFile(resolve(dir,'index.html'),localized,'utf8');
 }
 
-console.log(`Cloudflare production assets prepared at ${out} with localized HTML, blog and admin console`);
+const release=await buildExtensionRelease();
+console.log(`Cloudflare production assets prepared at ${out} with localized HTML, blog, admin console and extension ${release.version} (${release.files} files, ${release.size} bytes, sha256 ${release.sha256})`);

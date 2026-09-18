@@ -80,6 +80,11 @@ async function handleSite(request,env){
     return new Response(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`,{headers:{'content-type':'application/xml;charset=utf-8','cache-control':'public,max-age=3600'}});
   }
   if(u.pathname==='/'||u.pathname==='')return Response.redirect(`${PUBLIC_ORIGIN}/en`,301);
+  if(u.pathname==='/release.json')return asset(env,'/release.json',{'content-type':'application/json;charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});
+  if(u.pathname.startsWith('/downloads/')&&u.pathname.toLowerCase().endsWith('.zip')){
+    const filename=u.pathname.split('/').pop()||'Maps-Hunter-Pro.zip';
+    return asset(env,u.pathname,{'content-type':'application/zip','content-disposition':`attachment; filename="${filename.replace(/["\r\n]/g,'')}"`,'cache-control':'public,max-age=3600','x-content-type-options':'nosniff'});
+  }
   if(u.pathname==='/admin')return Response.redirect(`${u.origin}/admin/`,301);
   if(u.pathname==='/admin/'||u.pathname==='/admin/index.html')return asset(env,'/admin/index.html',{...ADMIN_HEADERS,'content-type':'text/html;charset=utf-8'});
   if(u.pathname.startsWith('/admin/'))return asset(env,u.pathname,ADMIN_HEADERS);
