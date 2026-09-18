@@ -31,6 +31,7 @@ node --check assets/seo-i18n.js
 node tests/test_payment_safety.mjs
 node tests/test_frontend_regressions.mjs
 node tests/test_icon_system.mjs
+node tests/test_language_switcher.mjs
 node tests/test_single_device_policy.mjs
 python3 tests/test_current_migration_chain.py
 python3 tests/test_manifest.py
@@ -39,6 +40,24 @@ npx --yes wrangler@4 deploy --dry-run --outdir dist/wrangler-dry-run --config wr
 node scripts/release-extension.mjs
 ```
 
+
+
+## Completed UI milestones
+
+### Branded SVG icon system — completed 2026-09-18
+
+- Public-site placeholder symbols, emoji-like glyphs, and text-number pseudo-icons were replaced with the shared `/assets/mhp-icons.svg` sprite.
+- The icon system uses the Maps Hunter Pro identity: Paper `#F6F4F1`, Stone `#E4DED2`, Coral `#F95C4B`, and Black `#000000`.
+- Current icon coverage includes the hero trust row, Google Maps workflow, extracted data fields, feature cards, Excel preview, use cases, pricing semantics, and payment-related UI where applicable.
+- Do not revert to Unicode/emoji placeholders. Extend the SVG sprite when a new semantic icon is needed.
+- Regression guard: `node tests/test_icon_system.mjs`.
+
+### Language switcher stability — completed 2026-09-18
+
+- Language switching must work consistently from every localized route, including `/en`.
+- The language popup is moved outside the sticky-header stacking context before opening so LTR and RTL pages behave the same.
+- Every language item owns a direct click handler and navigates to the corresponding language path while preserving query string and hash.
+- Regression guard: `node tests/test_language_switcher.mjs`.
 
 ## UI identity rule
 
