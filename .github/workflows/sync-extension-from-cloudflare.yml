@@ -1,0 +1,89 @@
+name: Sync extension from Cloudflare
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: maps-hunter-pro-extension-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    if: github.event_name != 'push' || github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read production release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location             https://mapshunterpro.com/release.json             --output /tmp/release.json
+          node <<'NODE'
+          const fs = require('fs');
+          const m = JSON.parse(fs.readFileSync('/tmp/release.json', 'utf8'));
+          for (const k of ['version', 'download_url', 'sha256']) {
+            if (!m[k]) throw new Error('Missing release metadata field: ' + k);
+          }
+          if (!/^[a-f0-9]{64}$/i.test(m.sha256)) throw new Error('Invalid release SHA-256');
+          fs.appendFileSync(process.env.GITHUB_ENV, [
+            'EXT_VERSION=' + m.version,
+            'EXT_URL=' + m.download_url,
+            'EXT_SHA256=' + m.sha256
+          ].join('\n') + '\n');
+          NODE
+
+      - name: Download and verify production extension
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location "$EXT_URL" --output /tmp/maps-hunter-pro.zip
+          printf '%s  %s\n' "$EXT_SHA256" /tmp/maps-hunter-pro.zip | sha256sum --check -
+          rm -rf /tmp/maps-hunter-pro
+          mkdir -p /tmp/maps-hunter-pro
+          unzip -q /tmp/maps-hunter-pro.zip -d /tmp/maps-hunter-pro
+          test "$(node -p "require('/tmp/maps-hunter-pro/manifest.json').version")" = "$EXT_VERSION"
+          test -f /tmp/maps-hunter-pro/contact-enrichment.js
+
+      - name: Mirror production extension into repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf extension
+          mkdir -p extension
+          cp -a /tmp/maps-hunter-pro/. extension/
+
+      - name: Validate mirrored extension
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+          done < <(find extension -type f -name '*.js' -print0)
+          test "$(node -p "require('./extension/manifest.json').version")" = "$EXT_VERSION"
+          test -f extension/contact-enrichment.js
+
+      - name: Commit synchronization
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A extension
+          if git diff --cached --quiet; then
+            echo "Repository extension already matches Cloudflare production."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Sync Maps Hunter Pro ${EXT_VERSION} from Cloudflare [skip sync]"
+          git push origin HEAD:main
