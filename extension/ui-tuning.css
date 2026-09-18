@@ -1,4 +1,4 @@
-/* Maps Hunter Pro v8.4.9 — slightly larger, easier-to-read UI text. */
+/* Maps Hunter Pro v1.0.0 — larger search/location text and easier reading. */
 body{font-size:14px}
 .brand span{font-size:10.5px}
 .license-chip{font-size:10.5px}
@@ -6,10 +6,10 @@ body{font-size:14px}
 .nav-tab i{font-size:8.5px}
 .section-heading small,.section-label{font-size:9.5px}
 .input-group>span{font-size:11.5px}
-.tag-label strong{font-size:12px}
-.tag-label span{font-size:9px}
-.search-tag{font-size:10.5px}
-.tag-input{font-size:11.5px!important}
+.tag-label strong{font-size:13px}
+.tag-label span{font-size:10px}
+.search-tag{font-size:12.5px;min-height:34px}
+.tag-input{font-size:16px!important;font-weight:600!important;height:38px!important;line-height:38px!important}
 .search-summary-strip span{font-size:8px}
 .search-summary-strip strong{font-size:10.5px}
 .action-main small{font-size:8.5px}
@@ -48,10 +48,10 @@ body{font-size:14px}
   body{font-size:13.5px}
   .brand span{font-size:9.5px}
   .nav-tab b{font-size:10.5px}
-  .tag-label strong{font-size:11px}
-  .tag-label span{font-size:8.5px}
-  .search-tag{font-size:9.5px}
-  .tag-input{font-size:10.5px!important}
+  .tag-label strong{font-size:12px}
+  .tag-label span{font-size:9px}
+  .search-tag{font-size:11px;min-height:30px}
+  .tag-input{font-size:14px!important;height:34px!important;line-height:34px!important}
   .action-main strong{font-size:13px}
   .action-soft,.action-dark{font-size:10px}
   .stop-all{font-size:9.5px}
@@ -60,3 +60,6 @@ body{font-size:14px}
   .setting-block strong,.setting-note b{font-size:10.5px}
   .setting-block small,.setting-note span{font-size:8.5px}
 }
+
+.tag-input::placeholder{font-size:15px!important;font-weight:500!important;opacity:.72}
+@media(max-height:720px){.tag-input::placeholder{font-size:13.5px!important}}
