@@ -136,7 +136,7 @@ html[dir="rtl"] .language-menu{right:auto;left:0}
 .price small{font-size:16px;color:rgba(0,0,0,.58)}
 .save{color:var(--color-black);font-weight:900;text-decoration:underline;text-decoration-thickness:3px;text-decoration-color:var(--color-paper)}
 .list{display:grid;gap:10px;margin:26px 0}
-.list span:before{content:"✓";color:var(--color-black);font-weight:900;margin-right:9px}
+.list span{display:flex;align-items:flex-start;gap:9px}.list span:before{content:"";width:18px;height:18px;flex:0 0 18px;margin-top:2px;border-radius:6px;border:1px solid rgba(0,0,0,.16);background:rgba(249,92,75,.12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 12.5 4 4L18.5 8'/%3E%3C/svg%3E") center/12px 12px no-repeat}
 .buy{display:block;text-align:center;background:var(--color-black);color:var(--color-paper);padding:14px;border:1.5px solid var(--color-black);border-radius:11px;font-weight:900;transition:.18s ease}
 .price-card:not(.best) .buy{background:var(--color-coral);color:var(--color-black);box-shadow:4px 4px 0 var(--color-black)}
 .buy:hover{transform:translateY(-2px)}

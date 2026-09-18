@@ -123,3 +123,68 @@ html[dir="rtl"] .section-title h2,html[dir="rtl"] .section-title p,html[dir="rtl
   .price-card{padding:17px!important}
   .manual-payment-flow ol{grid-template-columns:1fr!important}
 }
+
+/* Maps Hunter Pro — brand SVG icon system.
+   Real SVG icons only; no emoji, symbol-font or text placeholders. */
+.mhp-icon-svg{
+  width:24px;
+  height:24px;
+  display:block;
+  overflow:visible;
+  color:var(--color-black);
+  flex:0 0 auto;
+}
+.card .icon,
+#how .how-step .icon,
+#features .card .icon,
+#data-fields .card .icon,
+#use-cases .card .icon{
+  display:grid!important;
+  place-items:center!important;
+  background-image:none!important;
+  background-color:var(--mhp-soft-coral)!important;
+  border:1px solid var(--mhp-soft-coral-2)!important;
+  color:var(--color-black)!important;
+  box-shadow:0 6px 16px rgba(249,92,75,.10)!important;
+  font-size:0!important;
+}
+.card .icon .mhp-icon-svg,
+#how .how-step .icon .mhp-icon-svg,
+#features .card .icon .mhp-icon-svg,
+#data-fields .card .icon .mhp-icon-svg,
+#use-cases .card .icon .mhp-icon-svg{
+  width:23px;
+  height:23px;
+}
+#how .how-step .icon{background-image:none!important}
+#how .how-step:nth-child(1) .icon,
+#how .how-step:nth-child(2) .icon,
+#how .how-step:nth-child(3) .icon,
+#how .how-step:nth-child(4) .icon,
+#features .card:nth-child(1) .icon,
+#features .card:nth-child(2) .icon,
+#features .card:nth-child(3) .icon,
+#features .card:nth-child(4) .icon,
+#features .card:nth-child(5) .icon,
+#features .card:nth-child(6) .icon{
+  background-image:none!important;
+}
+.hero-trust .trust-item{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+}
+.hero-trust .trust-item .mhp-icon-svg{width:17px;height:17px}
+.map-search .mhp-icon-svg{width:17px;height:17px}
+.excel-badge{font-size:0!important}
+.excel-badge .mhp-icon-svg{width:21px;height:21px}
+@media(max-width:760px){
+  .card .icon .mhp-icon-svg,
+  #how .how-step .icon .mhp-icon-svg,
+  #features .card .icon .mhp-icon-svg,
+  #data-fields .card .icon .mhp-icon-svg,
+  #use-cases .card .icon .mhp-icon-svg{
+    width:21px;
+    height:21px;
+  }
+}
