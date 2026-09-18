@@ -1,0 +1,62 @@
+/* Maps Hunter Pro v8.4.9 — slightly larger, easier-to-read UI text. */
+body{font-size:14px}
+.brand span{font-size:10.5px}
+.license-chip{font-size:10.5px}
+.nav-tab b{font-size:11px}
+.nav-tab i{font-size:8.5px}
+.section-heading small,.section-label{font-size:9.5px}
+.input-group>span{font-size:11.5px}
+.tag-label strong{font-size:12px}
+.tag-label span{font-size:9px}
+.search-tag{font-size:10.5px}
+.tag-input{font-size:11.5px!important}
+.search-summary-strip span{font-size:8px}
+.search-summary-strip strong{font-size:10.5px}
+.action-main small{font-size:8.5px}
+.action-main strong{font-size:14px}
+.action-soft,.action-dark{font-size:11px}
+.stop-all{font-size:10.5px}
+.status-count small,.status-count span{font-size:8px}
+.status-copy>strong,.status-card-v841 .status-copy>strong{font-size:11.5px!important}
+.status-copy p,.status-card-v841 .status-copy p{font-size:10px!important}
+.stat-grid span{font-size:9.75px}
+.export-main>span,.export-main>small{font-size:8.5px}
+.export-main>strong{font-size:13px}
+.export-grid b{font-size:10px}
+.export-grid span{font-size:8px}
+.recent-head strong{font-size:11px}
+.recent-head span{font-size:8.5px}
+.recent-item strong{font-size:10px}
+.recent-item span{font-size:8.5px}
+.recent-item>b{font-size:8px}
+.empty-state,.clear-button{font-size:9.5px}
+.setting-block strong,.setting-note b{font-size:11.5px}
+.setting-block small,.setting-note span{font-size:9px}
+.setting-block select{font-size:10px}
+.on-pill,.off-pill{font-size:9px}
+.settings-license-head strong{font-size:12px}
+.settings-license-head small{font-size:9px}
+.settings-license-head>span{font-size:9px}
+.settings-license-row input{font-size:11px}
+.settings-license-row button{font-size:10px}
+.settings-license-block .activation-state strong{font-size:10.5px}
+.settings-license-block .activation-state span{font-size:9px}
+.license-expiry{font-size:9.5px}
+.page-note{font-size:10.5px}
+.toast{font-size:10px}
+@media(max-height:720px){
+  body{font-size:13.5px}
+  .brand span{font-size:9.5px}
+  .nav-tab b{font-size:10.5px}
+  .tag-label strong{font-size:11px}
+  .tag-label span{font-size:8.5px}
+  .search-tag{font-size:9.5px}
+  .tag-input{font-size:10.5px!important}
+  .action-main strong{font-size:13px}
+  .action-soft,.action-dark{font-size:10px}
+  .stop-all{font-size:9.5px}
+  .status-copy>strong,.status-card-v841 .status-copy>strong{font-size:10.5px!important}
+  .status-copy p,.status-card-v841 .status-copy p{font-size:9px!important}
+  .setting-block strong,.setting-note b{font-size:10.5px}
+  .setting-block small,.setting-note span{font-size:8.5px}
+}
