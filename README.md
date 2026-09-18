@@ -32,6 +32,7 @@ node tests/test_payment_safety.mjs
 node tests/test_frontend_regressions.mjs
 node tests/test_icon_system.mjs
 node tests/test_language_switcher.mjs
+node tests/test_layout_stability.mjs
 node tests/test_single_device_policy.mjs
 python3 tests/test_current_migration_chain.py
 python3 tests/test_manifest.py
@@ -58,6 +59,16 @@ node scripts/release-extension.mjs
 - The language popup is moved outside the sticky-header stacking context before opening so LTR and RTL pages behave the same.
 - Every language item owns a direct click handler and navigates to the corresponding language path while preserving query string and hash.
 - Regression guard: `node tests/test_language_switcher.mjs`.
+
+
+### RTL language switcher + section-layout stability — completed 2026-09-18
+
+- Root cause: the language popup was portaled outside the sticky header, but its JavaScript coordinates could still be overridden by `!important` CSS and the RTL header could crowd the language action area. That made the failure appear to move from English to Arabic.
+- Permanent rule: the language popup stays attached to `document.body`, is positioned with explicit `style.setProperty(..., "important")` coordinates, and the header action lane always has a higher stacking context than navigation links.
+- On Arabic/RTL, desktop navigation links are hidden instead of being allowed to overlap the language control.
+- Mobile translated content must never use cramped two-column cards, square payment-card constraints, or text clamping that can collide with icons. At `<=760px`, workflow/feature/data/use-case/pricing/payment cards use a single-column layout and natural content height.
+- Section-title icons and card icons must stay in normal document flow; do not absolutely position them over translated text.
+- Regression guards: `node tests/test_language_switcher.mjs` and `node tests/test_layout_stability.mjs`.
 
 ## UI identity rule
 
