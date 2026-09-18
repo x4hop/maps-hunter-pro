@@ -12,7 +12,7 @@ const LANGS=Object.keys(META);
 
 const HTML_HEADERS={
   'content-type':'text/html;charset=utf-8',
-  'cache-control':'public,max-age=300,must-revalidate',
+  'cache-control':'no-store, max-age=0, must-revalidate',
   'x-content-type-options':'nosniff',
   'referrer-policy':'strict-origin-when-cross-origin',
   'strict-transport-security':'max-age=31536000; includeSubDomains',
@@ -47,6 +47,8 @@ function localized(html,lang){
   const canonical=`${PUBLIC_ORIGIN}/${lang}`;
   const alternates=LANGS.map(x=>`<link rel="alternate" hreflang="${x}" href="${PUBLIC_ORIGIN}/${x}" />`).join('')+`<link rel="alternate" hreflang="x-default" href="${PUBLIC_ORIGIN}/en" />`;
   if(!html.includes('/assets/payment-icon-clean.css'))html=html.replace('</head>','<link rel="stylesheet" href="/assets/payment-icon-clean.css"></head>');
+  if(!html.includes('/assets/multilingual-fix.css'))html=html.replace('</head>','<link rel="stylesheet" href="/assets/multilingual-fix.css"></head>');
+  if(!html.includes('/assets/language-runtime-fix.js'))html=html.replace('</body>','<script src="/assets/language-runtime-fix.js" defer></script></body>');
   return html
     .replace(/<html lang="[^"]+" dir="[^"]+">/,`<html lang="${m.lang}" dir="${m.dir}">`)
     .replace(/<title>[\s\S]*?<\/title>/,`<title>${m.title}</title>`)

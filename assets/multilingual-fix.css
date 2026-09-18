@@ -1,0 +1,14 @@
+/* Maps Hunter Pro multilingual layout hardening */
+.features,.how-grid,.pricing,.manual-payments{align-items:stretch}
+.features>.card,.how-grid>.card,.pricing>.price-card,.manual-payments>.pay-card{height:100%;min-width:0}
+.features>.card,.how-grid>.card{display:flex;flex-direction:column}
+.features>.card .icon,.how-grid>.card .icon,#data-fields .card .icon,#use-cases .card .icon{width:46px;height:46px;min-width:46px;min-height:46px;display:grid;place-items:center;overflow:hidden;flex:0 0 46px}
+.mhp-icon-svg{max-width:100%;max-height:100%;shape-rendering:geometricPrecision}
+.language-switcher{position:relative;z-index:250;isolation:isolate}
+.language-menu{z-index:260!important;max-width:min(260px,calc(100vw - 24px));overflow:hidden}
+.language-menu button{min-height:42px;white-space:nowrap}
+html[dir="rtl"] .language-menu{right:auto!important;left:0!important;text-align:right}
+html[dir="rtl"] .language-menu button{text-align:right}
+.brand-logo{object-fit:contain;object-position:center;display:block}
+@media(min-width:761px){#how .how-step h3,#features .card h3,#data-fields .card h3,#use-cases .card h3{min-height:2.65em}}
+@media(max-width:760px){.features>.card,.how-grid>.card,.pricing>.price-card,.manual-payments>.pay-card{height:auto}.language-menu{max-height:min(360px,70vh);overflow:auto}}
