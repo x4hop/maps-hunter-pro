@@ -16,8 +16,9 @@ function fmtDate(v){if(!v)return 'No expiry';const raw=String(v);const d=new Dat
 function errorLabel(code){const map={INVALID_LICENSE:'Invalid activation code.',LICENSE_REVOKED:'This code has been revoked.',LICENSE_EXPIRED:'This code has expired.',DEVICE_LIMIT_REACHED:'This code has reached its device limit.',DEVICE_BLOCKED:'This device is blocked.',ACTIVATION_CODE_REQUIRED:'Enter an activation code first.',DAILY_LIMIT_REACHED:'Daily result limit reached.'};return map[code]||String(code||'Activation failed.')}
 function isNetworkError(text){return /fetch|network|abort|failed/i.test(String(text||''))}
 
-function normalizeTag(v){return String(v||'').replace(/\s+/g,' ').trim()}
-function splitTags(v){return String(v||'').split(/[\n,;،]+/).map(normalizeTag).filter(Boolean)}
+function normalizeTag(v){return String(v||'').replace(/s+/g,' ').trim()}
+function splitTags(v){return String(v||'').split(/[
+,;،]+/).map(normalizeTag).filter(Boolean)}
 async function persistTags(){try{await chrome.storage.local.set({[TAG_KEY]:{keywords:tags.keywords,cities:tags.cities}})}catch{}}
 function comboCount(){return tags.keywords.length*tags.cities.length}
 function renderTags(kind){
@@ -34,7 +35,8 @@ function commitInput(kind,input){const values=splitTags(input.value);if(values.l
 function setupTagInput(kind,inputId){
   const input=$(inputId);if(!input)return;
   input.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===','){e.preventDefault();commitInput(kind,input)}else if(e.key==='Backspace'&&!input.value&&tags[kind].length){tags[kind].pop();renderTags(kind);persistTags()}});
-  input.addEventListener('paste',e=>{const text=e.clipboardData?.getData('text')||'';if(/[\n,;،]/.test(text)){e.preventDefault();addTags(kind,splitTags(text));input.value=''}});
+  input.addEventListener('paste',e=>{const text=e.clipboardData?.getData('text')||'';if(/[
+,;،]/.test(text)){e.preventDefault();addTags(kind,splitTags(text));input.value=''}});
   input.addEventListener('blur',()=>{if(input.value.trim())commitInput(kind,input)});
 }
 async function loadTags(){
@@ -57,7 +59,7 @@ async function startSearch(){
   if(!tags.keywords.length)return toast('Add at least one business type tag.');if(!tags.cities.length)return toast('Add at least one location tag.');
   const access=await refreshLicense(false);if(!access?.entitlement?.valid){openPage('settingsPage');return toast('Activate the tool before starting a search.')}
   const btn=$('startBtn');if(btn)btn.disabled=true;
-  const r=await send({type:'START_SCAN',keywords:[...tags.keywords],cities:[...tags.cities],searchCountry:'',maxWorkers:Number(settings.maxWorkers||6),scanFirst:true,enrichWebsites:true});
+  const r=await send({type:'START_SCAN',keywords:[...tags.keywords],cities:[...tags.cities],searchCountry:'',maxWorkers:Number(settings.maxWorkers||6),scanFirst:true,enrichWebsites:false});
   if(btn)btn.disabled=false;if(!r?.ok){toast(errorLabel(r?.error));if(/LICENSE|ACTIVATION|DEVICE|LIMIT/i.test(String(r?.error||'')))openPage('settingsPage')}
 }
 async function stopScanOnly(){const r=await send({type:'STOP_SCAN_ONLY'});if(!r?.ok)toast(r?.error||'Could not stop scan.');else toast(`${r.queued||0} places ready to extract.`)}
@@ -68,9 +70,9 @@ function exportAction(action){if(!leads.length)return toast('No results to expor
 
 function renderState(next){
   state=next||state;leads=Array.isArray(state.leads)?state.leads:leads;
-  const total=leads.length,queued=Number(state.queued||0),processed=Number(state.processed||0),pending=Math.max(0,queued-processed);const phase=String(state.phase||'Ready'),running=Boolean(state.running),paused=Boolean(state.paused);const scanning=running&&/Opening Maps|Collecting|Scanning/i.test(phase),extracting=running&&/Extracting|Enriching|Paused/i.test(phase),readyToExtract=!running&&pending>0;const phones=leads.filter(x=>x.phone).length,emails=leads.filter(x=>x.email||x.emails).length,social=leads.filter(x=>x.facebook||x.instagram||x.twitter||x.linkedin||x.youtube||x.tiktok||x.socialLinks).length;
+  const total=leads.length,queued=Number(state.queued||0),processed=Number(state.processed||0),pending=Math.max(0,queued-processed);const phase=String(state.phase||'Ready'),running=Boolean(state.running),paused=Boolean(state.paused);const scanning=running&&/Opening Maps|Collecting|Scanning/i.test(phase),extracting=running&&/Extracting|Paused/i.test(phase),readyToExtract=!running&&pending>0;const phones=leads.filter(x=>x.phone).length,emails=leads.filter(x=>x.email||x.emails).length,social=leads.filter(x=>x.facebook||x.instagram||x.twitter||x.linkedin||x.youtube||x.tiktok||x.socialLinks).length;
   const liveValue=(scanning||readyToExtract)?queued:total;if($('leadCount'))$('leadCount').textContent=liveValue;if($('tabLeadCount'))$('tabLeadCount').textContent=total;if($('resultTotal'))$('resultTotal').textContent=total;if($('phoneCount'))$('phoneCount').textContent=phones;if($('emailCount'))$('emailCount').textContent=emails;if($('socialCount'))$('socialCount').textContent=social;if($('liveMetricLabel'))$('liveMetricLabel').textContent=(scanning||readyToExtract)?'FOUND':'LEADS';if($('liveMetricSub'))$('liveMetricSub').textContent=(scanning||readyToExtract)?'links':'saved';
-  document.body.classList.toggle('is-running',running);if($('phaseBadge'))$('phaseBadge').textContent=phase;if($('statusTitle'))$('statusTitle').textContent=scanning?'Scanning Google Maps':extracting?'Extracting + finding contacts':readyToExtract?'Ready to extract':paused?'Search paused':total?'Process complete':'Ready to scan';if($('statusText'))$('statusText').textContent=state.status||'Add tags and start scanning.';if($('progressBar'))$('progressBar').style.width=extracting&&queued?`${Math.min(100,Math.round(processed/queued*100))}%`:scanning?'18%':readyToExtract?'100%':'0%';
+  document.body.classList.toggle('is-running',running);if($('phaseBadge'))$('phaseBadge').textContent=phase;if($('statusTitle'))$('statusTitle').textContent=scanning?'Scanning Google Maps':extracting?'Extracting Maps email + details':readyToExtract?'Ready to extract':paused?'Search paused':total?'Process complete':'Ready to scan';if($('statusText'))$('statusText').textContent=state.status||'Add tags and start scanning.';if($('progressBar'))$('progressBar').style.width=extracting&&queued?`${Math.min(100,Math.round(processed/queued*100))}%`:scanning?'18%':readyToExtract?'100%':'0%';
   if($('startBtn'))$('startBtn').disabled=running||paused;if($('stopScanBtn'))$('stopScanBtn').disabled=!scanning;if($('extractBtn')){$('extractBtn').disabled=running||(!paused&&pending<=0);const span=$('extractBtn').querySelector('span');if(span)span.textContent=paused?'Resume Extract':pending>0?`Start Extract · ${pending}`:'Start Extract'}if($('stopAllBtn'))$('stopAllBtn').disabled=!running&&pending<=0;renderRecent()
 }
 function renderRecent(){const box=$('recentResults');if(!box)return;const rows=leads.slice(-3).reverse();if(!rows.length){box.innerHTML='<div class="empty-state">Your latest businesses will appear here.</div>';return}box.innerHTML=rows.map(x=>{const contacts=[x.phone?'TEL':'',x.email||x.emails?'MAIL':'',x.facebook||x.instagram||x.twitter||x.linkedin||x.youtube||x.tiktok||x.socialLinks?'SOCIAL':''].filter(Boolean).join(' · ')||'MAPS';return `<div class="recent-item"><div><strong>${escapeHtml(x.name||'Unnamed business')}</strong><span>${escapeHtml([x.searchKeyword,x.searchCity].filter(Boolean).join(' · ')||x.address||x.category||'Google Maps result')}</span></div><b>${contacts}</b></div>`}).join('')}
