@@ -66,9 +66,17 @@ jobs:
           test -f dist/frontend/es/index.html
           test -f dist/frontend/admin/index.html
           test -f dist/frontend/admin/admin.js
+          test -f dist/frontend/assets/logo.svg
+          test -f dist/frontend/assets/styles.css
+          test -f dist/frontend/assets/manual.css
+          test -f dist/frontend/assets/payment-icon-clean.css
+          test -f dist/frontend/assets/ui-polish.css
+          test -f dist/frontend/assets/layout-polish.css
           test -f dist/frontend/assets/mhp-icons.svg
           grep -q 'mhp-icons.svg#map-search' dist/frontend/en/index.html
           grep -q 'dir="rtl"' dist/frontend/ar/index.html
+          grep -q 'name="google-site-verification" content="Rwt2LxDLsZnhc4H7unz17utjAmod8mHZ5AqVVtZCUoI"' dist/frontend/en/index.html
+          grep -q 'data-mhp-critical-css' dist/frontend/en/index.html
           grep -q '"name": "maps-hunter-pro-api"' wrangler.jsonc
           grep -q 'deploy/unified-worker.js' wrangler.jsonc
       - name: Wrangler production dry run
