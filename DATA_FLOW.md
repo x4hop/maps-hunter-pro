@@ -5,8 +5,7 @@ Updated: 2026-09-18. This inventory must stay synchronized with the Chrome Web S
 | Data | Source | Destination | Purpose | Retention/control |
 |---|---|---|---|---|
 | Public Google Maps business fields and extraction queue | User-selected Google Maps searches/results | `chrome.storage.local` | Build, resume and export business lead lists | Until Clear Results, extension data removal or uninstall |
-| Public business website HTML | Website linked by a collected Google Maps result | Processed transiently by the extension service worker | Discover public business email/social links | Not intentionally persisted as raw pages; derived contact fields are stored with the local result |
-| Public email/social links derived from Maps/business website pages | Public source pages | `chrome.storage.local` | Contact qualification and export | Same as local results |
+| Public email/social links exposed directly by Google Maps listing/detail content | User-selected Google Maps results | `chrome.storage.local` | Contact qualification and export | Same as local results |
 | Activation code | User/operator | Cloudflare Worker/D1 as a SHA-256 hash; raw code remains with customer | Validate product access | License lifetime / until revoked; raw customer code is not stored server-side |
 | Random installation/device ID | Extension | Cloudflare Worker/D1 | Enforce one-device activation | Device binding until reset/revoke/cleanup |
 | Usage request ID + accepted count | Extension | Cloudflare Worker/D1 | Daily limit + idempotency | Usage events cleaned by maintenance after 90 days; daily aggregates retained for operations |
@@ -19,9 +18,8 @@ Updated: 2026-09-18. This inventory must stay synchronized with the Chrome Web S
 - No remote JavaScript or WASM is executed.
 - XLSX/CSV/JSON generation is bundled and runs locally.
 - The extension does not read browser history, cookies, saved passwords or unrelated tabs for profiling.
-- Website enrichment **does fetch public HTML** for websites attached to user-selected Google Maps businesses. This replaced the older Maps-only contact-discovery statement.
-- Business websites are fetched by the extension worker; they are not opened as visible enrichment tabs.
-- Website enrichment uses bounded concurrency and page limits and targets public root/contact/about/team/legal/imprint pages plus robots/sitemap discovery when useful.
+- Email extraction is Maps-only: the extension reads public email text/attributes exposed in the Google Maps listing/detail page.
+- The extension does **not** open or fetch business websites for email/social enrichment.
 - Lead lists are not sent to the Maps Hunter Pro licensing API.
 
 ## Permission justifications
@@ -32,7 +30,8 @@ Updated: 2026-09-18. This inventory must stay synchronized with the Chrome Web S
 - `downloads`: user-requested exports.
 - `unlimitedStorage`: avoid truncating larger user-owned result sets.
 - `activeTab`: operate on the user-selected current tab/workflow.
-- `http://*/*` and `https://*/*`: fetch public business websites linked from collected Maps results for email/social enrichment; not for general browsing surveillance.
+- `https://*.google.com/*`: collect and extract the user-requested Google Maps results.
+- `https://mapshunterpro.com/*`: validate activation and record licensed usage against the Maps Hunter Pro API.
 
 ## Licensing/server boundary
 
