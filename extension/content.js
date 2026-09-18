@@ -1,7 +1,6 @@
 let collecting = false;
 let stopRequested = false;
 let seen = new Set();
-let cachedScroller = null;
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === "PING_COLLECTOR") {
@@ -27,15 +26,13 @@ async function collectPlaces(options = {}) {
   collecting = true;
   stopRequested = false;
   seen = new Set();
-  cachedScroller = null;
   const maxRounds = Number(options.maxRounds || 70);
   const minPlaces = Number(options.minPlaces || 0);
   const sessionId = options.sessionId || 0;
 
-  const mapReady = await waitForMap(25000);
-  if (!mapReady) {
+  const ready = await waitForMap(25000);
+  if (!ready) {
     collecting = false;
-    sendStatus("Google Maps results did not load in time. Moving on instead of waiting indefinitely.", sessionId);
     chrome.runtime.sendMessage({ type: "COLLECT_DONE", count: 0, sessionId });
     return { ok: false, timeout: true, count: 0 };
   }
@@ -45,12 +42,6 @@ async function collectPlaces(options = {}) {
   let lastCount = 0;
 
   for (let round = 0; collecting && round < maxRounds; round++) {
-    const blockReason = detectMapsBlock();
-    if (blockReason) {
-      sendStatus(blockReason, sessionId);
-      break;
-    }
-
     const batch = captureCards();
     if (batch.length) {
       chrome.runtime.sendMessage({ type: "PLACES_BATCH", places: batch, sessionId });
@@ -73,8 +64,8 @@ async function collectPlaces(options = {}) {
     return { ok: true, stopped: true, count: seen.size };
   }
 
-  sendStatus("Scan finished. Waiting 10 seconds for final Maps results before extraction...", sessionId);
-  await sleep(10000);
+  sendStatus("Scan finished. Finalizing collected Maps links...", sessionId);
+  await sleep(1000);
   if (stopRequested || !collecting) {
     collecting = false;
     return { ok: true, stopped: true, count: seen.size };
@@ -100,7 +91,7 @@ function captureCards() {
     seen.add(mapsUrl);
 
     const card = anchor.closest("[role='article'], .Nv2PK, .THOPZb, .bfdHYd") || anchor.parentElement || anchor;
-    const place = {
+    places.push({
       name: clean(anchor.getAttribute("aria-label")) || pick(card, [".qBF1Pd", ".fontHeadlineSmall", ".NrDZNb", "h3"], true),
       phone: extractPhone(card),
       address: extractAddress(card),
@@ -110,8 +101,7 @@ function captureCards() {
       imageUrl: extractImage(card),
       mapsUrl,
       raw: clean(card.textContent).slice(0, 600)
-    };
-    places.push(place);
+    });
   }
 
   return places;
@@ -122,7 +112,6 @@ function normalizeMapsUrl(url) {
     const u = new URL(url, location.href);
     if (!/\/maps\/place\//.test(u.href) && !/google\.[^/]+\/maps\/place/.test(u.href)) return "";
     u.hash = "";
-    u.search = "";
     return u.href;
   } catch (e) {
     return "";
@@ -139,20 +128,15 @@ function scrollResults() {
 }
 
 function getScroller() {
-  if (cachedScroller?.isConnected && cachedScroller.scrollHeight > cachedScroller.clientHeight + 100) {
-    return cachedScroller;
-  }
-  const direct = document.querySelector("div[role='feed']") || document.querySelector(".m6QErb[aria-label]");
-  if (direct && direct.scrollHeight > direct.clientHeight + 100) {
-    cachedScroller = direct;
-    return cachedScroller;
-  }
-  const candidates = Array.from(document.querySelectorAll("div")).filter(el => {
-    const style = getComputedStyle(el);
-    return /(auto|scroll)/.test(style.overflowY) && el.scrollHeight > el.clientHeight + 200;
-  });
-  cachedScroller = candidates.sort((a, b) => b.scrollHeight - a.scrollHeight)[0] || document.scrollingElement || document.documentElement;
-  return cachedScroller;
+  const candidates = [
+    document.querySelector("div[role='feed']"),
+    document.querySelector(".m6QErb[aria-label]"),
+    ...Array.from(document.querySelectorAll("div")).filter(el => {
+      const style = getComputedStyle(el);
+      return /(auto|scroll)/.test(style.overflowY) && el.scrollHeight > el.clientHeight + 200;
+    })
+  ].filter(Boolean);
+  return candidates.sort((a, b) => b.scrollHeight - a.scrollHeight)[0] || document.scrollingElement || document.documentElement;
 }
 
 function isEndVisible() {
@@ -161,17 +145,6 @@ function isEndVisible() {
     text.includes("no more results") ||
     text.includes("وصلت إلى نهاية القائمة") ||
     text.includes("لا توجد نتائج أخرى");
-}
-
-function detectMapsBlock() {
-  const text = clean(document.body?.textContent || "").toLowerCase();
-  if (/unusual traffic|automated queries|verify you are human|our systems have detected/i.test(text)) {
-    return "Google Maps requested verification. Extraction stopped for this city to avoid getting stuck.";
-  }
-  if (/captcha|recaptcha/i.test(text) && document.querySelector("iframe[src*='recaptcha'], [class*='captcha'], #captcha")) {
-    return "Google Maps verification page detected. Extraction stopped for this city to avoid getting stuck.";
-  }
-  return "";
 }
 
 async function waitForMap(timeout) {

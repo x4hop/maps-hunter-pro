@@ -4,8 +4,11 @@ const state = {
   phase: "Ready",
   status: "Ready.",
   keyword: "",
+  keywords: [],
   cities: [],
   cityIndex: 0,
+  searchTargets: [],
+  searchIndex: 0,
   activeTabId: null,
   leads: [],
   queued: 0,
@@ -13,7 +16,8 @@ const state = {
   maxWorkers: 6,
   scanFirst: true,
   enrichWebsites: false,
-  paused: false
+  paused: false,
+  scanComplete: false
 };
 
 let queue = [];
@@ -46,7 +50,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message?.type === "GET_STATE") return sendResponse({ ...state });
       if (message?.type === "START_SCAN") return sendResponse(await startScan(message));
       if (message?.type === "RESUME_SCAN") return sendResponse(await resumeScan());
-      if (message?.type === "STOP_SCAN") return sendResponse(await stopScan("Stopped by user."));
+      if (message?.type === "STOP_SCAN") return sendResponse(await stopAll("Stopped by user."));
+      if (message?.type === "STOP_SCAN_ONLY") return sendResponse(await stopScanOnly());
+      if (message?.type === "START_EXTRACTION") return sendResponse(await startExtraction());
+      if (message?.type === "STOP_ALL") return sendResponse(await stopAll("Everything stopped by user."));
       if (message?.type === "SKIP_SCAN_CITY") return sendResponse(await skipScanCity());
       if (message?.type === "SKIP_CITY") return sendResponse(await skipCity());
       if (message?.type === "CLEAR_RESULTS") return sendResponse(await clearResults());
@@ -56,7 +63,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         enqueuePlaces(message.places || []);
         await persistRuntime();
         if (!state.scanFirst) runWorkers();
-        else state.status = `Scanning ${state.cities[state.cityIndex] || "city"} first: ${state.queued} links collected.`;
+        else { const t=currentSearchTarget(); state.status = `Scanning ${t.keyword} · ${t.city}: ${state.queued} links collected.`; }
         await broadcast();
         return sendResponse({ ok: true });
       }
@@ -79,12 +86,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.sessionId !== collectorSessionId) return sendResponse({ ok: true, ignored: true });
         lastCollectorMessageAt = Date.now();
         collectionDone = true;
-        state.phase = "Extracting";
-        state.status = `Final scan wait completed. Extracting ${queue.length} pending places.`;
-        runWorkers();
-        await maybeNextCity();
+        state.queued = queuedKeys.size;
+        state.processed = processedKeys.size;
+
+        if (state.searchIndex < state.searchTargets.length - 1) {
+          state.searchIndex += 1;
+          const nextTarget = currentSearchTarget();
+          state.phase = "Opening Maps";
+          state.status = `Next tag: ${nextTarget.keyword} · ${nextTarget.city}`;
+          await broadcast();
+          await openCitySearch();
+          return sendResponse({ ok: true, next: `${nextTarget.keyword} · ${nextTarget.city}` });
+        }
+
+        state.running = false;
+        state.scanComplete = true;
+        state.phase = "Ready to Extract";
+        state.status = `Scan complete. ${Math.max(0, queuedKeys.size - processedKeys.size)} places are ready to extract.`;
+        await persistRuntime();
         await broadcast();
-        return sendResponse({ ok: true });
+        return sendResponse({ ok: true, readyToExtract: true, queued: queue.length });
       }
       sendResponse({ ok: false, error: "Unknown message type" });
     } catch (error) {
@@ -96,12 +117,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function startScan(message) {
   licenseState = await MHPAccess.validate();
-  await stopScan("Restarting.", true);
+  await stopAll("Restarting.", true);
   state.running = true;
   state.phase = "Opening Maps";
   state.status = "Opening Google Maps search...";
-  state.keyword = clean(message.keyword);
-  state.cities = Array.isArray(message.cities) ? message.cities.map(clean).filter(Boolean) : [];
+  state.keywords = Array.from(new Set((Array.isArray(message.keywords) ? message.keywords : [message.keyword]).map(clean).filter(Boolean)));
+  state.cities = Array.from(new Set((Array.isArray(message.cities) ? message.cities : []).map(clean).filter(Boolean)));
+  state.searchTargets = state.keywords.flatMap(keyword => state.cities.map(city => ({ keyword, city })));
+  state.searchIndex = 0;
+  state.keyword = state.keywords[0] || "";
   state.searchCountry = clean(message.searchCountry);
   state.cityIndex = 0;
   state.leads = [];
@@ -110,6 +134,7 @@ async function startScan(message) {
   state.scanFirst = message.scanFirst !== false;
   state.enrichWebsites = message.enrichWebsites === true;
   state.paused = false;
+  state.scanComplete = false;
   queue = [];
   queuedKeys = new Set();
   processedKeys = new Set();
@@ -118,21 +143,30 @@ async function startScan(message) {
   state.maxWorkers = maxWorkers;
   await broadcast(true);
 
-  if (!state.keyword || !state.cities.length) throw new Error("Keyword and city are required.");
+  if (!state.keywords.length || !state.cities.length || !state.searchTargets.length) throw new Error("At least one business type and one location are required.");
   await openCitySearch();
   return { ok: true };
 }
 
+function currentSearchTarget() {
+  const target = Array.isArray(state.searchTargets) ? state.searchTargets[state.searchIndex] : null;
+  return target || { keyword: state.keyword || state.keywords?.[0] || "", city: state.cities?.[state.cityIndex] || "" };
+}
+
 async function openCitySearch() {
   if (!state.running) return;
-  const city = state.cities[state.cityIndex];
+  const target = currentSearchTarget();
+  const city = clean(target.city);
+  const keyword = clean(target.keyword);
+  state.keyword = keyword;
+  state.cityIndex = Math.max(0, state.cities.indexOf(city));
   collectorSessionId += 1;
   collectionDone = false;
   state.phase = "Collecting";
-  const cityQuery = buildCityQuery(state.keyword, city, state.searchCountry);
+  const cityQuery = buildCityQuery(keyword, city, state.searchCountry);
   state.status = state.scanFirst
-    ? `Scanning ${state.keyword} in ${city} before extraction...`
-    : `Searching ${state.keyword} in ${city}...`;
+    ? `Scanning ${keyword} in ${city} · ${state.searchIndex + 1}/${state.searchTargets.length}`
+    : `Searching ${keyword} in ${city}...`;
   await broadcast();
 
   const url = `https://www.google.com/maps/search/${encodeURIComponent(cityQuery)}?hl=en`;
@@ -165,14 +199,17 @@ async function launchCollector(tabId, sessionId) {
 async function handleCollectorFailure(error, sessionId) {
   if (sessionId !== collectorSessionId || !state.running) return;
   collectionDone = true;
+  state.running = false;
+  state.scanComplete = true;
   if (state.activeTabId) {
     try { await chromeTabsSendMessage(state.activeTabId, { type: "STOP_COLLECTING" }); } catch (e) {}
   }
-  state.phase = "Extracting";
-  state.status = `Maps collector stopped unexpectedly. Continuing with ${queue.length} collected places.`;
+  state.queued = queuedKeys.size;
+  state.processed = processedKeys.size;
+  state.phase = "Scan Stopped";
+  state.status = `Maps scan stopped. ${Math.max(0, queuedKeys.size - processedKeys.size)} collected places are ready to extract.`;
+  await persistRuntime();
   await broadcast();
-  if (queue.length) runWorkers();
-  else await maybeNextCity();
 }
 
 
@@ -191,7 +228,15 @@ async function maybeNextCity() {
   // Never leave the current city while its collector may still deliver more places.
   // This also prevents a race when "Scan links first" is disabled and workers drain the queue early.
   if (!collectionDone) return;
-  if (pendingEnrichment.size) { state.phase = "Enriching"; state.status = `Waiting for ${pendingEnrichment.size} website lookups...`; await broadcast(); return; }
+  if (pendingEnrichment.size) { state.phase = "Enriching"; state.status = `Waiting for ${pendingEnrichment.size} contact lookups...`; await broadcast(); return; }
+  if (state.scanComplete) {
+    state.running = false;
+    state.phase = "Completed";
+    state.status = `Extraction complete. Saved ${state.leads.length} leads.`;
+    await persist();
+    await broadcast();
+    return;
+  }
   if (state.cityIndex < state.cities.length - 1) {
     state.cityIndex += 1;
     await openCitySearch();
@@ -205,8 +250,9 @@ async function maybeNextCity() {
 }
 
 function enqueuePlaces(places) {
+  const target = currentSearchTarget();
   for (const raw of Array.isArray(places) ? places : []) {
-    const lead = normalizeLead({...raw,searchCity:state.cities[state.cityIndex],searchCountry:state.searchCountry});
+    const lead = normalizeLead({...raw,searchKeyword:target.keyword,searchCity:target.city,searchCountry:state.searchCountry});
     const key = lead.mapsUrl || `${lead.name}|${lead.address}`;
     if (!key || queuedKeys.has(key) || processedKeys.has(key)) continue;
     queuedKeys.add(key);
@@ -247,18 +293,37 @@ async function processPlace(preview, workerRunId = scanRunId) {
     tab = await chromeTabsCreate({ url: preview.mapsUrl, active: false });
     workerTabs.add(tab.id);
     await persistRuntime();
-    await waitForTabComplete(tab.id, 5000);
-    await waitForPlaceContent(tab.id, 6500);
+    await waitForTabComplete(tab.id, 3000);
+    await waitForPlaceContent(tab.id, 4500);
     await sleep(150);
 
     let details = await extractFromMapsTab(tab.id);
     if (!details.phone && !details.website) {
+      // Legacy engine behavior: one quick re-read only when the main Maps details have not rendered yet.
       await sleep(350);
       details = mergeLead(details, await extractFromMapsTab(tab.id));
     }
 
     if (workerRunId !== scanRunId || !state.running) return;
-    const lead = mergeLead(preview, details);
+    let lead = mergeLead(preview, details);
+
+    // Email-first workflow: as soon as Maps gives us the official website,
+    // finish contact discovery BEFORE the result is committed. Phone and
+    // the rest of the Maps fields are already captured locally, but the
+    // saved lead waits for the email pass so email is not a late add-on.
+    if (lead.website && state.enrichWebsites) {
+      state.phase = "Finding email";
+      state.status = `Finding email first: ${lead.name || preview.name || "business"}`;
+      await broadcast();
+      try {
+        const contact = await enrichFromWebsite(lead.website);
+        if (contact && typeof contact === "object") lead = mergeLead(lead, contact);
+      } catch (e) {
+        // Email discovery must never discard otherwise valid Maps data.
+      }
+    }
+
+    if (workerRunId !== scanRunId || !state.running) return;
     preview.usageRequestId ||= crypto.randomUUID();
     inFlightItems.set(key,preview);
     await persistRuntime();
@@ -266,11 +331,9 @@ async function processPlace(preview, workerRunId = scanRunId) {
     if (workerRunId !== scanRunId || !state.running) return;
     addLead(lead);
     processedKeys.add(key);
-    state.status = `Saved ${state.leads.length}. Queue ${queue.length}.`;
-
-    if (lead.website && state.enrichWebsites) {
-      enrichLeadInBackground(lead, workerRunId);
-    }
+    state.status = lead.email
+      ? `Saved ${state.leads.length} with email. Queue ${queue.length}.`
+      : `Saved ${state.leads.length}. No public email found. Queue ${queue.length}.`;
   } catch (error) {
     if (error.accessError && workerRunId === scanRunId) { await pauseScan(error.message,preview); return; }
     if (workerRunId === scanRunId && state.running) {
@@ -322,15 +385,9 @@ async function waitForPlaceContent(tabId, timeout = 5200) {
   return false;
 }
 
-function enrichLeadInBackground(lead, workerRunId) {
-  const task = enrichFromWebsite(lead.website).then(extra => {
-    if (workerRunId !== scanRunId || !extra) return;
-    const merged = mergeLead(lead, extra);
-    addLead(merged);
-    state.status = `Enriched ${merged.name || "lead"}. Saved ${state.leads.length}.`;
-    broadcast(true).catch(() => {});
-  }).catch(() => {}).finally(async () => { pendingEnrichment.delete(task); if(workerRunId===scanRunId) await maybeNextCity(); });
-  pendingEnrichment.add(task);
+function enrichLeadInBackground() {
+  // Base stub; contact-enrichment.js replaces this with background email/social lookup (no website tabs).
+  return undefined;
 }
 
 function extractGoogleMapsPlace() {
@@ -479,78 +536,13 @@ function extractGoogleMapsPlace() {
   };
 }
 
-async function enrichFromWebsite(website) {
-  website = clean(website);
-  if (!safePublicUrl(website)) return {};
-
-  const pages = [website];
-  try {
-    const u = new URL(website);
-    pages.push(`${u.origin}/contact`, `${u.origin}/contact-us`);
-  } catch (e) {}
-
-  const htmlParts = await Promise.all(pages.map(page => fetchText(page, 3500)));
-  const found = {};
-  for (const html of htmlParts) {
-    if (!html) continue;
-    Object.assign(found, mergeLead(found, extractWebsiteSignals(html)));
-    if (found.emails && (found.facebook || found.instagram || found.socialLinks)) break;
-  }
-  return found;
-}
-
-async function fetchText(url, timeoutMs = 3500) {
-  if(!safePublicUrl(url))return "";
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, {
-      redirect: "manual",
-      signal: controller.signal,
-      headers: { "Accept": "text/html,application/xhtml+xml,text/plain;q=0.8,*/*;q=0.3" }
-    });
-    const type = String(res.headers.get("content-type") || "");
-    if(res.status>=300&&res.status<400){const next=res.headers.get("location");if(!next)return "";const redirected=new URL(next,url).href;return safePublicUrl(redirected)?fetchText(redirected,timeoutMs):"";}
-    const declared=Number(res.headers.get("content-length")||0);
-    if (!res.ok || declared>300000 || !/html|text|xml|json/i.test(type)) return "";
-    const reader=res.body?.getReader();if(!reader)return "";let total=0,out="";const decoder=new TextDecoder();while(true){const {done,value}=await reader.read();if(done)break;total+=value.byteLength;if(total>300000){await reader.cancel();return "";}out+=decoder.decode(value,{stream:true});}return out+decoder.decode();
-  } catch (e) {
-    return "";
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-function safePublicUrl(value){try{const u=new URL(value);if(u.protocol!=="https:")return false;const h=u.hostname.toLowerCase();if(h==="localhost"||h.endsWith(".local")||h==="0.0.0.0"||h==="127.0.0.1"||h==="::1")return false;if(/^(10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h))return false;return true;}catch{return false;}}
-
-function extractWebsiteSignals(html) {
-  const text = String(html || "")
-    .replace(/&#64;|&#x40;|&commat;/gi, "@")
-    .replace(/\s*(\[at\]|\(at\))\s*/gi, "@")
-    .replace(/\s*(\[dot\]|\(dot\))\s*/gi, ".");
-  const emails = unique((text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [])
-    .map(x => x.toLowerCase())
-    .filter(x => !/\.(png|jpe?g|gif|webp|svg)$/i.test(x))).slice(0, 10);
-  const urls = unique(Array.from(text.matchAll(/https?:\/\/[^\s"'<>\\)]+/gi), m => cleanUrl(m[0])));
-  const social = {
-    facebook: first(urls, /facebook\.com|fb\.com/i),
-    instagram: first(urls, /instagram\.com/i),
-    twitter: first(urls, /twitter\.com|x\.com/i),
-    linkedin: first(urls, /linkedin\.com/i),
-    youtube: first(urls, /youtube\.com|youtu\.be/i),
-    tiktok: first(urls, /tiktok\.com/i)
-  };
-  const socialLinks = unique(Object.values(social).filter(Boolean)).join(" | ");
-  return {
-    email: emails[0] || "",
-    emails: emails.join(" | "),
-    socialLinks,
-    ...social
-  };
+async function enrichFromWebsite() {
+  // Deliberately disabled: email/social must come directly from Google Maps cards.
+  return {};
 }
 
 function addLead(raw) {
-  const lead = normalizeLead({ ...(raw || {}), searchCity: raw?.searchCity || state.cities[state.cityIndex] || "" });
+  const target=currentSearchTarget(); const lead = normalizeLead({ ...(raw || {}), searchKeyword: raw?.searchKeyword || target.keyword || "", searchCity: raw?.searchCity || target.city || "" });
   if (!lead.name && !lead.phone && !lead.address && !lead.website && !lead.mapsUrl) return false;
   const index = state.leads.findIndex(item =>
     (item.mapsUrl && lead.mapsUrl && item.mapsUrl === lead.mapsUrl) ||
@@ -590,6 +582,7 @@ function normalizeLead(lead) {
     mapsUrl: clean(lead?.mapsUrl),
     hours: clean(lead?.hours),
     status: clean(lead?.status),
+    searchKeyword: clean(lead?.searchKeyword),
     searchCity: clean(lead?.searchCity),
     searchCountry: clean(lead?.searchCountry),
     usageRequestId: clean(lead?.usageRequestId),
@@ -605,16 +598,56 @@ function mergeLead(a, b) {
   return out;
 }
 
-async function stopScan(status = "Stopped.", silent = false) {
+async function stopScanOnly() {
+  if (!state.running || collectionDone) return { ok: false, error: "No active scan to stop." };
+  collectorSessionId += 1;
+  collectionDone = true;
+  state.running = false;
+  state.scanComplete = true;
+  state.phase = "Scan Stopped";
+  state.queued = queuedKeys.size;
+  state.processed = processedKeys.size;
+  state.status = `Scan stopped. ${Math.max(0, state.queued - state.processed)} collected places are ready to extract.`;
+  if (state.activeTabId) {
+    try { await chromeTabsSendMessage(state.activeTabId, { type: "STOP_COLLECTING" }); } catch (e) {}
+  }
+  await persistRuntime();
+  await broadcast();
+  return { ok: true, queued: Math.max(0, state.queued - state.processed) };
+}
+
+async function startExtraction() {
+  if (state.running) return { ok: false, error: "Stop the active scan before starting extraction." };
+  const pending = Math.max(0, queuedKeys.size - processedKeys.size);
+  if (!pending || !queue.length) return { ok: false, error: "No collected places are waiting for extraction." };
+  licenseState = await MHPAccess.validate();
+  collectionDone = true;
+  state.scanComplete = true;
+  state.running = true;
+  state.paused = false;
+  state.phase = "Extracting";
+  state.queued = queuedKeys.size;
+  state.processed = processedKeys.size;
+  state.status = `Extracting ${pending} collected places with up to ${maxWorkers} Maps tabs.`;
+  await persistRuntime();
+  await broadcast(true);
+  runWorkers();
+  return { ok: true, pending };
+}
+
+async function stopAll(status = "Stopped.", silent = false) {
   scanRunId += 1;
   pendingEnrichment = new Set();
   collectorSessionId += 1;
   state.running = false;
+  state.paused = false;
+  state.scanComplete = true;
   state.phase = "Stopped";
   state.status = status;
   queue = [];
   inFlightItems = new Map();
-  collectionDone = false;
+  collectionDone = true;
+  queuedKeys = new Set(processedKeys);
   state.queued = processedKeys.size;
   state.processed = processedKeys.size;
 
@@ -654,26 +687,7 @@ async function resumeScan(){
 
 async function skipScanCity() {
   if (!state.running) return { ok: false, error: "No active scan." };
-
-  const currentCity = state.cities[state.cityIndex] || "current city";
-  collectionDone = true;
-  state.phase = "Extracting";
-  state.status = `Skipped scanning ${currentCity}. Extracting ${queue.length} collected places now...`;
-
-  if (state.activeTabId) {
-    try { await chromeTabsSendMessage(state.activeTabId, { type: "STOP_COLLECTING" }); } catch (e) {}
-  }
-
-  await persist();
-  await broadcast();
-
-  if (queue.length) {
-    runWorkers();
-  } else if (!activeWorkers) {
-    await maybeNextCity();
-  }
-
-  return { ok: true, city: currentCity, queued: queue.length, extracting: true };
+  return stopScanOnly();
 }
 
 async function skipCity() {
@@ -719,7 +733,7 @@ async function skipCity() {
 }
 
 async function clearResults() {
-  await stopScan("Results cleared.", true);
+  await stopAll("Results cleared.", true);
   state.leads = [];
   state.queued = 0;
   state.processed = 0;
@@ -824,6 +838,9 @@ async function initializeState() {
     workerTabs = new Set();
     inFlightItems = new Map();
     activeWorkers = 0;
+    if (!Array.isArray(state.keywords) || !state.keywords.length) state.keywords = state.keyword ? [state.keyword] : [];
+    if (!Array.isArray(state.searchTargets) || !state.searchTargets.length) state.searchTargets = state.keywords.flatMap(keyword => (state.cities||[]).map(city => ({keyword,city})));
+    state.searchIndex = Math.max(0, Math.min(Number(state.searchIndex||0), Math.max(0,state.searchTargets.length-1)));
     maxWorkers = Math.max(1, Math.min(8, Number(state.maxWorkers || 6)));
     state.maxWorkers = maxWorkers;
     state.queued = queuedKeys.size;
@@ -842,7 +859,7 @@ async function initializeState() {
 async function resumeInterruptedScan() {
   if (!state.running) return;
 
-  if (!collectionDone) {
+  if (!collectionDone && !state.scanComplete) {
     const tab = await chromeTabsGet(state.activeTabId).catch(() => null);
     if (tab?.id && /google\.[^/]+\/maps|google\.com\/maps/i.test(String(tab.url || ""))) {
       let ping = null;

@@ -17,125 +17,98 @@
   </header>
 
   <nav class="nav-tabs" aria-label="Maps Hunter Pro sections">
-    <button class="nav-tab active" data-page="searchPage" type="button"><span>⌕</span>Search</button>
-    <button class="nav-tab" data-page="resultsPage" type="button"><span>▦</span>Results <b id="tabLeadCount">0</b></button>
-    <button class="nav-tab" data-page="licensePage" type="button"><span>◆</span>Activation</button>
-    <button class="nav-tab" data-page="settingsPage" type="button"><span>⚙</span>Settings</button>
+    <button class="nav-tab active" data-page="searchPage" type="button"><span>⌕</span><b>Search</b></button>
+    <button class="nav-tab" data-page="resultsPage" type="button"><span>▦</span><b>Results</b><i id="tabLeadCount">0</i></button>
+    <button class="nav-tab" data-page="settingsPage" type="button"><span>⚙</span><b>Settings</b></button>
   </nav>
 
   <section id="searchPage" class="page active">
-    <div class="search-card">
-      <div class="section-heading">
-        <div><small>NEW SEARCH</small><h1>Find businesses faster</h1></div>
+    <div class="card search-card search-card-v841">
+      <div class="section-heading search-heading">
+        <div><small>SEARCH BUILDER</small><h1>Build your search</h1></div>
         <span id="phaseBadge">Ready</span>
       </div>
 
-      <label class="input-group">
-        <span>Search type</span>
-        <input id="keyword" type="text" placeholder="e.g. Dentists" autocomplete="off" aria-label="Business search type">
-      </label>
-
-      <label class="input-group cities-group">
-        <span>Locations</span>
-        <textarea id="citiesInput" placeholder="Berlin, Germany&#10;Paris, France&#10;Madrid, Spain" aria-label="Locations, one per line"></textarea>
-        <small>Write the location naturally. Include the country when useful, e.g. Berlin, Germany.</small>
-      </label>
-
-      <div class="instant-mode">
-        <span class="instant-dot"></span>
-        <div>
-          <strong>Maps-only extraction</strong>
-          <small>Collect all Google Maps results first, then extract detail pages in parallel. Business websites are never opened.</small>
+      <div class="tag-stack">
+        <div class="tag-field">
+          <div class="tag-label"><strong>Business types</strong><span>Enter or comma = tag</span></div>
+          <div class="tag-editor" id="keywordEditor">
+            <div class="tag-list" id="keywordTagList"></div>
+            <input id="keywordInput" class="tag-input" type="text" placeholder="Dentists, Hotels, Agencies…" autocomplete="off">
+          </div>
         </div>
-        <b id="workerSummary">6 TABS</b>
+
+        <div class="tag-field">
+          <div class="tag-label"><strong>Locations</strong><span>Enter or comma = tag</span></div>
+          <div class="tag-editor" id="cityEditor">
+            <div class="tag-list" id="cityTagList"></div>
+            <input id="cityInput" class="tag-input" type="text" placeholder="Berlin, Germany · Paris, France…" autocomplete="off">
+          </div>
+        </div>
       </div>
 
-      <button id="startBtn" class="primary-action" type="button"><span>Start Search</span><b>→</b></button>
-
-      <div class="live-card">
-        <div class="live-orbit" id="liveOrbit"><div><small>LEADS</small><strong id="leadCount">0</strong><span>collected</span></div></div>
-        <div class="live-copy"><strong id="statusTitle">Ready to search</strong><p id="statusText">Enter a search type and at least one location.</p><div class="mini-progress"><i id="progressBar"></i></div></div>
+      <div class="search-summary-strip">
+        <div><span>Search combinations</span><strong id="comboCount">0</strong></div>
+        <div><span>Parallel extract</span><strong id="workerSummary">6 tabs</strong></div>
+        <div><span>Contacts</span><strong>Email + Social</strong></div>
       </div>
 
-      <div class="run-actions">
-        <button id="skipCityBtn" type="button" disabled>Skip location</button>
-        <button id="stopBtn" class="danger" type="button" disabled>Stop search</button>
+      <div class="actions-stack actions-v841">
+        <button id="startBtn" class="action-main" type="button"><span><small>STEP 1</small><strong>Start Scan</strong></span><b>⌕</b></button>
+        <div class="action-row">
+          <button id="stopScanBtn" class="action-soft" type="button" disabled><span>Stop Scan</span><b>■</b></button>
+          <button id="extractBtn" class="action-dark" type="button" disabled><span>Start Extract</span><b>→</b></button>
+        </div>
+        <button id="stopAllBtn" class="stop-all" type="button" disabled><span>Stop everything</span><b>×</b></button>
+      </div>
+
+      <div class="status-card status-card-v841">
+        <div class="status-count"><small id="liveMetricLabel">FOUND</small><strong id="leadCount">0</strong><span id="liveMetricSub">links</span></div>
+        <div class="status-copy"><strong id="statusTitle">Ready to scan</strong><p id="statusText">Add business and location tags, then start scanning.</p><div class="mini-progress"><i id="progressBar"></i></div></div>
       </div>
     </div>
   </section>
 
   <section id="resultsPage" class="page">
-    <div class="results-card">
-      <div class="results-hero"><span>COLLECTED</span><strong id="resultTotal">0</strong><small>businesses saved</small></div>
+    <div class="card results-card">
+      <div class="section-heading"><div><small>EXTRACTED DATA</small><h1>Results</h1></div><span id="resultTotal">0</span></div>
       <div class="stat-grid">
-        <div><strong id="phoneCount">0</strong><span>Phones</span></div>
-        <div><strong id="emailCount">0</strong><span>Emails</span></div>
-        <div><strong id="socialCount">0</strong><span>Social</span></div>
+        <div><span>Phones</span><strong id="phoneCount">0</strong></div>
+        <div><span>Emails</span><strong id="emailCount">0</strong></div>
+        <div><span>Social</span><strong id="socialCount">0</strong></div>
       </div>
-      <div class="export-section">
-        <div class="section-label">EXPORT RESULTS</div>
-        <button id="excelBtn" class="export-main" type="button"><span>XLSX</span><strong>Excel</strong><small>Recommended</small></button>
+      <div class="export-panel">
+        <div class="section-label">EXPORT</div>
+        <button id="excelBtn" class="export-main" type="button"><span>XLSX</span><strong>Export Excel</strong><small>Recommended</small></button>
         <div class="export-grid">
           <button id="csvBtn" type="button"><b>CSV</b><span>Spreadsheet</span></button>
           <button id="jsonBtn" type="button"><b>JSON</b><span>Raw data</span></button>
-          <button id="openSheetBtn" type="button"><b>TABLE</b><span>View all</span></button>
+          <button id="openSheetBtn" type="button"><b>TABLE</b><span>Preview</span></button>
         </div>
       </div>
-      <div class="results-subhead"><strong>Latest results</strong><span>Newest first</span></div>
-      <div id="recentResults" class="recent-results"><div class="empty-state">Your latest businesses will appear here.</div></div>
+      <div class="recent-head"><strong>Latest businesses</strong><span>Newest first</span></div>
+      <div id="recentResults" class="recent-results"><div class="empty-state">Your extracted businesses will appear here.</div></div>
       <button id="clearBtn" class="clear-button" type="button">Clear saved results</button>
     </div>
   </section>
 
-  <section id="licensePage" class="page">
-    <div class="license-card">
-      <div class="license-icon">◆</div>
-      <h2>Activation</h2>
-      <p>Enter the activation code you received after payment confirmation.</p>
-      <label class="input-group"><span>Activation code</span><input id="licenseKey" type="text" placeholder="MHP-…" autocomplete="off" spellcheck="false"></label>
-      <button id="saveLicense" class="primary-action" type="button"><span>Activate code</span><b>✓</b></button>
-      <div id="licenseStatusBox" class="activation-state"><strong>Checking activation…</strong><span>Please wait.</span></div>
-      <div class="license-meta">
-        <div><span>Status</span><b id="licenseStateText">Checking</b></div>
-        <div><span>Expires</span><b id="expiresText">—</b></div>
-      </div>
-      <footer><span>Maps Hunter Pro v8.3.4</span><a href="https://maps-hunter-pro-preview.anas98gha.workers.dev/privacy.html" target="_blank">Privacy</a></footer>
-    </div>
-  </section>
-
   <section id="settingsPage" class="page">
-    <div class="settings-card">
-      <div class="section-heading">
-        <div><small>EXTRACTION</small><h1>Settings</h1></div>
-        <span class="settings-chip">Saved automatically</span>
+    <div class="card settings-card">
+      <div class="section-heading"><div><small>ACCESS & EXTRACTION</small><h1>Settings</h1></div><span>AUTO SAVE</span></div>
+      <div class="settings-license-block">
+        <div class="settings-license-head"><div><strong>Activation</strong><small>1 device per activation code</small></div><span id="licenseStateText">Checking</span></div>
+        <div class="settings-license-row">
+          <input id="licenseKey" type="text" placeholder="MHP-…" autocomplete="off" spellcheck="false">
+          <button id="saveLicense" type="button">Activate</button>
+        </div>
+        <div id="licenseStatusBox" class="activation-state"><strong>Checking activation…</strong><span>Please wait.</span></div>
+        <div class="license-expiry"><span>Expires</span><b id="expiresText">—</b></div>
       </div>
-
-      <div class="setting-block">
-        <div class="setting-copy"><strong>Parallel Maps tabs</strong><small>How many Google Maps detail pages can be processed at the same time.</small></div>
-        <select id="workerCount" aria-label="Concurrent Maps tabs">
-          <option value="1">1 tab</option>
-          <option value="2">2 tabs</option>
-          <option value="3">3 tabs</option>
-          <option value="4">4 tabs</option>
-          <option value="5">5 tabs</option>
-          <option value="6">6 tabs</option>
-          <option value="7">7 tabs</option>
-          <option value="8">8 tabs</option>
-        </select>
-      </div>
-
-      <div class="setting-block locked-setting">
-        <div class="setting-copy"><strong>Scan results first</strong><small>The tool finishes collecting Google Maps result links before opening detail tabs.</small></div>
-        <span class="setting-state">ON</span>
-      </div>
-
-      <div class="setting-block locked-setting">
-        <div class="setting-copy"><strong>Open business websites</strong><small>Disabled for speed. If Maps does not show email or social data, those fields stay empty.</small></div>
-        <span class="setting-state off">OFF</span>
-      </div>
-
-      <div class="settings-note"><b>No country-code selector</b><span>Country context comes from the location you type and from the Google Maps address, such as “Berlin, Germany”.</span></div>
-      <button id="resetSettings" class="clear-button" type="button">Reset extraction settings</button>
+      <div class="setting-block"><div><strong>Parallel Maps tabs</strong><small>Number of Google Maps detail cards processed together.</small></div><select id="workerCount"><option value="1">1 tab</option><option value="2">2 tabs</option><option value="3">3 tabs</option><option value="4">4 tabs</option><option value="5">5 tabs</option><option value="6">6 tabs</option><option value="7">7 tabs</option><option value="8">8 tabs</option></select></div>
+      <div class="setting-block locked"><div><strong>Scan first, extract second</strong><small>Collect Google Maps result links before opening detail cards.</small></div><span class="on-pill">ON</span></div>
+      <div class="setting-block locked"><div><strong>Deep email discovery</strong><small>Checks homepage, discovered contact pages, common contact paths and sitemap — without opening website tabs.</small></div><span class="on-pill">ON</span></div>
+      <div class="setting-note"><b>Email priority</b><span>Emails matching the business website domain are preferred. Contact / info / office / booking addresses are ranked above generic technical addresses.</span></div>
+      <button id="resetSettings" class="clear-button" type="button">Reset settings</button>
     </div>
   </section>
 

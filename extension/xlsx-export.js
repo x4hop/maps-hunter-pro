@@ -1,5 +1,5 @@
-// Maps Hunter Pro XLSX exporter — branded, dependency-free OOXML writer.
-// All lead values are exported as strings so phone numbers and IDs are preserved exactly.
+// Maps Hunter Pro XLSX exporter — branded like the extension UI.
+// Phone numbers/IDs stay as strings. External URLs render as named clickable button cells.
 const MHPExport=(()=>{
   const te=new TextEncoder();
   const xml=x=>String(x??'')
@@ -20,32 +20,42 @@ const MHPExport=(()=>{
     return new Blob([...local,...central,end],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   }
 
+  // key, header, width, type, link label
+  // Contact/search context comes first; details + social come after.
   const cols=[
-    ['name','Business Name',28,'text'],
-    ['phone','Phone',19,'text'],
-    ['address','Address',38,'text'],
-    ['website','Website',28,'url'],
-    ['imageUrl','Image',18,'url'],
-    ['email','Primary Email',28,'email'],
-    ['emails','All Emails',36,'text'],
-    ['facebook','Facebook',24,'url'],
-    ['instagram','Instagram',24,'url'],
-    ['twitter','Twitter / X',22,'url'],
-    ['linkedin','LinkedIn',24,'url'],
-    ['youtube','YouTube',24,'url'],
-    ['tiktok','TikTok',22,'url'],
-    ['socialLinks','All Social Links',38,'text'],
-    ['category','Category',22,'text'],
-    ['rating','Rating',10,'center'],
-    ['reviews','Reviews',12,'center'],
-    ['mapsUrl','Google Maps',30,'url'],
-    ['hours','Hours',26,'text'],
-    ['status','Status',18,'text'],
-    ['searchCity','Search City',18,'text'],
-    ['searchCountry','Country Code',14,'center']
+    ['name','Business Name',26,'text','',true],
+    ['phone','Phone',18,'text','',true],
+    ['email','Email',28,'email','',true],
+    ['category','Category',18,'text'],
+    ['website','Website',12,'url','Website'],
+    ['mapsUrl','Google Maps',12,'url','Maps'],
+    ['rating','Rating',9,'center'],
+    ['reviews','Reviews',10,'center'],
+    ['address','Address',32,'wrap'],
+    ['hours','Hours',22,'wrap'],
+    ['emails','Other Emails',28,'wrap'],
+    ['facebook','Facebook',12,'url','Facebook'],
+    ['instagram','Instagram',12,'url','Instagram'],
+    ['linkedin','LinkedIn',12,'url','LinkedIn'],
+    ['twitter','X / Twitter',12,'url','X'],
+    ['youtube','YouTube',12,'url','YouTube'],
+    ['tiktok','TikTok',12,'url','TikTok'],
+    ['imageUrl','Image',11,'url','Image'],
+    ['status','Status',13,'text']
   ];
   const letters=n=>{let s='';while(n>0){n--;s=String.fromCharCode(65+n%26)+s;n=Math.floor(n/26)}return s};
   const lastCol=letters(cols.length);
+  const firstEmail=value=>String(value||'').split(/[|,;\s]+/).find(v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))||'';
+  function valueFor(lead,key){
+    if(key==='email')return String(lead?.email||firstEmail(lead?.emails)||'');
+    if(key==='emails'){
+      const all=String(lead?.emails||'').split('|').map(x=>x.trim()).filter(Boolean);
+      const primary=String(lead?.email||firstEmail(lead?.emails)||'').toLowerCase();
+      return all.filter(x=>x.toLowerCase()!==primary).join(' | ');
+    }
+    return String(lead?.[key]??'');
+  }
+  function hasSocial(lead){return ['facebook','instagram','linkedin','twitter','youtube','tiktok'].some(k=>/^https?:\/\//i.test(String(lead?.[k]||'')))}
 
   function workbook(leads){
     leads=Array.isArray(leads)?leads:[];
@@ -53,73 +63,101 @@ const MHPExport=(()=>{
     const relationships=[];
     const relFor=(cell,target)=>{const id='rId'+(relationships.length+1);relationships.push({id,cell,target});return id};
     const inline=(cell,value,style)=>`<c r="${cell}" s="${style}" t="inlineStr"><is><t xml:space="preserve">${xml(value)}</t></is></c>`;
-    const title=`<row r="1" ht="32" customHeight="1">${cols.map((_,j)=>inline(`${letters(j+1)}1`,j===0?'Maps Hunter Pro — Business Leads':'',1)).join('')}</row>`;
-    const metaText=`Exported leads: ${leads.length} • Generated: ${new Date().toISOString().replace('T',' ').slice(0,16)} UTC`;
-    const meta=`<row r="2" ht="22" customHeight="1">${cols.map((_,j)=>inline(`${letters(j+1)}2`,j===0?metaText:'',2)).join('')}</row>`;
-    const spacer='<row r="3" ht="7" customHeight="1"></row>';
-    const headers=`<row r="4" ht="27" customHeight="1">${cols.map((c,j)=>inline(`${letters(j+1)}4`,c[1],3)).join('')}</row>`;
+    const phoneCount=leads.filter(x=>String(x?.phone||'').trim()).length;
+    const emailCount=leads.filter(x=>String(x?.email||firstEmail(x?.emails)||'').trim()).length;
+    const socialCount=leads.filter(hasSocial).length;
+
+    const title=`<row r="1" ht="30" customHeight="1">${inline('A1','Maps Hunter Pro  ·  Leads Export',1)}</row>`;
+    const metaText=`${new Date().toISOString().replace('T',' ').slice(0,16)} UTC  ·  Click Website / Maps / Social cells to open`;
+    const meta=`<row r="2" ht="20" customHeight="1">${inline('A2',metaText,2)}</row>`;
+    const kpis=`<row r="3" ht="25" customHeight="1">${inline('A3',`${leads.length}  BUSINESSES`,12)}${inline('E3',`${phoneCount}  PHONES`,13)}${inline('J3',`${emailCount}  EMAILS`,14)}${inline('O3',`${socialCount}  SOCIAL`,15)}</row>`;
+    const spacer='<row r="4" ht="5" customHeight="1"></row>';
+    const headers=`<row r="5" ht="24" customHeight="1">${cols.map((c,j)=>inline(`${letters(j+1)}5`,c[1],3)).join('')}</row>`;
     const rows=leads.map((lead,i)=>{
-      const rowNo=i+5,alt=i%2===1;
-      const cells=cols.map(([key,label,width,type],j)=>{
-        let value=lead?.[key]??'';
-        if(key==='email'&&!value)value=lead?.emails||'';
-        value=String(value||'');
+      const rowNo=i+6,alt=i%2===1;
+      const cells=cols.map(([key,label,width,type,linkLabel,isBold],j)=>{
+        let value=valueFor(lead,key);
         const cell=`${letters(j+1)}${rowNo}`;
-        let style=alt?5:4;
+        let style=isBold?(alt?17:16):(alt?5:4),target='';
+        if(type==='wrap')style=alt?7:6;
         if(type==='center')style=alt?9:8;
-        let target='';
-        if(type==='url'&&/^https?:\/\//i.test(value))target=value;
-        if(type==='email'&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))target='mailto:'+value;
-        if(target){style=alt?7:6;relFor(cell,target)}
+        if(type==='url'&&/^https?:\/\//i.test(value)){
+          target=value;value=linkLabel||label;style=10;relFor(cell,target);
+        }else if(type==='url'){
+          value='—';style=alt?9:8;
+        }else if(type==='email'&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)){
+          target='mailto:'+value;style=11;relFor(cell,target);
+        }else if(type==='email'){
+          style=alt?17:16;
+        }
         return inline(cell,value,style);
       }).join('');
-      return `<row r="${rowNo}" ht="30" customHeight="1">${cells}</row>`;
+      return `<row r="${rowNo}" ht="22" customHeight="1">${cells}</row>`;
     }).join('');
     const colsXml=cols.map((c,i)=>`<col min="${i+1}" max="${i+1}" width="${c[2]}" customWidth="1"/>`).join('');
     const hyperlinks=relationships.length?`<hyperlinks>${relationships.map(r=>`<hyperlink ref="${r.cell}" r:id="${r.id}"/>`).join('')}</hyperlinks>`:'';
     const rels=relationships.map(r=>`<Relationship Id="${r.id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${xml(r.target)}" TargetMode="External"/>`).join('');
-    const lastRow=Math.max(4,leads.length+4);
+    const lastRow=Math.max(5,leads.length+5);
+    const merges='<mergeCells count="6"><mergeCell ref="A1:S1"/><mergeCell ref="A2:S2"/><mergeCell ref="A3:D3"/><mergeCell ref="E3:I3"/><mergeCell ref="J3:N3"/><mergeCell ref="O3:S3"/></mergeCells>';
     return zip({
       '[Content_Types].xml':'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>',
       '_rels/.rels':'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',
       'xl/workbook.xml':`<workbook xmlns="${ns}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Leads" sheetId="1" r:id="rId1"/></sheets></workbook>`,
       'xl/_rels/workbook.xml.rels':'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>',
       'xl/styles.xml':`<styleSheet xmlns="${ns}">
-        <fonts count="5">
-          <font><sz val="10"/><name val="Calibri"/><color rgb="FF000000"/></font>
-          <font><b/><sz val="18"/><name val="Calibri"/><color rgb="FFF95C4B"/></font>
-          <font><sz val="10"/><name val="Calibri"/><color rgb="FF000000"/></font>
-          <font><b/><sz val="10"/><name val="Calibri"/><color rgb="FF000000"/></font>
-          <font><u/><sz val="10"/><name val="Calibri"/><color rgb="FFF95C4B"/></font>
+        <fonts count="8">
+          <font><sz val="10"/><name val="Calibri"/><color rgb="FF0B0B0B"/></font>
+          <font><b/><sz val="17"/><name val="Calibri"/><color rgb="FFFFFDFA"/></font>
+          <font><sz val="9"/><name val="Calibri"/><color rgb="FF6F6A63"/></font>
+          <font><b/><sz val="10"/><name val="Calibri"/><color rgb="FF0B0B0B"/></font>
+          <font><b/><sz val="9"/><name val="Calibri"/><color rgb="FF0B0B0B"/></font>
+          <font><b/><u/><sz val="10"/><name val="Calibri"/><color rgb="FFF95C4B"/></font>
+          <font><b/><sz val="11"/><name val="Calibri"/><color rgb="FF0B0B0B"/></font>
+          <font><b/><sz val="11"/><name val="Calibri"/><color rgb="FFFFFDFA"/></font>
         </fonts>
-        <fills count="6">
+        <fills count="8">
           <fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>
-          <fill><patternFill patternType="solid"><fgColor rgb="FF000000"/><bgColor indexed="64"/></patternFill></fill>
-          <fill><patternFill patternType="solid"><fgColor rgb="FFE4DED2"/><bgColor indexed="64"/></patternFill></fill>
+          <fill><patternFill patternType="solid"><fgColor rgb="FF0B0B0B"/><bgColor indexed="64"/></patternFill></fill>
+          <fill><patternFill patternType="solid"><fgColor rgb="FFE7E0D4"/><bgColor indexed="64"/></patternFill></fill>
+          <fill><patternFill patternType="solid"><fgColor rgb="FFFFFDFA"/><bgColor indexed="64"/></patternFill></fill>
           <fill><patternFill patternType="solid"><fgColor rgb="FFF95C4B"/><bgColor indexed="64"/></patternFill></fill>
-          <fill><patternFill patternType="solid"><fgColor rgb="FFF6F4F1"/><bgColor indexed="64"/></patternFill></fill>
+          <fill><patternFill patternType="solid"><fgColor rgb="FFF9F8F5"/><bgColor indexed="64"/></patternFill></fill>
+          <fill><patternFill patternType="solid"><fgColor rgb="FFF2EEE7"/><bgColor indexed="64"/></patternFill></fill>
         </fills>
-        <borders count="2"><border/><border><left style="thin"><color rgb="FFE4DED2"/></left><right style="thin"><color rgb="FFE4DED2"/></right><top style="thin"><color rgb="FFE4DED2"/></top><bottom style="thin"><color rgb="FFE4DED2"/></bottom></border></borders>
+        <borders count="3">
+          <border/>
+          <border><left style="thin"><color rgb="FF171717"/></left><right style="thin"><color rgb="FF171717"/></right><top style="thin"><color rgb="FF171717"/></top><bottom style="thin"><color rgb="FF171717"/></bottom></border>
+          <border><left style="thin"><color rgb="FFE0D8CC"/></left><right style="thin"><color rgb="FFE0D8CC"/></right><top style="thin"><color rgb="FFE0D8CC"/></top><bottom style="thin"><color rgb="FFE0D8CC"/></bottom></border>
+        </borders>
         <cellStyleXfs count="1"><xf fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-        <cellXfs count="10">
+        <cellXfs count="18">
           <xf fontId="0" fillId="0" borderId="0"/>
           <xf fontId="1" fillId="2" borderId="0" applyFont="1" applyFill="1"><alignment vertical="center"/></xf>
           <xf fontId="2" fillId="3" borderId="0" applyFont="1" applyFill="1"><alignment vertical="center"/></xf>
-          <xf fontId="3" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
-          <xf fontId="0" fillId="0" borderId="1" applyBorder="1"><alignment vertical="top" wrapText="1"/></xf>
-          <xf fontId="0" fillId="5" borderId="1" applyFill="1" applyBorder="1"><alignment vertical="top" wrapText="1"/></xf>
-          <xf fontId="4" fillId="0" borderId="1" applyFont="1" applyBorder="1"><alignment vertical="top" wrapText="1"/></xf>
-          <xf fontId="4" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"><alignment vertical="top" wrapText="1"/></xf>
-          <xf fontId="0" fillId="0" borderId="1" applyBorder="1"><alignment horizontal="center" vertical="top" wrapText="1"/></xf>
-          <xf fontId="0" fillId="5" borderId="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="top" wrapText="1"/></xf>
+          <xf fontId="3" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+          <xf fontId="0" fillId="4" borderId="2" applyFill="1" applyBorder="1"><alignment vertical="center"/></xf>
+          <xf fontId="0" fillId="6" borderId="2" applyFill="1" applyBorder="1"><alignment vertical="center"/></xf>
+          <xf fontId="0" fillId="4" borderId="2" applyFill="1" applyBorder="1"><alignment vertical="center" wrapText="1"/></xf>
+          <xf fontId="0" fillId="6" borderId="2" applyFill="1" applyBorder="1"><alignment vertical="center" wrapText="1"/></xf>
+          <xf fontId="0" fillId="4" borderId="2" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>
+          <xf fontId="0" fillId="6" borderId="2" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>
+          <xf fontId="4" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>
+          <xf fontId="5" fillId="4" borderId="2" applyFont="1" applyFill="1" applyBorder="1"><alignment vertical="center"/></xf>
+          <xf fontId="6" fillId="4" borderId="1" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>
+          <xf fontId="6" fillId="3" borderId="1" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>
+          <xf fontId="6" fillId="5" borderId="1" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>
+          <xf fontId="7" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>
+          <xf fontId="4" fillId="4" borderId="2" applyFont="1" applyFill="1" applyBorder="1"><alignment vertical="center"/></xf>
+          <xf fontId="4" fillId="6" borderId="2" applyFont="1" applyFill="1" applyBorder="1"><alignment vertical="center"/></xf>
         </cellXfs>
       </styleSheet>`,
       'xl/worksheets/sheet1.xml':`<worksheet xmlns="${ns}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-        <sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
-        <sheetFormatPr defaultRowHeight="18"/>
+        <sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="5" topLeftCell="A6" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
+        <sheetFormatPr defaultRowHeight="19"/>
         <cols>${colsXml}</cols>
-        <sheetData>${title}${meta}${spacer}${headers}${rows}</sheetData>
-        <autoFilter ref="A4:${lastCol}${lastRow}"/>
+        <sheetData>${title}${meta}${kpis}${spacer}${headers}${rows}</sheetData>
+        <autoFilter ref="A5:${lastCol}${lastRow}"/>
+        ${merges}
         ${hyperlinks}
       </worksheet>`,
       'xl/worksheets/_rels/sheet1.xml.rels':`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rels}</Relationships>`

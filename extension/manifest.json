@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Maps Hunter Pro",
-  "version": "8.3.4",
-  "description": "Instant Google Maps result capture with direct extraction and professional export.",
+  "version": "8.4.7",
+  "description": "Fast Google Maps lead extraction with stronger background email/social discovery and tag-based searches.",
   "permissions": [
     "activeTab",
     "downloads",
@@ -12,9 +12,8 @@
     "unlimitedStorage"
   ],
   "host_permissions": [
-    "https://www.google.com/*",
-    "https://maps.google.com/*",
-    "https://mapshunterpro.com/*"
+    "http://*/*",
+    "https://*/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com"

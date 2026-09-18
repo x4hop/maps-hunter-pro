@@ -53,12 +53,27 @@ async function init() {
   }
 }
 
+async function readStoredLeads() {
+  try {
+    return await new Promise(resolve => chrome.storage.local.get(["leads", "state"], result => {
+      const stored = Array.isArray(result?.leads)
+        ? result.leads
+        : (Array.isArray(result?.state?.leads) ? result.state.leads : []);
+      resolve(stored);
+    }));
+  } catch (e) {
+    return [];
+  }
+}
+
 async function load() {
   const state = await send({ type: "GET_STATE" });
   exportState = state || {};
-  leads = Array.isArray(state?.leads) ? state.leads : [];
+  const liveLeads = Array.isArray(state?.leads) ? state.leads : [];
+  const storedLeads = liveLeads.length ? [] : await readStoredLeads();
+  leads = liveLeads.length ? liveLeads : storedLeads;
   applyFilter();
-  toast("Refreshed");
+  toast(leads.length ? `Loaded ${leads.length} result${leads.length === 1 ? "" : "s"}` : "No saved results yet");
 }
 
 function applyFilter() {
@@ -102,9 +117,21 @@ function exportJson() {
   download(JSON.stringify(exportLeads, null, 2), `maps_hunter_${stamp()}.json`, "application/json;charset=utf-8;");
 }
 
-function exportExcel() {
-  if (!filtered.length) return toast("No data to export.");
-  MHPExport.xlsx(filtered.map(lead=>({...lead,phone:internationalizePhone(lead.phone,lead)})), `maps_hunter_${stamp()}.xlsx`);
+async function exportExcel() {
+  let rows = filtered;
+  if (!rows.length) {
+    const stored = await readStoredLeads();
+    if (stored.length) {
+      leads = stored;
+      filtered = stored;
+      rows = stored;
+      render();
+    }
+  }
+  if (!rows.length) return toast("No saved results to export.");
+  const prepared = rows.map(lead=>({...lead,phone:internationalizePhone(lead.phone,lead)}));
+  MHPExport.xlsx(prepared, `maps_hunter_${stamp()}.xlsx`);
+  toast(`Exporting ${prepared.length} result${prepared.length === 1 ? "" : "s"}`);
 }
 
 function excelXmlCell(lead, field, rowIndex) {

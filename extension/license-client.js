@@ -1,6 +1,6 @@
 // Entitlements are verified by the API. No credentials or admin secrets are stored in the extension.
 const MHPAccess=(()=>{
- const BASE='https://mapshunterpro.com';
+ const BASE='https://maps-hunter-pro-api.anas98gha.workers.dev';
  async function saved(){const s=await chrome.storage.local.get(['mhp_license','mhp_device','mhp_entitlement']);if(!s.mhp_device){s.mhp_device=crypto.randomUUID();await chrome.storage.local.set({mhp_device:s.mhp_device})}return s}
  async function request(path,x){const c=new AbortController(),timer=setTimeout(()=>c.abort(),15000);try{const r=await fetch(BASE+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(x),signal:c.signal});let d={};try{d=await r.json()}catch{}if(!r.ok||d.ok===false){const code=d.error||'LICENSE_CHECK_FAILED';const next=new Date();next.setUTCHours(24,0,0,0);throw new Error(code==='DAILY_LIMIT_REACHED'?`Daily limit reached. Resume after ${next.toISOString().replace('.000Z','Z')}.`:code)}return d}catch(err){err.accessError=true;throw err}finally{clearTimeout(timer)}}
  async function verify(s){const d=await request('/api/license/validate',{licenseKey:s.mhp_license,deviceId:s.mhp_device});await chrome.storage.local.set({mhp_entitlement:{...d,checkedAt:Date.now()}});return d}
