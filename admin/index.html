@@ -152,16 +152,16 @@ tbody tr:hover{background:rgba(249,92,75,.1)}
       </div>
       <div class="card" style="margin-top:18px">
         <h3>Simple sales flow</h3>
-        <p>1) Customer pays using Binance ID, manual USDT TRC20, or RedotPay. 2) Customer sends screenshot + transaction reference/address on WhatsApp. 3) You verify payment. 4) Generate a Monthly or Annual code here and send it to the customer. 5) Every subscription code supports one device only.</p>
+        <p>1) Customer pays using Binance ID, manual USDT TRC20, or RedotPay. 2) Customer sends screenshot + transaction reference/address on WhatsApp. 3) You verify payment. 4) Generate a Monthly or Lifetime code here and send it to the customer. 5) Every subscription code supports one device only.</p>
       </div>
     </section>
 
     <section id="licenses" class="view">
       <div class="card">
         <h2>Generate activation codes</h2>
-        <div class="notice">Monthly = 30 days · Annual = 365 days · every subscription code supports exactly 1 device.</div>
+        <div class="notice">Monthly = 30 days · Lifetime = no expiration · every activation code supports exactly 1 device.</div>
         <div class="row">
-          <div class="field"><label>Plan</label><select id="genPlan"><option value="monthly">Monthly · 30 days</option><option value="annual">Annual · 365 days</option></select></div>
+          <div class="field"><label>Plan</label><select id="genPlan"><option value="monthly">Monthly · 30 days</option><option value="lifetime">Lifetime · no expiration</option></select></div>
           <div class="field"><label>Quantity</label><input id="genCount" type="number" min="1" max="50" value="1"></div>
           <div class="field" style="flex:2"><label>Note (optional)</label><input id="genNote" placeholder="Customer / payment note"></div>
           <button id="generate" class="primary">Generate</button>
@@ -200,10 +200,10 @@ tbody tr:hover{background:rgba(249,92,75,.1)}
     <section id="settings" class="view">
       <div class="card">
         <h2>Sales & product settings</h2>
-        <div class="notice" id="sDevicePolicy">1 device per Monthly or Annual activation code</div>
+        <div class="notice" id="sDevicePolicy">1 device per Monthly or Lifetime activation code</div>
         <div class="settings-grid">
           <div class="field"><label>Monthly price USD</label><input id="sMonthly" type="number"></div>
-          <div class="field"><label>Annual price USD</label><input id="sAnnual" type="number"></div>
+          <div class="field"><label>Lifetime price USD</label><input id="sLifetime" type="number"></div>
           <div class="field"><label>Monthly daily limit</label><input id="sLimit" type="number"></div>
           <div class="field"><label>Binance ID</label><input id="sBinanceId"></div>
           <div class="field"><label>RedotPay ID/account</label><input id="sRedot"></div>

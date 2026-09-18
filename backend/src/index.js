@@ -35,7 +35,7 @@ async function settings(e){
   const db=Object.fromEntries((await rows(e,'SELECT key,value FROM settings')).map(x=>[x.key,x.value]));
   return {
     monthly_price_usd:Number(db.monthly_price_usd||20),
-    annual_price_usd:Number(db.annual_price_usd||100),
+    lifetime_price_usd:Number(db.lifetime_price_usd||db.annual_price_usd||100),
     monthly_daily_limit:Number(db.monthly_daily_limit||1500),
     allowed_devices:clamp(Number(db.allowed_devices||2),1,10),
     usdt_network:db.usdt_network||'TRC20',
@@ -48,10 +48,9 @@ async function settings(e){
   };
 }
 const plan=(s,id)=>{
-  if(!['monthly','annual'].includes(id))fail('INVALID_PLAN');
-  return id==='monthly'
-    ? {id:'monthly',price:s.monthly_price_usd,durationDays:30,dailyLeadLimit:s.monthly_daily_limit}
-    : {id:'annual',price:s.annual_price_usd,durationDays:365,dailyLeadLimit:null};
+  if(!['monthly','lifetime','annual'].includes(id))fail('INVALID_PLAN');
+  if(id==='monthly')return {id:'monthly',storagePlanId:'monthly',storageDurationDays:30,price:s.monthly_price_usd,durationDays:30,dailyLeadLimit:s.monthly_daily_limit,isLifetime:false};
+  return {id:'lifetime',storagePlanId:'annual',storageDurationDays:365,price:s.lifetime_price_usd,durationDays:null,dailyLeadLimit:null,isLifetime:true};
 };
 async function rateLimit(r,e,path){
   const ip=r.headers.get('cf-connecting-ip')||'unknown', bucket=Math.floor(Date.now()/600000), k=await hash(path+'|'+ip+'|'+bucket);
@@ -81,10 +80,15 @@ async function ownerAccess(e,x){
 async function loadManualLicense(e,code){return first(e,'SELECT * FROM manual_licenses WHERE code_hash=?',await hash(code))}
 async function activateManual(e,l){
   if(l.status==='unused'){
-    await run(e,"UPDATE manual_licenses SET status='active',activated_at=CURRENT_TIMESTAMP,expires_at=datetime('now','+'||duration_days||' days'),last_validated_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='unused'",l.id);
+    if(Number(l.is_lifetime)===1)await run(e,"UPDATE manual_licenses SET status='active',activated_at=CURRENT_TIMESTAMP,expires_at=NULL,last_validated_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='unused'",l.id);
+    else await run(e,"UPDATE manual_licenses SET status='active',activated_at=CURRENT_TIMESTAMP,expires_at=datetime('now','+'||duration_days||' days'),last_validated_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='unused'",l.id);
     l=await first(e,'SELECT * FROM manual_licenses WHERE id=?',l.id);
   }
-  if(l.status==='active'&&l.expires_at&&Date.parse(l.expires_at+'Z')<=Date.now()){
+  if(l.status==='active'&&Number(l.is_lifetime)===1&&l.expires_at){
+    await run(e,"UPDATE manual_licenses SET expires_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=?",l.id);
+    l.expires_at=null;
+  }
+  if(l.status==='active'&&Number(l.is_lifetime)!==1&&l.expires_at&&Date.parse(l.expires_at+'Z')<=Date.now()){
     await run(e,"UPDATE manual_licenses SET status='expired',updated_at=CURRENT_TIMESTAMP WHERE id=?",l.id);
     l.status='expired';
   }
@@ -148,11 +152,11 @@ async function adminRoutes(r,e,url){
   if(p==='/api/admin/logout'&&m==='POST'){await run(e,'DELETE FROM admin_sessions WHERE id=?',admin.id);return json({ok:true})}
   if(p==='/api/admin/summary'&&m==='GET'){
     const c=async q=>Number((await first(e,q)).c||0);
-    return json({ok:true,summary:{unusedCodes:await c("SELECT count(*) c FROM manual_licenses WHERE status='unused'"),activeLicenses:await c("SELECT count(*) c FROM manual_licenses WHERE status='active' AND julianday(expires_at)>julianday('now')"),expiredLicenses:await c("SELECT count(*) c FROM manual_licenses WHERE status='expired' OR (status='active' AND julianday(expires_at)<=julianday('now'))"),expiringSoon:await c("SELECT count(*) c FROM manual_licenses WHERE status='active' AND julianday(expires_at)>julianday('now') AND julianday(expires_at)<=julianday('now','+3 days')"),leadsToday:await c("SELECT coalesce(sum(leads_processed),0) c FROM manual_usage_daily WHERE usage_date=date('now')")}})
+    return json({ok:true,summary:{unusedCodes:await c("SELECT count(*) c FROM manual_licenses WHERE status='unused'"),activeLicenses:await c("SELECT count(*) c FROM manual_licenses WHERE status='active' AND (is_lifetime=1 OR julianday(expires_at)>julianday('now'))"),expiredLicenses:await c("SELECT count(*) c FROM manual_licenses WHERE status='expired' OR (status='active' AND is_lifetime=0 AND julianday(expires_at)<=julianday('now'))"),expiringSoon:await c("SELECT count(*) c FROM manual_licenses WHERE status='active' AND is_lifetime=0 AND julianday(expires_at)>julianday('now') AND julianday(expires_at)<=julianday('now','+3 days')"),leadsToday:await c("SELECT coalesce(sum(leads_processed),0) c FROM manual_usage_daily WHERE usage_date=date('now')")}})
   }
   if(p==='/api/admin/settings'&&m==='GET')return json({ok:true,settings:await rows(e,'SELECT key,value,updated_at FROM settings ORDER BY key')});
   if(p==='/api/admin/settings'&&m==='PATCH'){
-    const x=await body(r), allowed=new Set(['monthly_price_usd','annual_price_usd','monthly_daily_limit','allowed_devices','usdt_network','usdt_address','redotpay_id','support_contact','extension_version','extension_download_url','public_site_url']);
+    const x=await body(r), allowed=new Set(['monthly_price_usd','lifetime_price_usd','annual_price_usd','monthly_daily_limit','allowed_devices','usdt_network','usdt_address','redotpay_id','support_contact','extension_version','extension_download_url','public_site_url']);
     const entries=Object.entries(x.settings||{}).filter(([k])=>allowed.has(k)); if(!entries.length)fail('NO_SETTINGS');
     await e.DB.batch(entries.map(([k,v])=>sql(e,"INSERT INTO settings(key,value,updated_at) VALUES(?,?,CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=CURRENT_TIMESTAMP",k,String(v))));
     await audit(e,'SETTINGS_UPDATED','settings','platform',{keys:entries.map(x=>x[0])}); return json({ok:true});
@@ -161,7 +165,7 @@ async function adminRoutes(r,e,url){
     const x=await body(r), pl=plan(s,x.planId), count=clamp(Number(x.count||1),1,50), out=[];
     for(let i=0;i<count;i++){
       const raw=makeCode(), h=await hash(raw), hint=codeHint(raw);
-      await run(e,'INSERT INTO manual_licenses(code_hash,code_hint,plan_id,duration_days,daily_lead_limit,device_limit,note) VALUES(?,?,?,?,?,?,?)',h,hint,pl.id,pl.durationDays,pl.dailyLeadLimit,s.allowed_devices,String(x.note||'').slice(0,500)||null);
+      await run(e,'INSERT INTO manual_licenses(code_hash,code_hint,plan_id,duration_days,daily_lead_limit,device_limit,note,is_lifetime) VALUES(?,?,?,?,?,?,?,?)',h,hint,pl.storagePlanId,pl.storageDurationDays,pl.dailyLeadLimit,s.allowed_devices,String(x.note||'').slice(0,500)||null,pl.isLifetime?1:0);
       out.push(raw);
     }
     await audit(e,'MANUAL_CODES_CREATED','manual_license',String(count),{planId:pl.id,count}); return json({ok:true,codes:out},201);
@@ -180,8 +184,9 @@ async function adminRoutes(r,e,url){
     if(action==='reset-devices'){await run(e,'DELETE FROM manual_license_devices WHERE manual_license_id=?',id);await audit(e,'MANUAL_DEVICES_RESET','manual_license',id);return json({ok:true})}
     if(action==='extend'){
       if(l.status==='revoked')fail('LICENSE_REVOKED',409); const x=await body(r),pl=plan(s,x.planId||l.plan_id);
-      if(l.status==='unused')await run(e,'UPDATE manual_licenses SET plan_id=?,duration_days=?,daily_lead_limit=?,device_limit=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',pl.id,pl.durationDays,pl.dailyLeadLimit,s.allowed_devices,id);
-      else await run(e,"UPDATE manual_licenses SET plan_id=?,duration_days=?,daily_lead_limit=?,device_limit=?,status='active',expires_at=datetime(CASE WHEN expires_at IS NOT NULL AND julianday(expires_at)>julianday('now') THEN expires_at ELSE CURRENT_TIMESTAMP END,'+'||?||' days'),updated_at=CURRENT_TIMESTAMP WHERE id=?",pl.id,pl.durationDays,pl.dailyLeadLimit,s.allowed_devices,pl.durationDays,id);
+      if(l.status==='unused')await run(e,'UPDATE manual_licenses SET plan_id=?,duration_days=?,daily_lead_limit=?,device_limit=?,is_lifetime=?,expires_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=?',pl.storagePlanId,pl.storageDurationDays,pl.dailyLeadLimit,s.allowed_devices,pl.isLifetime?1:0,id);
+      else if(pl.isLifetime)await run(e,"UPDATE manual_licenses SET plan_id=?,duration_days=?,daily_lead_limit=?,device_limit=?,is_lifetime=1,status='active',expires_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=?",pl.storagePlanId,pl.storageDurationDays,pl.dailyLeadLimit,s.allowed_devices,id);
+      else await run(e,"UPDATE manual_licenses SET plan_id=?,duration_days=?,daily_lead_limit=?,device_limit=?,is_lifetime=0,status='active',expires_at=datetime(CASE WHEN expires_at IS NOT NULL AND julianday(expires_at)>julianday('now') THEN expires_at ELSE CURRENT_TIMESTAMP END,'+'||?||' days'),updated_at=CURRENT_TIMESTAMP WHERE id=?",pl.storagePlanId,pl.storageDurationDays,pl.dailyLeadLimit,s.allowed_devices,pl.storageDurationDays,id);
       await audit(e,'MANUAL_LICENSE_EXTENDED','manual_license',id,{planId:pl.id}); return json({ok:true,license:await first(e,'SELECT id,code_hint,plan_id,status,activated_at,expires_at FROM manual_licenses WHERE id=?',id)});
     }
   }
@@ -197,14 +202,14 @@ async function maintenance(e){
   await e.DB.batch([
     sql(e,"DELETE FROM admin_sessions WHERE julianday(expires_at)<=julianday('now')"),
     sql(e,"DELETE FROM request_limits WHERE julianday(expires_at)<=julianday('now')"),
-    sql(e,"UPDATE manual_licenses SET status='expired',updated_at=CURRENT_TIMESTAMP WHERE status='active' AND expires_at IS NOT NULL AND julianday(expires_at)<=julianday('now')"),
+    sql(e,"UPDATE manual_licenses SET status='expired',updated_at=CURRENT_TIMESTAMP WHERE status='active' AND is_lifetime=0 AND expires_at IS NOT NULL AND julianday(expires_at)<=julianday('now')"),
     sql(e,"DELETE FROM manual_usage_events WHERE julianday(created_at)<=julianday('now','-90 days')")
   ]);
 }
 async function dispatch(r,e){
   const url=new URL(r.url),p=url.pathname,m=r.method; if(m==='OPTIONS')return new Response(null,{status:204,headers:HEADERS});
   if(p==='/api/health'){await ensureAdmin(e);return json({ok:true,version:'7.0.0-manual',database:(await first(e,'SELECT 1 ok')).ok===1?'connected':'error',mode:'manual-only'})}
-  if(p==='/api/plans'&&m==='GET'){const s=await settings(e);return json({ok:true,plans:['monthly','annual'].map(id=>plan(s,id))})}
+  if(p==='/api/plans'&&m==='GET'){const s=await settings(e);return json({ok:true,plans:['monthly','lifetime'].map(id=>plan(s,id)).map(({storagePlanId,storageDurationDays,...x})=>x)})}
   if(p==='/api/payment-methods'&&m==='GET'){const s=await settings(e);return json({ok:true,methods:{USDT:{enabled:Boolean(s.usdt_address),network:s.usdt_network,address:s.usdt_address||null},REDOTPAY:{enabled:Boolean(s.redotpay_id),account:s.redotpay_id||null}},support:s.support_contact||null})}
   return await extensionRoutes(r,e,url)||await adminRoutes(r,e,url)||fail('NOT_FOUND',404);
 }
