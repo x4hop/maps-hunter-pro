@@ -11,7 +11,11 @@ assert.match(source,/ — \$\$\{p\.price\}/,'Selected-plan label must keep the d
 assert.match(source,/plan \(\$\$\{p\.price\}\)/,'WhatsApp payment message must keep the dollar sign');
 assert.match(source,/legacyCopyText\(text\)/,'Clipboard failures must fall back to legacy browser copy');
 assert.match(source,/flashCopyFailure\(btn,targetId\)/,'Copy failure must visibly select the target instead of silently failing');
-assert.match(source,/redot:'Paga con tu RedotPay ID\.'/,'Spanish RedotPay helper text must remain localized');
+
+const spanishFix=readFileSync('assets/payment-language-fix.js','utf8');
+assert.match(spanishFix,/Paga con tu RedotPay ID\./,'Spanish RedotPay helper must be localized at runtime');
+const build=readFileSync('scripts/build-frontend-cloudflare.mjs','utf8');
+assert.match(build,/payment-language-fix\.js/,'Localized production HTML must load the payment-language fix');
 
 let clipboardCalls=0;
 let execCalls=0;

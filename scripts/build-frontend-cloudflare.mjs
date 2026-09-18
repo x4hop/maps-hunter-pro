@@ -45,6 +45,7 @@ function renderLocalizedHtml(source,lang,dictionary){
     if(typeof value!=='string'||/<[a-z][\s\S]*>/i.test(inner))return full;
     return `${open}${escapeHtml(value)}${close}`;
   });
+  if(!html.includes('/assets/payment-language-fix.js'))html=html.replace('</body>','<script src="/assets/payment-language-fix.js" defer></script></body>');
   return html;
 }
 
