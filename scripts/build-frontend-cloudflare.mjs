@@ -6,7 +6,7 @@ const root=resolve(new URL('..',import.meta.url).pathname);
 const out=resolve(root,'dist/frontend');
 const langs=['en','ar','ru','de','es'];
 const GOOGLE_SITE_VERIFICATION='Rwt2LxDLsZnhc4H7unz17utjAmod8mHZ5AqVVtZCUoI';
-const CRITICAL_CSS_FILES=['styles.css','manual.css','ui-polish.css','layout-polish.css','payment-icon-clean.css'];
+const CRITICAL_CSS_FILES=['styles.css','manual.css','payment-icon-clean.css','ui-polish.css','layout-polish.css'];
 
 const escapeHtml=value=>String(value)
   .replace(/&/g,'&amp;')

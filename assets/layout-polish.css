@@ -219,23 +219,3 @@ html,body,button,input,select,textarea{
   .hero h1{font-size:28px!important}
   .hero-card{box-shadow:4px 4px 0 var(--color-black)!important}
 }
-
-/* RTL typography only — do not use RTL fixes to rewrite the page layout. */
-html[dir="rtl"] body,
-html[dir="rtl"] button,
-html[dir="rtl"] input,
-html[dir="rtl"] select,
-html[dir="rtl"] textarea{
-  font-family:"Readex Pro",Arial,sans-serif!important;
-}
-html[dir="rtl"] h1,
-html[dir="rtl"] h2,
-html[dir="rtl"] h3,
-html[dir="rtl"] h4,
-html[dir="rtl"] h5,
-html[dir="rtl"] h6,
-html[dir="rtl"] p,
-html[dir="rtl"] a,
-html[dir="rtl"] button{
-  letter-spacing:0!important;
-}
