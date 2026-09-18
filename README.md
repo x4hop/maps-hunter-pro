@@ -55,21 +55,11 @@ node scripts/release-extension.mjs
 
 ### Language switcher stability — completed 2026-09-18
 
-- Language switching must work consistently from every localized route, including `/en`.
-- The language popup is moved outside the sticky-header stacking context before opening so LTR and RTL pages behave the same.
+- Language switching must work consistently from every localized route, including `/en` and `/ar`.
+- Keep the popup inside `#languageSwitcher`; the existing CSS already mirrors its absolute alignment for RTL. Do not move it to `document.body` and do not force viewport-fixed coordinates.
 - Every language item owns a direct click handler and navigates to the corresponding language path while preserving query string and hash.
+- Language fixes are behavior-only and must not rewrite card, payment, navigation, or responsive layout rules.
 - Regression guard: `node tests/test_language_switcher.mjs`.
-
-
-### RTL language switcher + section-layout stability — completed 2026-09-18
-
-- Root cause: the language popup was portaled outside the sticky header, but its JavaScript coordinates could still be overridden by `!important` CSS and the RTL header could crowd the language action area. That made the failure appear to move from English to Arabic.
-- Permanent rule: the language popup stays attached to `document.body`, is positioned with explicit `style.setProperty(..., "important")` coordinates, and the header action lane always has a higher stacking context than navigation links.
-- On Arabic/RTL, desktop navigation links are hidden instead of being allowed to overlap the language control.
-- Mobile translated content must never use cramped two-column cards, square payment-card constraints, or text clamping that can collide with icons. At `<=760px`, workflow/feature/data/use-case/pricing/payment cards use a single-column layout and natural content height.
-- Section-title icons and card icons must stay in normal document flow; do not absolutely position them over translated text.
-- Regression guards: `node tests/test_language_switcher.mjs` and `node tests/test_layout_stability.mjs`.
-
 
 ### Public-site visual baseline — restored 2026-09-18
 
