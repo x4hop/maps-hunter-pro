@@ -1,6 +1,7 @@
-// Maps Hunter Pro v1.0.0 — faster post-scan pipeline.
-// Maps tabs are released as soon as Maps data is captured; email/social discovery
-// continues in the extension worker without blocking the next Maps place.
+// Maps Hunter Pro v1.0.0 — Email-first performance tuning.
+// Source of truth: the lead is not committed until email discovery has completed.
+// Speed comes from ending website crawling as soon as a valid public email is found,
+// while preserving the full fallback path when no email is found.
 (()=>{
   try{
     const baseSleep=sleep;
@@ -12,98 +13,76 @@
     };
   }catch(e){}
 
-  // Website contact discovery is network-bound, so it can safely run with more
-  // concurrency than visible Maps detail tabs.
   try{
-    mhpWithContactSlot=async function(fn){
-      const limit=8;
-      if(mhpContactActive>=limit){
-        await new Promise(resolve=>mhpContactWaiters.push(resolve));
-      }
-      mhpContactActive+=1;
-      try{return await fn();}
-      finally{
-        mhpContactActive=Math.max(0,mhpContactActive-1);
-        const next=mhpContactWaiters.shift();
-        if(next)next();
-      }
-    };
-  }catch(e){}
+    enrichFromWebsite=async function(website){
+      const root=mhpCleanWebsiteUrl(website);
+      if(!root)return{};
 
-  // Replace the legacy email-first blocking worker. The Maps result is committed
-  // immediately; deep contact lookup is attached as a background enrichment task.
-  try{
-    processPlace=async function(preview,workerRunId=scanRunId){
-      let tab=null;
-      const key=preview.mapsUrl||`${preview.name}|${preview.address}`;
-      try{
-        state.phase='Extracting';
-        state.status=`Extracting: ${preview.name||'place'}`;
-        await broadcast();
+      // Keep the roadmap's bounded website-level concurrency via mhpWithContactSlot.
+      return mhpWithContactSlot(async()=>{
+        const first=await mhpFetchPage(root,5600);
+        if(!first.html)return{};
 
-        tab=await chromeTabsCreate({url:preview.mapsUrl,active:false});
-        workerTabs.add(tab.id);
-        await persistRuntime();
-        await waitForTabComplete(tab.id,3000);
-        await waitForPlaceContent(tab.id,4200);
-        await sleep(150);
+        const canonical=first.url||root;
+        let found=mhpMergeSignals({},mhpExtractWebsiteSignals(first.html,canonical),canonical);
+        let pagesChecked=1;
 
-        let details=await extractFromMapsTab(tab.id);
-        if(!details.phone&&!details.website){
-          await sleep(350);
-          details=mergeLead(details,await extractFromMapsTab(tab.id));
+        // Email is the primary objective. If the homepage already exposes a valid
+        // public email, do not spend extra time crawling merely for secondary fields.
+        if(found.email){
+          delete found._emails;
+          return found;
         }
 
-        if(workerRunId!==scanRunId||!state.running)return;
-        const lead=mergeLead(preview,details);
+        const queue=mhpContactCandidates(first.html,canonical).filter(u=>u!==canonical);
+        const seen=new Set([canonical]);
 
-        // The Maps tab is no longer needed once the detail DOM has been read.
-        // Close it before usage accounting/contact crawling so browser resources
-        // are released immediately.
-        if(tab?.id){
-          try{await chromeTabsRemove(tab.id)}catch(e){}
-          workerTabs.delete(tab.id);
-          tab=null;
-          await persistRuntime();
-        }
+        while(queue.length&&pagesChecked<MHP_SITE_PAGE_LIMIT-3){
+          if(found.email)break;
 
-        preview.usageRequestId||=crypto.randomUUID();
-        inFlightItems.set(key,preview);
-        await persistRuntime();
-        await MHPAccess.consume(preview.usageRequestId);
-        if(workerRunId!==scanRunId||!state.running)return;
-
-        addLead(lead);
-        processedKeys.add(key);
-
-        if(lead.website&&state.enrichWebsites){
-          enrichLeadInBackground(lead,workerRunId);
-          state.status=`Saved ${state.leads.length}. Finding email in background. Queue ${queue.length}.`;
-        }else{
-          state.status=`Saved ${state.leads.length}. Queue ${queue.length}.`;
-        }
-      }catch(error){
-        if(error.accessError&&workerRunId===scanRunId){await pauseScan(error.message,preview);return}
-        if(workerRunId===scanRunId&&state.running){
-          try{
-            preview.usageRequestId||=crypto.randomUUID();
-            inFlightItems.set(key,preview);
-            await persistRuntime();
-            await MHPAccess.consume(preview.usageRequestId);
-          }catch(access){
-            if(access.accessError){await pauseScan(access.message,preview);return}
+          // Slightly wider batches shorten email discovery without reducing the
+          // total page ceiling or removing any fallback source.
+          const batch=[];
+          while(queue.length&&batch.length<4&&pagesChecked+batch.length<MHP_SITE_PAGE_LIMIT-3){
+            const u=queue.shift();
+            if(!u||seen.has(u))continue;
+            seen.add(u);
+            batch.push(u);
           }
-          addLead(preview);
-          processedKeys.add(key);
-          state.status=`Saved preview after detail error. Queue ${queue.length}.`;
+          if(!batch.length)break;
+
+          const pages=await Promise.all(batch.map(u=>mhpFetchPage(u,4500)));
+          pagesChecked+=pages.length;
+
+          for(const page of pages){
+            if(!page.html)continue;
+            found=mhpMergeSignals(found,mhpExtractWebsiteSignals(page.html,page.url),canonical);
+
+            for(const next of mhpContactCandidates(page.html,page.url)){
+              try{
+                if(new URL(next).origin===new URL(canonical).origin&&!seen.has(next)&&queue.length<24)queue.push(next);
+              }catch{}
+            }
+          }
         }
-      }finally{
-        if(tab?.id){
-          try{await chromeTabsRemove(tab.id)}catch(e){}
-          workerTabs.delete(tab.id);
-          await persistRuntime();
+
+        // Preserve the existing deep fallback when ordinary pages did not reveal
+        // a public email.
+        if(!found.email&&pagesChecked<MHP_SITE_PAGE_LIMIT){
+          const siteUrls=await mhpSitemapCandidates(canonical);
+          for(const url of siteUrls.slice(0,MHP_SITE_PAGE_LIMIT-pagesChecked)){
+            if(seen.has(url))continue;
+            seen.add(url);
+            const page=await mhpFetchPage(url,4500);
+            pagesChecked+=1;
+            if(page.html)found=mhpMergeSignals(found,mhpExtractWebsiteSignals(page.html,page.url),canonical);
+            if(found.email)break;
+          }
         }
-      }
+
+        delete found._emails;
+        return found;
+      });
     };
   }catch(e){}
 })();
