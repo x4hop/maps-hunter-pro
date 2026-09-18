@@ -4,6 +4,7 @@ importScripts("maps-page-overrides.js");
 importScripts("country-query-overrides.js");
 importScripts("location-phone-overrides.js");
 importScripts("performance-overrides.js");
+importScripts("contact-extraction-fix.js");
 
 try {
   chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true }).catch(() => {});

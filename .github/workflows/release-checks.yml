@@ -37,11 +37,15 @@ jobs:
           node --check extension/maps-page-overrides.js
           node --check extension/country-query-overrides.js
           node --check extension/location-phone-overrides.js
+          node --check extension/performance-overrides.js
+          node --check extension/contact-extraction-fix.js
           node --check extension/content.js
           node --check extension/data.js
           node --check extension/license-client.js
           node --check extension/panel-v2.js
           node --check extension/xlsx-export.js
+      - name: Maps contact extraction regression check
+        run: node tests/test_maps_contact_extraction.mjs
       - name: Payment and licensing regression checks
         run: |
           node tests/test_payment_safety.mjs
