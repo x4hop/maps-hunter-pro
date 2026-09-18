@@ -51,6 +51,8 @@ jobs:
           node tests/test_frontend_regressions.mjs
       - name: Branded SVG icon regression check
         run: node tests/test_icon_system.mjs
+      - name: Language switcher regression check
+        run: node tests/test_language_switcher.mjs
       - name: Current migration-chain check
         run: python3 tests/test_current_migration_chain.py
       - name: Extension manifest regression check
