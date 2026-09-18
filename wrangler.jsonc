@@ -3,6 +3,8 @@
   "name": "maps-hunter-pro-api",
   "main": "./deploy/unified-worker.js",
   "compatibility_date": "2026-09-17",
+  "workers_dev": false,
+  "preview_urls": false,
   "routes": [
     {
       "pattern": "mapshunterpro.com",
