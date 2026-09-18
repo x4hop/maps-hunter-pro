@@ -56,6 +56,7 @@ for(const file of ['index.html','privacy.html','terms.html']){
 }
 await cp(resolve(root,'assets'),resolve(out,'assets'),{recursive:true});
 await cp(resolve(root,'admin'),resolve(out,'admin'),{recursive:true});
+await cp(resolve(root,'blog'),resolve(out,'blog'),{recursive:true});
 
 const source=await readFile(resolve(root,'index.html'),'utf8');
 const overrides=await manualLocales();
@@ -68,4 +69,4 @@ for(const lang of langs){
   await writeFile(resolve(dir,'index.html'),localized,'utf8');
 }
 
-console.log(`Cloudflare production assets prepared at ${out} with localized HTML and admin console`);
+console.log(`Cloudflare production assets prepared at ${out} with localized HTML, blog and admin console`);

@@ -42,7 +42,7 @@ async function assetText(env,path){
   return response.text();
 }
 
-function localized(html,lang,origin){
+function localized(html,lang){
   const m=META[lang]||META.en;
   const canonical=`${PUBLIC_ORIGIN}/${lang}`;
   const alternates=LANGS.map(x=>`<link rel="alternate" hreflang="${x}" href="${PUBLIC_ORIGIN}/${x}" />`).join('')+`<link rel="alternate" hreflang="x-default" href="${PUBLIC_ORIGIN}/en" />`;
@@ -64,7 +64,13 @@ async function handleSite(request,env){
   if(u.hostname==='www.mapshunterpro.com')return Response.redirect(`${PUBLIC_ORIGIN}${u.pathname}${u.search}`,301);
   if(u.pathname==='/robots.txt')return new Response(`User-agent: *\nAllow: /\nSitemap: ${PUBLIC_ORIGIN}/sitemap.xml\n`,{headers:{'content-type':'text/plain;charset=utf-8','cache-control':'public,max-age=3600'}});
   if(u.pathname==='/sitemap.xml'){
-    const urls=[...LANGS.map(l=>`<url><loc>${PUBLIC_ORIGIN}/${l}</loc><changefreq>weekly</changefreq><priority>${l==='en'?'1.0':'0.9'}</priority></url>`),`<url><loc>${PUBLIC_ORIGIN}/privacy.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>`,`<url><loc>${PUBLIC_ORIGIN}/terms.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>`].join('');
+    const urls=[
+      ...LANGS.map(l=>`<url><loc>${PUBLIC_ORIGIN}/${l}</loc><changefreq>weekly</changefreq><priority>${l==='en'?'1.0':'0.9'}</priority></url>`),
+      `<url><loc>${PUBLIC_ORIGIN}/blog/</loc><lastmod>2026-09-18</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>`,
+      `<url><loc>${PUBLIC_ORIGIN}/blog/how-to-extract-business-leads-from-google-maps/</loc><lastmod>2026-09-18</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
+      `<url><loc>${PUBLIC_ORIGIN}/privacy.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>`,
+      `<url><loc>${PUBLIC_ORIGIN}/terms.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>`
+    ].join('');
     return new Response(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`,{headers:{'content-type':'application/xml;charset=utf-8','cache-control':'public,max-age=3600'}});
   }
   if(u.pathname==='/'||u.pathname==='')return Response.redirect(`${PUBLIC_ORIGIN}/en`,301);
@@ -73,12 +79,14 @@ async function handleSite(request,env){
   if(u.pathname.startsWith('/admin/'))return asset(env,u.pathname,ADMIN_HEADERS);
   if(u.pathname==='/privacy.html')return asset(env,'/privacy.html',HTML_HEADERS);
   if(u.pathname==='/terms.html')return asset(env,'/terms.html',HTML_HEADERS);
+  if(u.pathname==='/blog'||u.pathname==='/blog/')return asset(env,'/blog/index.html',HTML_HEADERS);
+  if(u.pathname==='/blog/how-to-extract-business-leads-from-google-maps'||u.pathname==='/blog/how-to-extract-business-leads-from-google-maps/')return asset(env,'/blog/how-to-extract-business-leads-from-google-maps/index.html',HTML_HEADERS);
 
   const normalized=u.pathname.replace(/\/$/,'');
   const lang=normalized.slice(1);
   if(LANGS.includes(lang)){
     const html=await assetText(env,`/${lang}/index.html`)||await assetText(env,'/index.html');
-    return html?new Response(localized(html,lang,u.origin),{headers:HTML_HEADERS}):new Response('Page not found',{status:404});
+    return html?new Response(localized(html,lang),{headers:HTML_HEADERS}):new Response('Page not found',{status:404});
   }
 
   const staticAsset=await env.ASSETS.fetch(request);
