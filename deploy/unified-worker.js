@@ -69,6 +69,9 @@ async function handleSite(request,env){
       `<url><loc>${PUBLIC_ORIGIN}/blog/</loc><lastmod>2026-09-18</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>`,
       `<url><loc>${PUBLIC_ORIGIN}/blog/how-to-extract-business-leads-from-google-maps/</loc><lastmod>2026-09-18</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
       `<url><loc>${PUBLIC_ORIGIN}/blog/find-businesses-without-websites-on-google-maps/</loc><lastmod>2026-09-18</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
+      `<url><loc>${PUBLIC_ORIGIN}/blog/maps-hunter-pro-vs-phantombuster/</loc><lastmod>2026-09-18</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
+      `<url><loc>${PUBLIC_ORIGIN}/blog/ar/</loc><lastmod>2026-09-18</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`,
+      `<url><loc>${PUBLIC_ORIGIN}/blog/ar/maps-hunter-pro-vs-phantombuster/</loc><lastmod>2026-09-18</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>`,
       `<url><loc>${PUBLIC_ORIGIN}/privacy.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>`,
       `<url><loc>${PUBLIC_ORIGIN}/terms.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>`
     ].join('');
@@ -83,6 +86,9 @@ async function handleSite(request,env){
   if(u.pathname==='/blog'||u.pathname==='/blog/')return asset(env,'/blog/index.html',HTML_HEADERS);
   if(u.pathname==='/blog/how-to-extract-business-leads-from-google-maps'||u.pathname==='/blog/how-to-extract-business-leads-from-google-maps/')return asset(env,'/blog/how-to-extract-business-leads-from-google-maps/index.html',HTML_HEADERS);
   if(u.pathname==='/blog/find-businesses-without-websites-on-google-maps'||u.pathname==='/blog/find-businesses-without-websites-on-google-maps/')return asset(env,'/blog/find-businesses-without-websites-on-google-maps/index.html',HTML_HEADERS);
+  if(u.pathname==='/blog/maps-hunter-pro-vs-phantombuster'||u.pathname==='/blog/maps-hunter-pro-vs-phantombuster/')return asset(env,'/blog/maps-hunter-pro-vs-phantombuster/index.html',HTML_HEADERS);
+  if(u.pathname==='/blog/ar'||u.pathname==='/blog/ar/')return asset(env,'/blog/ar/index.html',HTML_HEADERS);
+  if(u.pathname==='/blog/ar/maps-hunter-pro-vs-phantombuster'||u.pathname==='/blog/ar/maps-hunter-pro-vs-phantombuster/')return asset(env,'/blog/ar/maps-hunter-pro-vs-phantombuster/index.html',HTML_HEADERS);
 
   const normalized=u.pathname.replace(/\/$/,'');
   const lang=normalized.slice(1);
