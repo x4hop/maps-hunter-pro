@@ -1,44 +1,52 @@
 # Maps Hunter Pro — Current Production Truth
 
-Last updated: 2026-09-17
+Last updated: 2026-09-18
 
 ## Source of truth
 
 - Repository: `x4hop/maps-hunter-pro`
-- Branch: `main`
-- `main` is the only source of truth for frontend, backend, admin and extension.
-- Do not restore older D1-hosted landing/admin HTML.
-- Do not restore the old split frontend/API/admin deployment architecture.
+- Production branch: `main`
+- `main` is the source of truth for the landing site, admin console, backend, Cloudflare worker and extension release source.
+- Do not restore old D1-hosted landing/admin HTML or the retired split frontend/API/admin architecture.
+- Historical migrations stay immutable. New database changes must be additive migrations.
 
-## Product and plans
+## Commercial model
 
 - Monthly: **$20 / 30 days**.
-- Monthly limit: **1,500 accepted results/day**.
-- Annual: **$100 / 365 days**.
-- Annual: no commercial daily platform limit.
-- Customer extension access uses an activation code only; no customer website login.
-- Every Monthly or Annual activation code supports **exactly 1 device**.
-- Owner code remains a separate owner-only mechanism.
+- Monthly usage limit: **1,500 accepted/saved leads per UTC day**.
+- Lifetime: **$100 one-time**.
+- Lifetime has **no expiry** and no commercial daily platform limit.
+- Every customer activation code supports **exactly one trusted device**.
+- Owner access is a separate permanent owner-only code.
+- Legacy annual rows may remain in D1 for compatibility/history; they are not a public plan.
+
+### Lifetime storage compatibility
+
+The legacy `manual_licenses.plan_id` constraint accepts `monthly|annual` and `duration_days` accepts `30|365`. To avoid rebuilding the production table, the public `lifetime` plan is stored internally as:
+
+- `plan_id = 'annual'`
+- `duration_days = 365` (compatibility placeholder only)
+- `is_lifetime = 1`
+- `expires_at = NULL`
+- `daily_lead_limit = NULL`
+
+Runtime behavior is controlled by `is_lifetime`, not by the legacy `annual` storage value. Do not convert historical migrations in place.
 
 ## Manual payment model
 
-All payment methods are manual and published directly on the landing page:
-
-- Binance ID: `752783284`
-- USDT: manual TRC20 wallet shown on the public page
-- RedotPay ID: `1831390337`
+Payment credentials are intentionally frontend-owned manual data. Supported methods are Binance ID, USDT on TRC20 and RedotPay, with payment verification/support handled through WhatsApp.
 
 Rules:
 
-- Payment methods do **not** come from the API.
-- Customer sends a payment screenshot plus transaction reference/address through WhatsApp.
-- Admin verifies payment manually before issuing or renewing an activation code.
+- The customer chooses Monthly or Lifetime on the public page.
+- Copy buttons must work with the Clipboard API **and** a legacy browser fallback.
+- Payment methods do not come from `/api/payment-methods`; `backend/src/entry.js` rejects that endpoint.
+- The customer sends a screenshot plus transaction reference/address on WhatsApp.
+- The operator verifies payment manually, then generates an activation code in `/admin/`.
 - Payment proof never auto-activates access.
-- Admin settings are not the source of payment credentials.
+- Admin settings do not own payment credentials.
 
 ## Public language routes
-
-Every language has its own indexable URL:
 
 - English: `/en`
 - Arabic: `/ar`
@@ -48,155 +56,177 @@ Every language has its own indexable URL:
 
 Rules:
 
-- `/` permanently redirects to `/en`.
-- Arabic uses `dir="rtl"`; all others use LTR.
-- Language selection navigates to the matching URL; do not use `?lang=` as the canonical language architecture.
-- Build localized HTML for every route so important translated content exists before client-side JavaScript runs.
-- Every language route has a self-referencing canonical plus reciprocal `hreflang` and `x-default`.
-- All five routes appear in the sitemap.
+- `/` redirects permanently to `/en`.
+- `www.mapshunterpro.com/*` redirects permanently to the apex domain.
+- Arabic is RTL; the other languages are LTR.
+- Each route has a self-canonical, reciprocal `hreflang`, and `x-default`.
+- Localized HTML is generated at build time so important copy exists without client JavaScript.
+- Base locale files and override files must agree on Monthly/Lifetime wording.
 
 ## Unified Cloudflare production architecture
 
-Cloudflare remains the hosting platform for the complete product.
+Production worker:
 
-Production Worker:
-
-- Worker name: `maps-hunter-pro-api`
-- Workers.dev host: `https://maps-hunter-pro-api.anas98gha.workers.dev`
-- Entry point: `deploy/unified-worker.js`
-- Wrangler source of truth: `wrangler.jsonc`
-- Static Assets: `dist/frontend`
+- Worker: `maps-hunter-pro-api`
+- Custom domains: `mapshunterpro.com`, `www.mapshunterpro.com`
+- Workers.dev API host retained for installed extensions
+- Entry: `deploy/unified-worker.js`
+- Wrangler: `wrangler.jsonc`
+- Static assets: `dist/frontend`
 - D1 binding: `DB`
 - D1 database: `maps-hunter-pro`
+- Cron maintenance: `17 3 * * *`
 
-The same Worker serves:
-
-- landing page and language routes
-- static assets
-- `/admin/`
-- `/api/*`
-- `/robots.txt`
-- `/sitemap.xml`
-
-There is no Service Binding between separate frontend and API Workers in the new architecture. Landing/admin HTML is not read from D1.
-
-Legacy Cloudflare resources to remove after successful unified deployment:
-
-- `maps-hunter-pro-preview`
-- `maps-hunter-pro-admin`
-- any old Maps Hunter Pages/build resources that are confirmed unused
-
-Never delete the production D1 until a verified backup/export exists.
+The same worker serves the site, localized pages, blog, admin, API, robots and sitemap. Landing/admin HTML is served from Static Assets, not D1.
 
 ## Cloudflare ↔ GitHub deployment
 
-Use Cloudflare Workers Builds native GitHub integration.
+Cloudflare Workers Builds is connected to GitHub:
 
-- Repository: `x4hop/maps-hunter-pro`
-- Production branch: `main`
-- Root directory: `/`
-- Build command: `node scripts/build-frontend-cloudflare.mjs`
-- Deploy command: `npx --yes wrangler@4 deploy --config wrangler.jsonc`
+- repository: `x4hop/maps-hunter-pro`
+- branch: `main`
+- build: `node scripts/build-frontend-cloudflare.mjs`
+- deploy: `npx --yes wrangler@4 deploy --config wrangler.jsonc`
 
-Do not use GitHub Actions with `CLOUDFLARE_API_TOKEN` for production deployment. The old token-based deployment workflows were removed.
+GitHub Actions performs validation/release packaging; production deployment is performed by Cloudflare's GitHub integration.
 
-## Frontend
+## Frontend responsibilities
 
-- Framework-free HTML/CSS/vanilla JS.
-- `index.html`: canonical landing markup/design.
-- `assets/locales/*`: translated copy.
-- `assets/manual-i18n.js`: localized copy overrides and presentation polish.
-- `assets/i18n.js`: language routing/switching only; it must not own payment credentials.
-- `assets/app.js`: manual payment rendering, plan display, WhatsApp handoff and interaction behavior.
-- Preserve the approved design and responsive layout.
+- `index.html`: canonical landing markup, structured data, pricing/payment placeholders and sections.
+- `assets/locales/*.js`: base translated copy.
+- `assets/manual-i18n.js`: manual-payment/activation and pricing presentation overrides.
+- `assets/seo-i18n.js`: SEO-oriented localized copy.
+- `assets/i18n.js`: route/language switching and metadata behavior.
+- `assets/app.js`: plan API, payment cards, robust copy actions, USDT QR modal, WhatsApp handoff and plan selection.
+- `assets/*.css`: responsive visual system.
 
-## Backend
+## Extension workflow
 
-Backend code:
+The extension is Manifest V3 and uses a side panel. The user adds one or more business keywords and one or more cities, starts a Maps scan, optionally stops after link collection, then extracts place details and contacts. Results are stored locally and exported on demand.
 
-- `backend/src/index.js`
-- `backend/src/entry.js`
+High-level pipeline:
 
-Production responsibilities:
+1. Validate activation code/device.
+2. Build `keyword × city` search targets.
+3. Open Google Maps search.
+4. Collect/deduplicate place URLs by scrolling Maps results.
+5. Extract each place detail in background Maps tabs with configurable concurrency (1–8; default 6).
+6. When a business website is present, fetch public pages in the extension service worker and search for public email/social links before committing the lead.
+7. Consume one licensed usage unit with an idempotent request ID.
+8. Save the lead to `chrome.storage.local`.
+9. Persist queue/runtime state so interrupted jobs can resume.
+10. Export to Excel, CSV, JSON, or the Results table.
+
+## Website contact enrichment
+
+`extension/contact-enrichment.js` performs background HTTP(S) fetches; it does **not** open business websites in visible tabs.
+
+- Maximum contact-fetch concurrency: 5.
+- Maximum pages checked per business site: 12.
+- Starts with the business website.
+- Follows likely contact/about/team/legal/imprint pages.
+- Uses `robots.txt` and sitemap URLs as a fallback when useful.
+- Parses normal emails plus common public obfuscation patterns.
+- Scores same-domain and generic contact addresses.
+- Collects supported Facebook, Instagram, LinkedIn, X/Twitter, YouTube and TikTok links.
+- No remote JavaScript/WASM is executed by the extension.
+- Business result data stays in local extension storage; the licensing API does not receive the lead list.
+
+Because this workflow fetches arbitrary public business websites selected through Maps results, the current manifest declares broad HTTP/HTTPS host access. Store/privacy documentation must match that fact.
+
+## Export
+
+The custom XLSX exporter runs locally. Current workbook columns are:
+
+`Business Name, Phone, Email, Category, Website, Google Maps, Rating, Reviews, Address, Hours, Other Emails, Facebook, Instagram, LinkedIn, X / Twitter, YouTube, TikTok, Image, Status`.
+
+Excel includes styled headers/KPIs, frozen headers and clickable URL/email cells. CSV and JSON are also generated locally.
+
+## Backend API
+
+Implementation: `backend/src/index.js` wrapped by `backend/src/entry.js`.
+
+Public/extension endpoints:
 
 - `GET /api/health`
-- `GET /api/plans`
+- `GET /api/plans` → public Monthly + Lifetime only
 - `POST /api/license/validate`
 - `POST /api/usage/consume`
-- protected `/api/admin/*`
+- `GET /api/payment-methods` → intentionally rejected as `PAYMENTS_MANUAL_ONLY`
 
-Payment-method data is not a backend responsibility.
+Protected admin routes include login/logout, summary, settings, manual licenses, device reset/revoke/plan update, owner access and audit logs.
 
-## Licensing
+## Licensing invariants
 
-- Monthly code duration: 30 days.
-- Annual code duration: 365 days.
-- Customer code `device_limit` is always 1.
-- Backend, not frontend, enforces the one-device limit.
-- Existing multi-device customer licenses are normalized to one trusted device when the licensing/admin backend runs; additional trusted device bindings are blocked.
-- Admin can reset the single device binding when legitimate support requires it.
+- Monthly activation starts a 30-day term on first successful activation.
+- Lifetime activation sets `expires_at = NULL`.
+- `is_lifetime=1` licenses must never be expired by the maintenance job.
+- Customer `device_limit` is normalized to 1 by `backend/src/entry.js`.
+- A second trusted device is rejected until the operator resets the binding.
+- Usage consumption is idempotent by request ID.
+- Monthly daily-limit accounting is UTC/D1 date based.
 
 ## Admin
 
-Admin URL in the unified Worker:
+Admin URL: `/admin/`.
 
-- `/admin/`
+Admin functions:
 
-Admin responsibilities:
+- generate Monthly or Lifetime codes;
+- view status, activation date, expiry/Lifetime, daily use and device count;
+- convert an eligible code to Lifetime;
+- extend/switch to Monthly when explicitly chosen;
+- reset the single device binding;
+- revoke a code;
+- change Monthly/Lifetime prices and Monthly daily limit;
+- maintain support/release metadata;
+- rotate/revoke owner code;
+- inspect audit logs;
+- copy generated/owner codes with Clipboard API + fallback.
 
-- Generate Monthly or Annual activation codes.
-- Show status, expiry, usage and the one-device binding.
-- Extend, revoke and reset a customer's single device binding.
-- Manage plan prices/limits, support details and extension release settings.
-- Manage owner code separately.
-- Review audit logs.
+Admin does not manage payment credentials.
 
-Admin does not manage payment-method credentials.
+## SEO/content architecture
 
-## Extension compatibility
+- Localized landing routes are server-rendered/static-build localized.
+- The worker injects canonical, `hreflang`, OG locale and language-specific title/description.
+- `robots.txt` points to `/sitemap.xml`.
+- Sitemap includes language routes, published blog hubs/articles and low-priority policy pages.
+- Blog articles use canonical URLs and structured data such as `BlogPosting`/`BreadcrumbList` where present.
+- Current content strategy targets Google Maps lead generation use cases, agencies, web design, local SEO, SaaS/outbound and comparison intent.
 
-The extension continues to call:
+## CI / release gates
 
-`https://maps-hunter-pro-api.anas98gha.workers.dev`
+A production change is not complete until these pass:
 
-Keeping the unified Worker name as `maps-hunter-pro-api` preserves compatibility with installed extension builds while moving the landing page and admin into the same production Worker.
+- JavaScript syntax checks;
+- payment architecture + robust copy regression checks;
+- Monthly/Lifetime public-source consistency checks;
+- one-device licensing checks;
+- current migration-chain checks;
+- Manifest/permissions checks matching website enrichment behavior;
+- localized Cloudflare build (EN/AR/RU/DE/ES + RTL Arabic);
+- Wrangler dry run;
+- extension release packaging.
 
-## CI
+## Required production smoke test
 
-GitHub Actions is validation/release packaging only. It does not deploy Cloudflare.
+After every deploy verify:
 
-Release checks validate:
+- `/en`, `/ar`, `/ru`, `/de`, `/es` return 200;
+- Monthly = $20; Lifetime = $100 one-time;
+- payment values display correctly;
+- every payment copy button actually copies the intended value;
+- USDT QR modal opens/closes;
+- WhatsApp message reflects the selected plan;
+- `/api/plans` exposes Monthly + Lifetime, never public Annual;
+- `/admin/` works and copy buttons work;
+- a new Monthly code activates/expires normally;
+- a new Lifetime code activates with no expiry;
+- second device is rejected until reset;
+- `/robots.txt` and `/sitemap.xml` include all current published content;
+- `www` redirects 301 to apex.
 
-- JavaScript syntax
-- manual-payment architecture
-- one-device licensing policy
-- migration chain
-- localized EN/AR/RU/DE/ES HTML generation
-- Arabic RTL output
-- admin static asset generation
-- extension release packaging
+## Change-control rule
 
-## Production verification
-
-Before considering a deployment complete, verify:
-
-- `/en`, `/ar`, `/ru`, `/de`, `/es`
-- `/robots.txt`
-- `/sitemap.xml`
-- `/admin/`
-- `/api/health`
-- `/api/plans`
-- Binance, USDT and RedotPay display directly from frontend manual data
-- WhatsApp payment-proof flow
-- new Monthly and Annual codes bind to one device only
-- second different device is rejected until admin resets the binding
-- landing/admin HTML is served from Static Assets and not D1
-
-## Safe Cloudflare cleanup order
-
-1. Export/backup the current D1 database.
-2. Deploy and verify the unified `maps-hunter-pro-api` Worker from `main`.
-3. Confirm extension/API compatibility.
-4. Delete legacy `maps-hunter-pro-preview` and `maps-hunter-pro-admin` Workers.
-5. Delete only other Maps Hunter Cloudflare resources confirmed unused.
-6. Keep the unified Worker and the required D1 database as the production system.
+Do not make broad production edits directly on `main` without verification. Use a short-lived repair/feature branch, run regression checks, review the diff, merge only after checks pass, then verify the Cloudflare build and live smoke tests. For D1 schema changes, back up first and use additive migrations.

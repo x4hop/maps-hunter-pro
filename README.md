@@ -1,30 +1,49 @@
 # Maps Hunter Pro
 
-Production source for the Chrome extension, multilingual landing page, customer account flow, admin console and Anas Cloudflare Worker/D1 backend.
+Production source for the Maps Hunter Pro Chrome extension, multilingual marketing site, manual activation admin console, Cloudflare Worker and D1 licensing backend.
 
 ## Commercial rules
-- Monthly: USD 20, 1,500 saved leads per UTC day.
-- Annual: USD 100, no product daily limit.
-- Affiliate: 50% first confirmed purchase, 20% eligible renewals.
-- Payment: manual activation through WhatsApp +218931650822.
 
-## Release
+- Monthly: USD 20 / 30 days, up to 1,500 accepted leads per UTC day.
+- Lifetime: USD 100 one-time, no expiry and no commercial daily platform limit.
+- Customer activation code: exactly 1 trusted device.
+- Payment: Binance ID / USDT TRC20 / RedotPay, verified manually through WhatsApp.
+- There is no customer website account/login flow in the current production model.
+
+## Production build/deploy
+
+Cloudflare Workers Builds watches `main`.
+
 ```bash
-node scripts/build.mjs
-python3 tests/test_migrations.py
-python3 tests/test_sql.py
+node scripts/build-frontend-cloudflare.mjs
+npx --yes wrangler@4 deploy --config wrangler.jsonc
+```
+
+GitHub Actions validates the source and packages the extension; Cloudflare's native GitHub integration performs the production deploy.
+
+## Local release checks
+
+```bash
+node --check assets/app.js
+node --check assets/i18n.js
+node --check assets/manual-i18n.js
+node --check assets/seo-i18n.js
+node tests/test_payment_safety.mjs
+node tests/test_frontend_regressions.mjs
+node tests/test_single_device_policy.mjs
+python3 tests/test_current_migration_chain.py
 python3 tests/test_manifest.py
-node tests/test_xlsx.mjs
+node scripts/build-frontend-cloudflare.mjs
+npx --yes wrangler@4 deploy --dry-run --outdir dist/wrangler-dry-run --config wrangler.jsonc
 node scripts/release-extension.mjs
 ```
-The extension ZIP contains only `extension/` files and has a generated SHA-256 and content list.
 
 ## Database
-Fresh installation applies migrations in numeric order: `0001`, `0002`, `0003`, `0004`. Production upgrades are additive and must be backed up before importing. Never run `schema.sql` over production; it is a consolidated reference/test fixture.
 
-## Privacy and store submission
-Read `DATA_FLOW.md`, `CHROME_WEB_STORE.md`, `privacy.html` and `terms.html`. Business results and resumable queues remain in local extension storage. Licensing/usage sends only the documented operational fields. Website enrichment is optional and requests broad HTTPS access only after the user enables it.
+Production upgrades are additive migrations under `backend/migrations/`; never rewrite historical migrations after deployment. `schema.sql` is a legacy reference/test fixture and is not the source of the current production schema; do not use it as a production migration command. Lifetime compatibility keeps the legacy storage `plan_id='annual'` only internally and distinguishes real Lifetime access using `is_lifetime=1` with `expires_at=NULL`.
 
-## Ownership
-Repository: `x4hop/maps-hunter-pro`. Cloudflare account ID: `90d77a67b5686c9a9eec64a2d3749e0b`. Do not deploy this project to any Aseel/Salah account.
+## Extension/data model
 
+Google Maps result/detail data and contact-enrichment results stay in `chrome.storage.local`. The extension fetches public business website pages in the background when a Maps listing has a website in order to discover public email/social links. Lead data is not uploaded to the licensing API. The licensing service receives only activation/device/usage fields required to enforce access and product limits.
+
+Read `PROJECT.md`, `DATA_FLOW.md`, `CHROME_WEB_STORE.md`, `privacy.html`, `terms.html`, and `docs/MAPS_HUNTER_PRO_MASTER_ROADMAP_AR.md` before changing production behavior.

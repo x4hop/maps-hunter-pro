@@ -5,6 +5,8 @@ import {runInNewContext} from 'node:vm';
 const root=resolve(new URL('..',import.meta.url).pathname);
 const out=resolve(root,'dist/frontend');
 const langs=['en','ar','ru','de','es'];
+const GOOGLE_SITE_VERIFICATION='Rwt2LxDLsZnhc4H7unz17utjAmod8mHZ5AqVVtZCUoI';
+const CRITICAL_CSS_FILES=['styles.css','manual.css','payment-icon-clean.css','ui-polish.css','layout-polish.css'];
 
 const escapeHtml=value=>String(value)
   .replace(/&/g,'&amp;')
@@ -37,7 +39,12 @@ async function seoLocales(){
   return runInNewContext(`(${literal})`,Object.create(null),{timeout:1000});
 }
 
-function renderLocalizedHtml(source,lang,dictionary){
+async function criticalCss(){
+  const chunks=await Promise.all(CRITICAL_CSS_FILES.map(file=>readFile(resolve(root,'assets',file),'utf8')));
+  return chunks.join('\n\n').replace(/<\/style/gi,'<\\/style');
+}
+
+function renderLocalizedHtml(source,lang,dictionary,criticalStyles){
   const dir=lang==='ar'?'rtl':'ltr';
   let html=source.replace('<html lang="en" dir="ltr">',`<html lang="${lang}" dir="${dir}">`);
   html=html.replace(/(<([a-z][a-z0-9-]*)\b[^>]*\bdata-i18n="([^"]+)"[^>]*>)([\s\S]*?)(<\/\2>)/gi,(full,open,tag,key,inner,close)=>{
@@ -45,6 +52,9 @@ function renderLocalizedHtml(source,lang,dictionary){
     if(typeof value!=='string'||/<[a-z][\s\S]*>/i.test(inner))return full;
     return `${open}${escapeHtml(value)}${close}`;
   });
+  if(!html.includes('name="google-site-verification"'))html=html.replace('</head>',`<meta name="google-site-verification" content="${GOOGLE_SITE_VERIFICATION}" /></head>`);
+  if(!html.includes('data-mhp-critical-css'))html=html.replace('</head>',`<style data-mhp-critical-css>\n${criticalStyles}\n</style></head>`);
+  if(!html.includes('/assets/payment-language-fix.js'))html=html.replace('</body>','<script src="/assets/payment-language-fix.js" defer></script></body>');
   return html;
 }
 
@@ -61,9 +71,10 @@ await cp(resolve(root,'blog'),resolve(out,'blog'),{recursive:true});
 const source=await readFile(resolve(root,'index.html'),'utf8');
 const overrides=await manualLocales();
 const seoOverrides=await seoLocales();
+const criticalStyles=await criticalCss();
 for(const lang of langs){
   const dictionary={...(await baseLocale(lang)),...(overrides[lang]||{}),...(seoOverrides[lang]||{})};
-  const localized=renderLocalizedHtml(source,lang,dictionary);
+  const localized=renderLocalizedHtml(source,lang,dictionary,criticalStyles);
   const dir=resolve(out,lang);
   await mkdir(dir,{recursive:true});
   await writeFile(resolve(dir,'index.html'),localized,'utf8');

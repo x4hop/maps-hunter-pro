@@ -1,13 +1,48 @@
 # Chrome Web Store submission brief
 
+Updated: 2026-09-18
+
 ## Single purpose
-User-initiated business research on Google Maps, local organization of visible public business fields, optional website enrichment, and XLSX/CSV/JSON export. Website access is disclosed at installation so Start Search never interrupts the workflow with a second permission dialog.
+
+User-initiated business research from Google Maps: collect public business listing data, enrich collected businesses from their public websites for business email/social links, keep results locally, and export XLSX/CSV/JSON.
+
+## Host permissions
+
+The current production manifest requests `http://*/*` and `https://*/*`. The reason is functional: after the user chooses Google Maps keywords/cities, the extension may fetch the public website linked by each collected business to locate public contact/about/legal pages, email addresses and social profile links. Those pages are processed in the extension service worker and are not opened as visible tabs.
+
+Do not describe the product as Maps-only if website enrichment is enabled. Store listing, privacy policy and permission justification must all say the same thing.
 
 ## Privacy form
-Declare authentication information, identifiers (email and random installation ID), website content processed, and usage/diagnostic data. Do not select “no data collected.” State that business results remain local and are not sent to the Maps Hunter Pro server. Use the published privacy URL.
+
+Disclose, as applicable:
+
+- activation/authentication information (activation code usage);
+- random installation/device identifier;
+- website content processed for the user-requested business research workflow;
+- product usage/diagnostic counts needed for licensing/limits.
+
+State clearly:
+
+- business result lists stay in local extension storage;
+- Maps Hunter Pro does not upload the user's business lead dataset to its licensing server;
+- public business website HTML is processed to derive public contact fields;
+- payment verification is manual through WhatsApp;
+- no Google endorsement is claimed.
 
 ## Reviewer access
-Generate a dedicated reviewer customer license in the admin panel; never provide an admin password. Explain manual payment is not required for review. Steps: install → enter reviewer license → choose keyword/cities → Start → optionally decline enrichment → export.
+
+Generate a dedicated reviewer activation code in `/admin/`; never provide the admin password. Manual payment is not required for store review. Reviewer steps: install → enter reviewer code → add keyword/city tags → Start → allow the scan/extraction to finish → inspect Results → export.
 
 ## Claims to avoid
-Do not claim Google endorsement, guaranteed store approval, unlimited rights to Google content, or authorization inferred from a competitor listing. Store readiness and Google Maps content rights are separate decisions.
+
+Do not claim Google endorsement, guaranteed Chrome Web Store approval, unlimited legal rights to Google content, guaranteed availability of emails/phones, or authorization inferred from competitor behavior.
+
+## Submission checklist
+
+- Manifest version and release ZIP match.
+- Permission justification matches actual website enrichment behavior.
+- Privacy policy matches `DATA_FLOW.md`.
+- One-device activation works for reviewer code.
+- No remote executable JS/WASM.
+- All UI is functional without developer mode assumptions.
+- Payment/marketing claims use Monthly + Lifetime terminology.
