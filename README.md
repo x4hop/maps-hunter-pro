@@ -30,6 +30,7 @@ node --check assets/manual-i18n.js
 node --check assets/seo-i18n.js
 node tests/test_payment_safety.mjs
 node tests/test_frontend_regressions.mjs
+node tests/test_icon_system.mjs
 node tests/test_single_device_policy.mjs
 python3 tests/test_current_migration_chain.py
 python3 tests/test_manifest.py
@@ -37,6 +38,14 @@ node scripts/build-frontend-cloudflare.mjs
 npx --yes wrangler@4 deploy --dry-run --outdir dist/wrangler-dry-run --config wrangler.jsonc
 node scripts/release-extension.mjs
 ```
+
+
+## UI identity rule
+
+- Public-site interface icons must use the shared `/assets/mhp-icons.svg` SVG sprite or another reviewed SVG asset that follows the Maps Hunter Pro identity.
+- Do not use emoji, decorative Unicode symbols, placeholder letters/numbers, or symbol-font glyphs as interface icons.
+- Icon styling must stay within the Paper `#F6F4F1`, Stone `#E4DED2`, Coral `#F95C4B`, and Black `#000000` identity unless a real third-party payment/service mark requires otherwise.
+- Run `node tests/test_icon_system.mjs` before merging public-site icon changes.
 
 ## Database
 
