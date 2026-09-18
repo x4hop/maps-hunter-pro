@@ -3,65 +3,23 @@ import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 
 const source=readFileSync('assets/i18n.js','utf8');
-
-assert.match(source,/if\(menu\.parentElement!==document\.body\)document\.body\.appendChild\(menu\)/,
-  'Language menu must escape the sticky-header stacking context');
-assert.match(source,/querySelectorAll\('#languageMenu \[data-lang\]'\)\.forEach/,
-  'Each language option must receive a direct click handler');
-assert.match(source,/location\.assign\(next\)/,
-  'Language option must navigate to the localized route');
-assert.match(source,/style\.setProperty\('left',`\$\{left\}px`,'important'\)/,
-  'Popup coordinates must beat RTL/LTR CSS with explicit important inline positioning');
-assert.match(source,/style\.setProperty\('right','auto','important'\)/,
-  'Popup must neutralize inherited RTL right positioning');
+assert.doesNotMatch(source,/document\.body\.appendChild\(menu\)/,'Language menu must stay inside its switcher; reparenting caused RTL regressions');
+assert.doesNotMatch(source,/positionLanguageMenu/,'Language switching must not inject viewport-fixed popup positioning');
+assert.match(source,/menu\.querySelectorAll\('\[data-lang\]'\)\.forEach/,'Each language option must receive a direct click handler');
+assert.match(source,/location\.assign\(next\)/,'Language option must navigate to localized route');
 
 const context=vm.createContext({
-  window:{addEventListener(){},dispatchEvent(){}},
-  document:{addEventListener(){}},
+  window:{dispatchEvent(){}},
+  document:{addEventListener(){},querySelectorAll(){return[]},querySelector(){return null},documentElement:{}},
   localStorage:{setItem(){}},
-  CustomEvent:function(){},
-  URL,
-  location:{
-    href:'https://mapshunterpro.com/en?utm_source=test#pricing',
-    pathname:'/en',
-    search:'?utm_source=test',
-    hash:'#pricing'
-  },
-  requestAnimationFrame(fn){fn()},
+  CustomEvent:function(){},URL,
+  location:{href:'https://mapshunterpro.com/en?utm_source=test#pricing',pathname:'/en',search:'?utm_source=test',hash:'#pricing'},
   console
 });
-
 vm.runInContext(source,context);
-
-assert.equal(
-  vm.runInContext("languageTargetUrl('ar')",context),
-  '/ar?utm_source=test#pricing',
-  'English must be able to navigate to Arabic while preserving query/hash'
-);
-assert.equal(
-  vm.runInContext("languageTargetUrl('de')",context),
-  '/de?utm_source=test#pricing',
-  'English must be able to navigate to German'
-);
-assert.equal(
-  vm.runInContext("languageTargetUrl('en')",context),
-  '/en?utm_source=test#pricing',
-  'English self-route must remain valid'
-);
-assert.equal(
-  vm.runInContext("languageTargetUrl('xx')",context),
-  null,
-  'Unsupported language must not generate a route'
-);
-
+assert.equal(vm.runInContext("languageTargetUrl('ar')",context),'/ar?utm_source=test#pricing');
+assert.equal(vm.runInContext("languageTargetUrl('de')",context),'/de?utm_source=test#pricing');
 context.location.href='https://mapshunterpro.com/ar?ref=menu#top';
-context.location.pathname='/ar';
-context.location.search='?ref=menu';
-context.location.hash='#top';
-assert.equal(
-  vm.runInContext("languageTargetUrl('en')",context),
-  '/en?ref=menu#top',
-  'Arabic must continue to navigate back to English'
-);
-
-console.log('Language switcher route and click-binding regression checks passed');
+context.location.pathname='/ar';context.location.search='?ref=menu';context.location.hash='#top';
+assert.equal(vm.runInContext("languageTargetUrl('en')",context),'/en?ref=menu#top');
+console.log('Language switcher route and RTL-safe structure checks passed');

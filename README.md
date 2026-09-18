@@ -70,6 +70,16 @@ node scripts/release-extension.mjs
 - Section-title icons and card icons must stay in normal document flow; do not absolutely position them over translated text.
 - Regression guards: `node tests/test_language_switcher.mjs` and `node tests/test_layout_stability.mjs`.
 
+
+### Public-site visual baseline — restored 2026-09-18
+
+- The approved visual baseline is the polished layout that existed immediately after the branded SVG icon release. Do not add a global "stability" CSS layer that rewrites cards, payment grids, headings, or responsive breakpoints across the whole site.
+- Language-switcher fixes must be behavior-only: keep the popup inside `#languageSwitcher`, use direct click handlers, and rely on the existing LTR/RTL CSS. Do not reparent the menu to `body`, force it to `position:fixed`, or hide RTL navigation as a workaround.
+- The public page must load `styles.css`, `manual.css`, `ui-polish.css`, `layout-polish.css`, and `payment-icon-clean.css` explicitly and in that order. The same order is used for critical CSS at build time.
+- Payment methods must have static fallback markup with Binance, USDT TRC20, and RedotPay values/icons. `assets/app.js` may enhance/re-render them, but the methods must remain visible if JavaScript is delayed.
+- The product/extension icon is `/assets/maps-hunter-pro-icon.png`; use it in the public header and footer brand positions. Do not replace it with Unicode symbols.
+- Before merging public-site visual changes run `node tests/test_public_site_visual_contract.mjs`, `node tests/test_icon_system.mjs`, and `node tests/test_language_switcher.mjs`.
+
 ## UI identity rule
 
 - Public-site interface icons must use the shared `/assets/mhp-icons.svg` SVG sprite or another reviewed SVG asset that follows the Maps Hunter Pro identity.
