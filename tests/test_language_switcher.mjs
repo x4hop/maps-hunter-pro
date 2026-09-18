@@ -10,6 +10,10 @@ assert.match(source,/querySelectorAll\('#languageMenu \[data-lang\]'\)\.forEach/
   'Each language option must receive a direct click handler');
 assert.match(source,/location\.assign\(next\)/,
   'Language option must navigate to the localized route');
+assert.match(source,/style\.setProperty\('left',`\$\{left\}px`,'important'\)/,
+  'Popup coordinates must beat RTL/LTR CSS with explicit important inline positioning');
+assert.match(source,/style\.setProperty\('right','auto','important'\)/,
+  'Popup must neutralize inherited RTL right positioning');
 
 const context=vm.createContext({
   window:{addEventListener(){},dispatchEvent(){}},
