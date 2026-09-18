@@ -26,12 +26,17 @@ jobs:
           node --check assets/app.js
           node --check assets/i18n.js
           node --check assets/manual-i18n.js
+          node --check assets/seo-i18n.js
           node --check admin/admin.js
           node --check backend/src/index.js
           node --check backend/src/entry.js
           node --check deploy/unified-worker.js
           node --check scripts/build-frontend-cloudflare.mjs
+          node --check extension/background-wrapper.js
           node --check extension/background.js
+          node --check extension/maps-page-overrides.js
+          node --check extension/country-query-overrides.js
+          node --check extension/location-phone-overrides.js
           node --check extension/contact-enrichment.js
           node --check extension/content.js
           node --check extension/data.js
@@ -43,8 +48,11 @@ jobs:
           node tests/test_payment_safety.mjs
           node tests/test_payment_api.mjs
           node tests/test_single_device_policy.mjs
+          node tests/test_frontend_regressions.mjs
       - name: Current migration-chain check
         run: python3 tests/test_current_migration_chain.py
+      - name: Extension manifest regression check
+        run: python3 tests/test_manifest.py
       - name: Build Cloudflare production assets
         run: node scripts/build-frontend-cloudflare.mjs
       - name: Verify localized SEO and admin assets
@@ -63,6 +71,8 @@ jobs:
         run: npx --yes wrangler@4 deploy --dry-run --outdir dist/wrangler-dry-run --config wrangler.jsonc
       - name: Build static pages
         run: node scripts/build.mjs
+      - name: XLSX regression check
+        run: node tests/test_xlsx.mjs
       - name: Build extension release
         run: node scripts/release-extension.mjs
       - name: Resolve extension version
