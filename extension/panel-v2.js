@@ -16,9 +16,8 @@ function fmtDate(v){if(!v)return 'No expiry';const raw=String(v);const d=new Dat
 function errorLabel(code){const map={INVALID_LICENSE:'Invalid activation code.',LICENSE_REVOKED:'This code has been revoked.',LICENSE_EXPIRED:'This code has expired.',DEVICE_LIMIT_REACHED:'This code has reached its device limit.',DEVICE_BLOCKED:'This device is blocked.',ACTIVATION_CODE_REQUIRED:'Enter an activation code first.',DAILY_LIMIT_REACHED:'Daily result limit reached.'};return map[code]||String(code||'Activation failed.')}
 function isNetworkError(text){return /fetch|network|abort|failed/i.test(String(text||''))}
 
-function normalizeTag(v){return String(v||'').replace(/s+/g,' ').trim()}
-function splitTags(v){return String(v||'').split(/[
-,;،]+/).map(normalizeTag).filter(Boolean)}
+function normalizeTag(v){return String(v||'').replace(/\s+/g,' ').trim()}
+function splitTags(v){return String(v||'').split(/[\n,;،]+/).map(normalizeTag).filter(Boolean)}
 async function persistTags(){try{await chrome.storage.local.set({[TAG_KEY]:{keywords:tags.keywords,cities:tags.cities}})}catch{}}
 function comboCount(){return tags.keywords.length*tags.cities.length}
 function renderTags(kind){
@@ -35,8 +34,7 @@ function commitInput(kind,input){const values=splitTags(input.value);if(values.l
 function setupTagInput(kind,inputId){
   const input=$(inputId);if(!input)return;
   input.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===','){e.preventDefault();commitInput(kind,input)}else if(e.key==='Backspace'&&!input.value&&tags[kind].length){tags[kind].pop();renderTags(kind);persistTags()}});
-  input.addEventListener('paste',e=>{const text=e.clipboardData?.getData('text')||'';if(/[
-,;،]/.test(text)){e.preventDefault();addTags(kind,splitTags(text));input.value=''}});
+  input.addEventListener('paste',e=>{const text=e.clipboardData?.getData('text')||'';if(/[\n,;،]/.test(text)){e.preventDefault();addTags(kind,splitTags(text));input.value=''}});
   input.addEventListener('blur',()=>{if(input.value.trim())commitInput(kind,input)});
 }
 async function loadTags(){
