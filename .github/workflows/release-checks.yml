@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - 'release/**'
   pull_request:
     branches:
       - main
@@ -33,6 +32,7 @@ jobs:
           node --check deploy/unified-worker.js
           node --check scripts/build-frontend-cloudflare.mjs
           node --check extension/background.js
+          node --check extension/contact-enrichment.js
           node --check extension/content.js
           node --check extension/data.js
           node --check extension/license-client.js
