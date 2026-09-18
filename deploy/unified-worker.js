@@ -68,6 +68,7 @@ async function handleSite(request,env){
       ...LANGS.map(l=>`<url><loc>${PUBLIC_ORIGIN}/${l}</loc><changefreq>weekly</changefreq><priority>${l==='en'?'1.0':'0.9'}</priority></url>`),
       `<url><loc>${PUBLIC_ORIGIN}/blog/</loc><lastmod>2026-09-18</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>`,
       `<url><loc>${PUBLIC_ORIGIN}/blog/how-to-extract-business-leads-from-google-maps/</loc><lastmod>2026-09-18</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
+      `<url><loc>${PUBLIC_ORIGIN}/blog/find-businesses-without-websites-on-google-maps/</loc><lastmod>2026-09-18</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
       `<url><loc>${PUBLIC_ORIGIN}/privacy.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>`,
       `<url><loc>${PUBLIC_ORIGIN}/terms.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>`
     ].join('');
@@ -81,6 +82,7 @@ async function handleSite(request,env){
   if(u.pathname==='/terms.html')return asset(env,'/terms.html',HTML_HEADERS);
   if(u.pathname==='/blog'||u.pathname==='/blog/')return asset(env,'/blog/index.html',HTML_HEADERS);
   if(u.pathname==='/blog/how-to-extract-business-leads-from-google-maps'||u.pathname==='/blog/how-to-extract-business-leads-from-google-maps/')return asset(env,'/blog/how-to-extract-business-leads-from-google-maps/index.html',HTML_HEADERS);
+  if(u.pathname==='/blog/find-businesses-without-websites-on-google-maps'||u.pathname==='/blog/find-businesses-without-websites-on-google-maps/')return asset(env,'/blog/find-businesses-without-websites-on-google-maps/index.html',HTML_HEADERS);
 
   const normalized=u.pathname.replace(/\/$/,'');
   const lang=normalized.slice(1);
