@@ -27,8 +27,8 @@ function installReadexTheme(){
       html[dir="rtl"] body,html[dir="rtl"] button,html[dir="rtl"] input,html[dir="rtl"] select,html[dir="rtl"] textarea{font-family:"Readex Pro",Arial,sans-serif!important}
       html[dir="rtl"] h1,html[dir="rtl"] h2,html[dir="rtl"] h3,html[dir="rtl"] p,html[dir="rtl"] a,html[dir="rtl"] button{letter-spacing:0!important}
       .lang-globe{width:auto!important;min-width:58px!important;padding:0 12px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;white-space:nowrap}
-      .lang-globe svg{display:none!important}.lang-code{font-size:14px;font-weight:800;line-height:1;direction:ltr;unicode-bidi:isolate}.lang-caret{font-size:12px;line-height:1;opacity:.6;transform:translateY(-1px)}
-      .language-menu{position:fixed!important;width:78px!important;min-width:78px!important;max-width:calc(100vw - 20px)!important;padding:6px!important;border-radius:13px!important;z-index:9999!important;right:auto!important;left:10px;top:72px;overflow:hidden!important}
+      .lang-globe>svg{display:none!important}.lang-code{font-size:14px;font-weight:800;line-height:1;direction:ltr;unicode-bidi:isolate}.lang-caret-icon{width:14px!important;height:14px!important;display:block!important;stroke:currentColor!important;fill:none!important;flex:0 0 14px}
+      .language-menu{position:fixed!important;width:86px!important;min-width:86px!important;max-width:calc(100vw - 20px)!important;padding:6px!important;border-radius:13px!important;z-index:99999!important;right:auto!important;left:10px;top:72px;overflow:hidden!important;pointer-events:none!important;direction:ltr!important}.language-menu.open{pointer-events:auto!important}
       .language-menu button{width:100%!important;min-height:38px!important;padding:7px 6px!important;text-align:center!important;font-size:13px!important;line-height:1!important;border-radius:8px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;direction:ltr!important}
       .language-menu button[data-lang="ar"]{direction:rtl!important;font-size:16px!important}.language-menu button.active{background:var(--color-coral)!important;color:var(--color-black)!important}
       @media(max-width:760px){body{font-size:16.5px}.hero h1{line-height:1.14!important}.section-title h2{line-height:1.2!important}.card h3,.price-card h3{line-height:1.3!important}.lang-globe{min-width:54px!important;min-height:42px!important;padding:0 10px!important}}
@@ -39,7 +39,7 @@ function installReadexTheme(){
 
 function updateLanguageControl(lang){
   const toggle=document.getElementById('langToggle');
-  if(toggle){toggle.innerHTML=`<span class="lang-code">${MHP_LANG_SHORT[lang]}</span><span class="lang-caret" aria-hidden="true">⌄</span>`;toggle.setAttribute('aria-label',`Language: ${MHP_LANG_NAME[lang]}`);toggle.setAttribute('title',MHP_LANG_NAME[lang])}
+  if(toggle){toggle.innerHTML=`<span class="lang-code">${MHP_LANG_SHORT[lang]}</span><svg class="lang-caret-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m4 6 4 4 4-4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;toggle.setAttribute('aria-label',`Language: ${MHP_LANG_NAME[lang]}`);toggle.setAttribute('title',MHP_LANG_NAME[lang])}
   document.querySelectorAll('[data-lang]').forEach(el=>{const code=el.dataset.lang;el.textContent=MHP_LANG_SHORT[code]||code.toUpperCase();el.setAttribute('title',MHP_LANG_NAME[code]||code);el.setAttribute('aria-label',MHP_LANG_NAME[code]||code);el.setAttribute('role','menuitem');el.classList.toggle('active',code===lang)})
 }
 
@@ -56,7 +56,7 @@ function applyLanguage(lang){
 
 function positionLanguageMenu(){
   const toggle=document.getElementById('langToggle'),menu=document.getElementById('languageMenu');if(!toggle||!menu)return;
-  const rect=toggle.getBoundingClientRect(),width=78,gutter=10;menu.style.left=`${Math.round(Math.max(gutter,Math.min(window.innerWidth-width-gutter,rect.left+(rect.width-width)/2)))}px`;menu.style.top=`${Math.round(Math.min(window.innerHeight-12,rect.bottom+8))}px`;menu.style.right='auto';
+  const rect=toggle.getBoundingClientRect(),width=86,gutter=10;const left=Math.round(Math.max(gutter,Math.min(window.innerWidth-width-gutter,rect.left+(rect.width-width)/2)));const top=Math.round(Math.min(window.innerHeight-12,rect.bottom+8));menu.style.setProperty('left',`${left}px`,'important');menu.style.setProperty('right','auto','important');menu.style.setProperty('top',`${top}px`,'important');
 }
 
 function languageTargetUrl(target){

@@ -53,6 +53,8 @@ jobs:
         run: node tests/test_icon_system.mjs
       - name: Language switcher regression check
         run: node tests/test_language_switcher.mjs
+      - name: Layout stability regression check
+        run: node tests/test_layout_stability.mjs
       - name: Current migration-chain check
         run: python3 tests/test_current_migration_chain.py
       - name: Extension manifest regression check
@@ -74,6 +76,7 @@ jobs:
           test -f dist/frontend/assets/payment-icon-clean.css
           test -f dist/frontend/assets/ui-polish.css
           test -f dist/frontend/assets/layout-polish.css
+          test -f dist/frontend/assets/site-stability.css
           test -f dist/frontend/assets/mhp-icons.svg
           grep -q 'mhp-icons.svg#map-search' dist/frontend/en/index.html
           grep -q 'dir="rtl"' dist/frontend/ar/index.html
