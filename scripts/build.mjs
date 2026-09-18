@@ -9,7 +9,7 @@ const privacy=await inline(await read('privacy.html'));
 const terms=await inline(await read('terms.html'));
 let admin=await read('admin/index.html');
 const adminScript=await read('admin/admin.js');
-admin=admin.replace('<script src="./admin.js"></script>',`<script>${adminScript.replace(/<\/script/gi,'<\\/script')}</script>`).replace("window.MHP_API_BASE='https://maps-hunter-pro-api.anas98gha.workers.dev'","window.MHP_API_BASE=''");
+admin=admin.replace('<script src="./admin.js"></script>',`<script>${adminScript.replace(/<\/script/gi,'<\\/script')}</script>`);
 await mkdir(resolve(root,'dist'),{recursive:true});
 for(const [name,text] of Object.entries({landing,privacy,terms,admin})){await writeFile(resolve(root,`dist/${name}.html`),text);await writeFile(resolve(root,`dist/${name}.b64`),gzipSync(text,{level:9}).toString('base64'))}
 console.log(JSON.stringify({landing:landing.length,privacy:privacy.length,terms:terms.length,admin:admin.length}));
