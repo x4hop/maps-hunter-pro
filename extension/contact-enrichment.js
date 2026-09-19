@@ -229,17 +229,36 @@ enrichFromWebsite = async function(website){
   const root=mhpCleanWebsiteUrl(website);
   if(!root)return{};
   return mhpWithContactSlot(async()=>{
-    const first=await mhpFetchPage(root,5600);
-    if(!first.html)return{};
-    const canonical=first.url||root;
-    let found=mhpMergeSignals({},mhpExtractWebsiteSignals(first.html,canonical),canonical);
-    let pagesChecked=1;
+    let origin='';
+    try{origin=new URL(root).origin}catch{return{}};
 
-    // Breadth-first contact discovery. Contact pages often link to imprint/team pages that hold the actual email.
-    const queue=mhpContactCandidates(first.html,canonical).filter(u=>u!==canonical);
-    const seen=new Set([canonical]);
+    // Proven fast path from the legacy extension: homepage + two standard contact URLs in parallel.
+    const seedUrls=mhpUnique([root,origin+'/contact',origin+'/contact-us']);
+    const seedPages=await Promise.all(seedUrls.map(u=>mhpFetchPage(u,u===root?5600:4200)));
+    let canonical=seedPages.find(p=>p?.html)?.url||root;
+    let found={};
+    let pagesChecked=seedPages.length;
+    const seen=new Set(seedUrls);
+    const queue=[];
+
+    for(const page of seedPages){
+      if(!page?.html)continue;
+      found=mhpMergeSignals(found,mhpExtractWebsiteSignals(page.html,page.url||canonical),canonical);
+      for(const next of mhpContactCandidates(page.html,page.url||canonical)){
+        try{
+          if(new URL(next).origin===new URL(canonical).origin&&!seen.has(next)&&queue.length<24)queue.push(next);
+        }catch{}
+      }
+    }
+
+    // Email is the primary objective. Once the seed wave finds one, avoid slowing the Maps queue.
+    if(found.email){
+      delete found._emails;
+      return found;
+    }
+
+    // Deep fallback only when the fast three-page pass did not find an email.
     while(queue.length && pagesChecked<MHP_SITE_PAGE_LIMIT-3){
-      if(found.email && found.socialLinks)break;
       const batch=[];
       while(queue.length && batch.length<3 && pagesChecked+batch.length<MHP_SITE_PAGE_LIMIT-3){
         const u=queue.shift();if(!u||seen.has(u))continue;seen.add(u);batch.push(u);
@@ -254,9 +273,10 @@ enrichFromWebsite = async function(website){
           try{if(new URL(next).origin===new URL(canonical).origin&&!seen.has(next)&&queue.length<24)queue.push(next)}catch{}
         }
       }
+      if(found.email)break;
     }
 
-    // Final fallback: robots.txt + sitemap indexes can reveal contact/legal pages hidden from navigation.
+    // Last fallback: robots/sitemaps can reveal legal/imprint/contact pages not linked in navigation.
     if(!found.email && pagesChecked<MHP_SITE_PAGE_LIMIT){
       const siteUrls=await mhpSitemapCandidates(canonical);
       for(const url of siteUrls.slice(0,MHP_SITE_PAGE_LIMIT-pagesChecked)){
@@ -271,13 +291,28 @@ enrichFromWebsite = async function(website){
   });
 };
 
+function mhpMergeLeadContactResults(lead, extra){
+  const merged=mergeLead(lead,extra||{});
+  const emailPool=mhpUnique([
+    ...String(lead?.emails||lead?.email||'').split('|').map(x=>x.trim()),
+    ...String(extra?.emails||extra?.email||'').split('|').map(x=>x.trim())
+  ]).map(mhpNormalizeEmail).filter(mhpValidEmail);
+  emailPool.sort((a,b)=>mhpEmailScore(b,lead?.website||'')-mhpEmailScore(a,lead?.website||''));
+  merged.email=emailPool[0]||merged.email||'';
+  merged.emails=emailPool.slice(0,12).join(' | ');
+  merged.socialLinks=mhpUnique([
+    merged.facebook,merged.instagram,merged.twitter,merged.linkedin,merged.youtube,merged.tiktok
+  ]).join(' | ');
+  return merged;
+}
+
 enrichLeadInBackground = function(lead, workerRunId){
   if(!lead?.website)return undefined;
   const task=enrichFromWebsite(lead.website).then(extra=>{
     if(workerRunId!==scanRunId||!extra)return;
-    const merged=mergeLead(lead,extra);
+    const merged=mhpMergeLeadContactResults(lead,extra);
     addLead(merged);
-    if(extra.email||extra.emails) state.status=`Email found for ${merged.name||'business'}. Saved ${state.leads.length}.`;
+    if(merged.email||merged.emails) state.status=`Email found for ${merged.name||'business'}. Saved ${state.leads.length}.`;
     else state.status=`Contact pages checked for ${merged.name||'business'}; no public email found.`;
     broadcast(true).catch(()=>{});
   }).catch(()=>{}).finally(async()=>{
