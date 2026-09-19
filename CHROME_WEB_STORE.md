@@ -2,37 +2,20 @@
 
 ## Single purpose
 
-User-initiated business research from Google Maps: collect public business listing data, keep results locally, and export XLSX/CSV/JSON. When Google Maps itself exposes a public email address, the extension can include it in the saved result.
+User-initiated business research from Google Maps: collect public business listing data, fetch the official public website linked by a selected Maps result when available to discover public business email/social links, keep results locally, and export XLSX/CSV/JSON.
 
 ## Host permissions
 
-The production manifest is intentionally limited to Google Maps/Google pages used by the extraction workflow plus `mapshunterpro.com` for activation and usage validation.
+Stable v1.1.0 requests `http://*/*` and `https://*/*` because official websites attached to user-selected Maps results can be hosted on arbitrary public domains. Those pages are fetched in the extension service worker and are never opened as visible enrichment tabs.
 
-- `https://*.google.com/*`: collect and extract the user-requested Google Maps results.
-- `https://mapshunterpro.com/*`: license validation and usage accounting.
-
-The extension does **not** open or fetch business websites to search for emails or social profiles, so broad `http://*/*` / `https://*/*` host access is not required.
+The permission is used for the user-initiated Maps research/enrichment workflow and `mapshunterpro.com` licensing calls; it is not used for general browsing surveillance.
 
 ## Data handling
 
-The extension processes:
-- public Google Maps business fields selected by the user;
-- public email/social data only when exposed directly in the selected Google Maps listing/detail content;
-- local queue/runtime state needed to resume extraction;
-- activation/device/usage identifiers required for licensing.
-
-Business result data stays in `chrome.storage.local` and is not uploaded to the licensing API. The licensing API receives only activation/device/usage fields.
+Lead data stays in `chrome.storage.local`. The licensing API receives activation/device/usage fields only; it does not receive the user's lead list.
 
 ## Remote code
 
-No remote JavaScript or WASM is executed. Extraction, export and UI code is packaged with the extension.
+No remote JavaScript or WASM is executed. Extraction, export and UI code is packaged with the extension. Public website HTML is treated as data only.
 
-## Review notes
-
-Do not claim Google endorsement, guaranteed Chrome Web Store approval, unlimited legal rights to Google content, guaranteed availability of emails/phones, or authorization inferred from competitor behavior.
-
-Before store submission verify:
-- Manifest permissions match the Maps-only behavior.
-- Privacy policy says business websites are not fetched for enrichment.
-- Activation and one-device policy work.
-- Maps scan/extraction and XLSX/CSV/JSON exports work.
+Before store submission, the privacy form and host-permission justification must explicitly disclose public website enrichment.

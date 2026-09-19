@@ -50,6 +50,7 @@ jobs:
           mkdir -p /tmp/maps-hunter-pro
           unzip -q /tmp/maps-hunter-pro.zip -d /tmp/maps-hunter-pro
           test "$(node -p "require('/tmp/maps-hunter-pro/manifest.json').version")" = "$EXT_VERSION"
+          test -f /tmp/maps-hunter-pro/contact-enrichment.js
 
       - name: Mirror production extension into repository
         shell: bash
@@ -67,6 +68,7 @@ jobs:
             node --check "$file"
           done < <(find extension -type f -name '*.js' -print0)
           test "$(node -p "require('./extension/manifest.json').version")" = "$EXT_VERSION"
+          test -f extension/contact-enrichment.js
 
       - name: Commit synchronization
         shell: bash

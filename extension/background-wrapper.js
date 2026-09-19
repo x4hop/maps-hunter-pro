@@ -1,9 +1,10 @@
-// Load the stable Google Maps extraction engine and Maps-only overrides.
+// Load Google Maps extraction plus public-website contact enrichment.
 importScripts("background.js");
 importScripts("maps-page-overrides.js");
 importScripts("country-query-overrides.js");
 importScripts("location-phone-overrides.js");
 importScripts("performance-overrides.js");
+importScripts("contact-enrichment.js");
 importScripts("contact-extraction-fix.js");
 
 try {
@@ -11,6 +12,6 @@ try {
 } catch (e) {}
 
 try {
-  // Product rule: never fetch or open business websites for contact enrichment.
-  state.enrichWebsites = false;
+  // Public website HTML is fetched in the service worker; websites are never opened as visible tabs.
+  state.enrichWebsites = true;
 } catch (e) {}
