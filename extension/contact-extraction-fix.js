@@ -1,6 +1,6 @@
-// Maps Hunter Pro v1.0.0 — readiness-only extraction fix.
-// IMPORTANT: this file must never scan the whole Google page for contacts.
-// Contact parsing stays in maps-page-overrides.js, scoped to the Maps place panel.
+// Maps Hunter Pro v1.1.0 — robust Maps extraction + asynchronous website contact enrichment.
+// Maps data is saved first. Public business websites are then checked in the service worker
+// without opening visible website tabs. Completion waits for pending enrichment tasks.
 
 async function processPlace(preview, workerRunId = scanRunId) {
   let tab = null;
@@ -40,15 +40,19 @@ async function processPlace(preview, workerRunId = scanRunId) {
       else stableReads = 0;
       lastFingerprint = fingerprint;
 
-      const hasEmail = Boolean(details.email);
+      const hasEmail = Boolean(details.email || details.emails);
       const hasPhone = Boolean(details.phone);
+      const hasWebsite = Boolean(details.website);
       const hasUsefulCard = Boolean(
         details.name &&
-        (details.address || details.website || details.category || details.rating)
+        (details.address || hasWebsite || details.category || details.rating)
       );
       const elapsed = Date.now() - started;
 
+      // A direct Maps email is already the strongest readiness signal.
       if (hasEmail && stableReads >= 1 && elapsed >= 900) break;
+      // When a website exists, it is enough to start the independent enrichment pass.
+      if (hasWebsite && hasUsefulCard && stableReads >= 2 && elapsed >= 2200) break;
       if (hasPhone && hasUsefulCard && stableReads >= 2 && elapsed >= 2800) break;
       if (hasUsefulCard && stableReads >= 3 && elapsed >= 4600) break;
 
@@ -56,40 +60,33 @@ async function processPlace(preview, workerRunId = scanRunId) {
     }
 
     if (workerRunId !== scanRunId || !state.running) return;
-    let lead = mergeLead(preview, details);
+    const lead = mergeLead(preview, details);
 
-    // Keep the fast Maps pass, then restore the legacy public-website email discovery.
-    // Website HTML is fetched in the service worker and is never opened as a visible tab.
-    if (lead.website && state.enrichWebsites && typeof enrichFromWebsite === "function") {
-      state.phase = "Finding email";
-      state.status = `Checking public website for email: ${lead.name || preview.name || "business"}`;
-      await broadcast();
-      try {
-        const contact = await enrichFromWebsite(lead.website);
-        if (contact && typeof contact === "object") lead = mergeLead(lead, contact);
-      } catch (e) {
-        // A blocked/slow website must never discard otherwise valid Google Maps data.
-      }
-    }
-
-    if (workerRunId !== scanRunId || !state.running) return;
+    // Preserve licensing semantics: consume exactly one unit for the accepted Maps lead.
     preview.usageRequestId ||= crypto.randomUUID();
     inFlightItems.set(key, preview);
     await persistRuntime();
     await MHPAccess.consume(preview.usageRequestId);
     if (workerRunId !== scanRunId || !state.running) return;
 
+    // Save Maps data immediately so website lookup never blocks the Maps worker queue.
     addLead(lead);
     processedKeys.add(key);
 
     const contactBits = [
-      lead.email ? "email" : "",
+      lead.email || lead.emails ? "email" : "",
       lead.phone ? "phone" : ""
     ].filter(Boolean).join(" + ");
 
     state.status = contactBits
       ? `Saved ${state.leads.length} with ${contactBits}. Queue ${queue.length}.`
-      : `Saved ${state.leads.length}. No contact exposed by Maps. Queue ${queue.length}.`;
+      : `Saved ${state.leads.length}. Checking website contacts when available. Queue ${queue.length}.`;
+
+    // Restore the proven legacy behavior: enrich independently after the Maps lead is saved.
+    // contact-enrichment.js tracks the promise in pendingEnrichment, so final completion waits for it.
+    if (lead.website && state.enrichWebsites && typeof enrichLeadInBackground === "function") {
+      enrichLeadInBackground(lead, workerRunId);
+    }
   } catch (error) {
     if (error.accessError && workerRunId === scanRunId) {
       await pauseScan(error.message, preview);
