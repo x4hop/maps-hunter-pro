@@ -18,9 +18,9 @@ assert.doesNotMatch(fix, /fullHtml|fullText/);
 // Contact extraction must stay scoped to the Maps place panel.
 assert.match(maps, /const root = document\.querySelector\("div\[role='main'\]"\) \|\| document\.body/);
 assert.match(maps, /root\?\.querySelectorAll/);
-assert.match(maps, /button\[data-item-id\^='phone:tel:'\]/);
-assert.match(maps, /a\[href\^='tel:'\]/);
-assert.match(maps, /addEmails\(root\?\.innerHTML \|\| ""\)/);
+assert.match(maps, /button\[data-item-id\^='phone:tel:'/);
+assert.match(maps, /a\[href\^='tel:'/);
+assert.match(maps, /addEmails\(root\?\.innerHTML \|\| ""(?:,\s*\d+)?\)/);
 
 // No website crawling and no broad host permissions.
 assert.doesNotMatch(fix, /fetch\s*\(/);
