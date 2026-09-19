@@ -228,33 +228,95 @@ function extractGoogleMapsPlace() {
   })();
 
   const decodeEmailText = value => {
-    let source = String(value || "");
-    try { source = decodeURIComponent(source); } catch (e) {}
+    let source = String(value || "")
+      .replace(/[\u200b\u200c\u200d\ufeff]/g, "");
+
+    for (let i = 0; i < 2; i += 1) {
+      try {
+        const decoded = decodeURIComponent(source);
+        if (decoded === source) break;
+        source = decoded;
+      } catch (e) { break; }
+    }
+
     return source
-      .replace(/\\u0040/gi, "@")
-      .replace(/\\u002e/gi, ".")
+      .replace(/\\u0040|\\x40/gi, "@")
+      .replace(/\\u002e|\\x2e/gi, ".")
       .replace(/&#64;|&#x40;|&commat;/gi, "@")
       .replace(/&#46;|&#x2e;/gi, ".")
-      .replace(/\s*(\[at\]|\(at\))\s*/gi, "@")
-      .replace(/\s*(\[dot\]|\(dot\))\s*/gi, ".");
+      .replace(/[＠﹫]/g, "@")
+      .replace(/[｡。．﹒]/g, ".")
+      .replace(/\s*(?:\[at\]|\(at\)|\{at\}|<at>)\s*/gi, "@")
+      .replace(/\s+(?:at)\s+/gi, "@")
+      .replace(/\s*(?:\[dot\]|\(dot\)|\{dot\}|<dot>)\s*/gi, ".")
+      .replace(/\s+(?:dot)\s+/gi, ".")
+      .replace(/\s*@\s*/g, "@")
+      .replace(/\s*\.\s*/g, ".");
   };
-  const emailCandidates = [];
-  const addEmails = value => {
-    const matches = decodeEmailText(value).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [];
-    for (const email of matches) {
-      const e = email.toLowerCase().replace(/^mailto:/i, "");
-      if (!/\.(png|jpe?g|gif|webp|svg)$/i.test(e)) emailCandidates.push(e);
+
+  const emailCandidates = new Map();
+  let websiteHost = "";
+  try { websiteHost = new URL(website).hostname.replace(/^www\./i, "").toLowerCase(); } catch (e) {}
+
+  const validEmail = email => {
+    const value = String(email || "").toLowerCase().replace(/^mailto:/i, "").replace(/[)>;,]+$/g, "");
+    if (!value || value.length > 254) return "";
+    const parts = value.split("@");
+    if (parts.length !== 2 || !parts[0] || !parts[1]) return "";
+    if (parts[0].length > 64 || !parts[1].includes(".")) return "";
+    if (/\.(png|jpe?g|gif|webp|svg|js|css|woff2?|ttf|map)$/i.test(value)) return "";
+    if (/(^|\.)google(?:apis|usercontent)?\.com$|(^|\.)gstatic\.com$|(^|\.)doubleclick\.net$/i.test(parts[1])) return "";
+    return value;
+  };
+
+  const scoreEmail = (email, sourceScore) => {
+    const [local, domain] = email.split("@");
+    let score = Number(sourceScore || 0);
+    if (websiteHost && (domain === websiteHost || domain.endsWith(`.${websiteHost}`))) score += 120;
+    if (/^(info|contact|hello|office|booking|sales|support|reception|admin|enquiries|inquiries|mail)\b/i.test(local)) score += 25;
+    if (/^(noreply|no-reply|donotreply|do-not-reply)\b/i.test(local)) score -= 30;
+    return score;
+  };
+
+  const addEmails = (value, sourceScore = 0) => {
+    const matches = decodeEmailText(value).match(/[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9.-]+\.[A-Z]{2,24}/gi) || [];
+    for (const raw of matches) {
+      const email = validEmail(raw);
+      if (!email) continue;
+      const score = scoreEmail(email, sourceScore);
+      const previous = emailCandidates.get(email);
+      if (!previous || score > previous.score) emailCandidates.set(email, { email, score });
     }
   };
-  addEmails(text);
-  addEmails(root?.innerHTML || "");
+
+  for (const link of Array.from(root?.querySelectorAll?.("a[href^='mailto:']") || [])) {
+    addEmails(link.getAttribute("href") || "", 90);
+    addEmails(link.textContent || "", 85);
+    addEmails(link.getAttribute("aria-label") || "", 85);
+  }
+
+  addEmails(text, 70);
+
   for (const node of allContactNodes) {
-    addEmails(node.textContent || "");
+    addEmails(node.textContent || "", 55);
     for (const attr of ["href", "data-href", "data-url", "data-value", "aria-label", "data-item-id", "data-tooltip", "title"]) {
-      addEmails(node.getAttribute?.(attr) || "");
+      addEmails(node.getAttribute?.(attr) || "", 50);
     }
   }
-  const emailList = unique(emailCandidates).slice(0, 10);
+
+  for (const node of Array.from(root?.querySelectorAll?.("*") || [])) {
+    for (const attr of Array.from(node.attributes || [])) {
+      if (!/(mail|email|contact|href|label|title|tooltip|value|data)/i.test(attr.name)) continue;
+      addEmails(attr.value || "", 35);
+    }
+  }
+
+  addEmails(root?.innerHTML || "", 20);
+
+  const emailList = Array.from(emailCandidates.values())
+    .sort((a, b) => b.score - a.score || a.email.localeCompare(b.email))
+    .map(item => item.email)
+    .slice(0, 10);
   const emails = emailList.join(" | ");
 
   const imageUrl = (() => {
