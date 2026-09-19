@@ -1,5 +1,12 @@
 (()=>{
   const LANGS=['en','ar','ru','de','es'];
+  const ARIA={
+    en:'Change language. Current: English',
+    ar:'تغيير اللغة. الحالية: العربية',
+    ru:'Сменить язык. Текущий: Русский',
+    de:'Sprache ändern. Aktuell: Deutsch',
+    es:'Cambiar idioma. Actual: Español'
+  };
   const routeLang=()=>{const code=location.pathname.replace(/\/$/,'').split('/').pop();return LANGS.includes(code)?code:'en'};
   const setRoute=(lang)=>{
     const url=new URL(location.href);
@@ -12,9 +19,13 @@
     const toggle=document.getElementById('langToggle');
     const menu=document.getElementById('languageMenu');
     if(menu)menu.classList.remove('open');
-    if(toggle)toggle.setAttribute('aria-expanded','false');
+    if(toggle){
+      toggle.setAttribute('aria-expanded','false');
+      toggle.setAttribute('aria-label',ARIA[lang]);
+    }
   };
   document.addEventListener('DOMContentLoaded',()=>{
+    apply(routeLang());
     const menu=document.getElementById('languageMenu');
     if(!menu)return;
     menu.addEventListener('click',event=>{
