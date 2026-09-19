@@ -14,7 +14,6 @@ async function processPlace(preview, workerRunId = scanRunId) {
     workerTabs.add(tab.id);
     await persistRuntime();
 
-    // Give Chrome a real chance to finish the background Maps navigation.
     await waitForTabComplete(tab.id, 9000);
 
     let details = {};
@@ -26,8 +25,6 @@ async function processPlace(preview, workerRunId = scanRunId) {
     while (Date.now() - started < maxWait) {
       if (workerRunId !== scanRunId || !state.running) return;
 
-      // Uses extractGoogleMapsPlace() from maps-page-overrides.js.
-      // That extractor is intentionally scoped to div[role="main"].
       const next = await extractFromMapsTab(tab.id);
       details = mergeLead(details, next);
 
@@ -43,17 +40,17 @@ async function processPlace(preview, workerRunId = scanRunId) {
       else stableReads = 0;
       lastFingerprint = fingerprint;
 
-      const hasContact = Boolean(details.phone || details.email);
+      const hasEmail = Boolean(details.email);
+      const hasPhone = Boolean(details.phone);
       const hasUsefulCard = Boolean(
         details.name &&
         (details.address || details.website || details.category || details.rating)
       );
       const elapsed = Date.now() - started;
 
-      // Exit quickly once contact data is stable, otherwise allow the place card
-      // a little longer to finish rendering before committing an empty contact.
-      if (hasContact && stableReads >= 1 && elapsed >= 900) break;
-      if (hasUsefulCard && stableReads >= 2 && elapsed >= 3600) break;
+      if (hasEmail && stableReads >= 1 && elapsed >= 900) break;
+      if (hasPhone && hasUsefulCard && stableReads >= 2 && elapsed >= 2800) break;
+      if (hasUsefulCard && stableReads >= 3 && elapsed >= 4600) break;
 
       await sleep(420);
     }
