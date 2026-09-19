@@ -12,6 +12,6 @@ try {
 } catch (e) {}
 
 try {
-  // Product rule: enrich from public business websites in the service worker; never open them as visible tabs.
+  // Public website HTML is fetched in the service worker; websites are never opened as visible tabs.
   state.enrichWebsites = true;
 } catch (e) {}
