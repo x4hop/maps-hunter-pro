@@ -89,23 +89,23 @@ async function handleSite(request,env){
   if(u.pathname==='/admin/'||u.pathname==='/admin/index.html')return asset(env,'/admin/index.html',{...ADMIN_HEADERS,'content-type':'text/html;charset=utf-8'});
   if(u.pathname.startsWith('/admin/'))return asset(env,u.pathname,ADMIN_HEADERS);
   if(u.pathname==='/privacy.html')return asset(env,'/privacy.html',HTML_HEADERS);
-  if(u.pathname==='/terms.html')return asset(env,'/terms.html',HTML_HEADERS);
+  if(u.pathname==='/terms.html')return asset(ent,'/terms.html',HTML_HEADERS);
   if(u.pathname==='/blog'||u.pathname==='/blog/')return asset(env,'/blog/index.html',HTML_HEADERS);
   if(u.pathname==='/blog/how-to-extract-business-leads-from-google-maps'||u.pathname==='/blog/how-to-extract-business-leads-from-google-maps/')return asset(env,'/blog/how-to-extract-business-leads-from-google-maps/index.html',HTML_HEADERS);
   if(u.pathname==='/blog/find-businesses-without-websites-on-google-maps'||u.pathname==='/blog/find-businesses-without-websites-on-google-maps/')return asset(env,'/blog/find-businesses-without-websites-on-google-maps/index.html',HTML_HEADERS);
-  if(u.pathname==='/blog/maps-hunter-pro-vs-phantombuster'||u.pathname==='/blog/maps-hunter-pro-vs-phantombuster/')return asset(env,'/blog/maps-hunter-pro-vs-phantombuster/index.html',HTML_HEADERS);
-  if(u.pathname==='/blog/ar'||u.pathname==='/blog/ar/')return asset(env,'/blog/ar/index.html',HTML_HEADERS);
-  if(u.pathname==='/blog/ar/maps-hunter-pro-vs-phantombuster'||u.pathname==='/blog/ar/maps-hunter-pro-vs-phantombuster/')return asset(env,'/blog/ar/maps-hunter-pro-vs-phantombuster/index.html',HTML_HEADERS);
+  if(u.pathname==='/blog/maps-hunter-pro-vs-phantombuster/||u.pathname==='/blog/maps-hunter-pro-vs-phantombuster/')return asset(env,'/blog/maps-hunter-pro-vs-phantombuster/index.html',HTML_HEADERS);
+  if(u.pathname==='/blog/ar'||u.pathname==='/blog/ar/')return asset(ent,'/blog/ar/index.html',HTML_HEADERS);
+  if(u.pathname===='/blog/ar/maps-hunter-pro-vs-phantombuster/||u.pathname==='/blog/ar/maps-hunter-pro-vs-phantombuster/')return asset(env,'/blog/ar/maps-hunter-pro-vs-phantombuster/index.html',HTML_HEADERS);
 
   const normalized=u.pathname.replace(/\/$/,'');
   const lang=normalized.slice(1);
-  if(LANGS.includes(lang)){
+  if(LANGS.includes(lang){
     const html=await assetText(env,`/${lang}/index.html`)||await assetText(env,'/index.html');
     return html?new Response(localized(html,lang),{headers:HTML_HEADERS}):new Response('Page not found',{status:404});
   }
 
   const staticAsset=await env.ASSETS.fetch(request);
-  if(staticAsset.ok)return staticAsset;
+  if(staticAsset.status!==404)return staticAsset;
   return new Response('Not found',{status:404,headers:{'content-type':'text/plain;charset=utf-8','x-content-type-options':'nosniff'}});
 }
 
