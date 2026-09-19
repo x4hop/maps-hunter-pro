@@ -56,8 +56,23 @@ async function processPlace(preview, workerRunId = scanRunId) {
     }
 
     if (workerRunId !== scanRunId || !state.running) return;
-    const lead = mergeLead(preview, details);
+    let lead = mergeLead(preview, details);
 
+    // Keep the fast Maps pass, then restore the legacy public-website email discovery.
+    // Website HTML is fetched in the service worker and is never opened as a visible tab.
+    if (lead.website && state.enrichWebsites && typeof enrichFromWebsite === "function") {
+      state.phase = "Finding email";
+      state.status = `Checking public website for email: ${lead.name || preview.name || "business"}`;
+      await broadcast();
+      try {
+        const contact = await enrichFromWebsite(lead.website);
+        if (contact && typeof contact === "object") lead = mergeLead(lead, contact);
+      } catch (e) {
+        // A blocked/slow website must never discard otherwise valid Google Maps data.
+      }
+    }
+
+    if (workerRunId !== scanRunId || !state.running) return;
     preview.usageRequestId ||= crypto.randomUUID();
     inFlightItems.set(key, preview);
     await persistRuntime();
