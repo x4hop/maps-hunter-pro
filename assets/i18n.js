@@ -1,9 +1,9 @@
 const MHP_META={
-  en:['Maps Hunter Pro — Google Maps Lead Extraction Chrome Extension','Find, organize and export Google Maps business leads to Excel, CSV and JSON with international phone formatting.'],
-  ar:['Maps Hunter Pro — استخراج بيانات الأنشطة التجارية من Google Maps','استخرج ونظّم وصدّر بيانات الأنشطة التجارية من Google Maps إلى Excel وCSV وJSON مع تنسيق أرقام الهاتف الدولي.'],
-  ru:['Maps Hunter Pro — экспорт бизнес-лидов из Google Maps','Находите, систематизируйте и экспортируйте бизнес-лиды из Google Maps в Excel, CSV и JSON с международным форматом телефонов.'],
-  de:['Maps Hunter Pro — Google Maps Lead-Extraktion für Chrome','Unternehmens-Leads aus Google Maps finden, organisieren und nach Excel, CSV und JSON mit internationalem Telefonnummernformat exportieren.'],
-  es:['Maps Hunter Pro — extracción de leads de Google Maps','Encuentra, organiza y exporta leads empresariales de Google Maps a Excel, CSV y JSON con formato telefónico internacional.']
+  en:['Google Maps Scraper & Lead Extractor for Chrome | Maps Hunter Pro','Extract structured business leads from Google Maps, including phones, websites, available emails and social links, then export clean data to Excel, CSV or JSON.'],
+  ar:['استخراج بيانات Google Maps والعملاء المحتملين | Maps Hunter Pro','استخرج بيانات الأنشطة التجارية من Google Maps مثل الهاتف والموقع والبيانات المتاحة، ثم صدّر النتائج بشكل منظم إلى Excel أو CSV أو JSON.'],
+  ru:['Парсер Google Maps и сборщик лидов для Chrome | Maps Hunter Pro','Собирайте структурированные данные компаний из Google Maps — телефоны, сайты, доступные email и соцсети — и экспортируйте результаты в Excel, CSV или JSON.'],
+  de:['Google Maps Scraper & Lead-Extractor für Chrome | Maps Hunter Pro','Extrahiere strukturierte Unternehmensdaten aus Google Maps – Telefonnummern, Websites, verfügbare E-Mails und Social Links – und exportiere sie in Excel, CSV oder JSON.'],
+  es:['Google Maps Scraper y Extractor de Leads | Maps Hunter Pro','Extrae datos estructurados de negocios desde Google Maps, como teléfonos, sitios web, correos disponibles y redes sociales, y expórtalos a Excel, CSV o JSON.']
 };
 const MHP_LANGS=['en','ar','ru','de','es'];
 const MHP_LANG_NAME={en:'English',ar:'العربية',ru:'Русский',de:'Deutsch',es:'Español'};
