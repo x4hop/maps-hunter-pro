@@ -24,6 +24,25 @@ function normalizeBlogHtml(html,path){
   }
   const seo=INDEX_SEO[path];
   if(seo&&!out.includes('"@type":"CollectionPage"'))out=out.replace("</head>",seo.extra+"</head>");
+  if(/<meta property="og:type" content="article">/i.test(out)){
+    const title=((out.match(/<title>([\\s\\S]*?)<\\/title>/i)||[])[1]||"").replace(/<[^>]+>/g,"").trim();
+    const description=(out.match(/<meta name="description" content="([^"]*)"/i)||[])[1]||"";
+    const canonical=(out.match(/<link rel="canonical" href="([^"]*)"/i)||[])[1]||"";
+    const lang=(out.match(/<html[^>]* lang="([^"]+)"/i)||[])[1]||"en";
+    const esc=value=>String(value||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    let extra="";
+    if(description&&!/<meta property="og:description"/i.test(out))extra+=`<meta property="og:description" content="${esc(description)}">`;
+    if(!/<meta property="og:image"/i.test(out))extra+='<meta property="og:image" content="https://mapshunterpro.com/assets/maps-hunter-pro-icon.png"><meta property="og:image:alt" content="Maps Hunter Pro">';
+    if(!/<meta name="twitter:card"/i.test(out))extra+='<meta name="twitter:card" content="summary">';
+    if(title&&!/<meta name="twitter:title"/i.test(out))extra+=`<meta name="twitter:title" content="${esc(title)}">`;
+    if(description&&!/<meta name="twitter:description"/i.test(out))extra+=`<meta name="twitter:description" content="${esc(description)}">`;
+    if(!/<meta name="twitter:image"/i.test(out))extra+='<meta name="twitter:image" content="https://mapshunterpro.com/assets/maps-hunter-pro-icon.png">';
+    if(title&&canonical&&!out.includes('"@type":"BlogPosting"')){
+      const schema={"@context":"https://schema.org","@type":"BlogPosting","headline":title,"description":description,"mainEntityOfPage":canonical,"inLanguage":lang,"author":{"@type":"Organization","name":"Maps Hunter Pro"},"publisher":{"@type":"Organization","name":"Maps Hunter Pro","url":"https://mapshunterpro.com/"}};
+      extra+=`<script type="application/ld+json">${JSON.stringify(schema)}</script>`;
+    }
+    if(extra)out=out.replace("</head>",extra+"</head>");
+  }
   return out;
 }
 
