@@ -25,7 +25,7 @@ function normalizeBlogHtml(html,path){
   const seo=INDEX_SEO[path];
   if(seo&&!out.includes('"@type":"CollectionPage"'))out=out.replace("</head>",seo.extra+"</head>");
   if(/<meta property="og:type" content="article">/i.test(out)){
-    const title=((out.match(/<title>([\\s\\S]*?)<\\/title>/i)||[])[1]||"").replace(/<[^>]+>/g,"").trim();
+    const title=((out.match(/<title>([\s\S]*?)<\/title>/i)||[])[1]||"").replace(/<[^>]+>/g,"").trim();
     const description=(out.match(/<meta name="description" content="([^"]*)"/i)||[])[1]||"";
     const canonical=(out.match(/<link rel="canonical" href="([^"]*)"/i)||[])[1]||"";
     const lang=(out.match(/<html[^>]* lang="([^"]+)"/i)||[])[1]||"en";
