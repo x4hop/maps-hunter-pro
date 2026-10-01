@@ -9,7 +9,8 @@ for migration in sorted((root/'backend'/'migrations').glob('*.sql')):
 tables={row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
 required={
     'settings','admin_sessions','audit_logs','owner_access',
-    'manual_licenses','manual_license_devices','manual_usage_events','manual_usage_daily'
+    'manual_licenses','manual_license_devices','manual_usage_events','manual_usage_daily',
+    'admin_customers','admin_sales','admin_support_events'
 }
 missing=required-tables
 assert not missing, f'missing current tables: {sorted(missing)}'
@@ -20,7 +21,7 @@ assert 'usdt_address' in settings
 assert 'redotpay_id' in settings
 
 manual_cols={row[1] for row in db.execute('PRAGMA table_info(manual_licenses)')}
-assert {'code_hash','code_hint','plan_id','status','duration_days','daily_lead_limit','device_limit','expires_at','is_lifetime'}<=manual_cols
+assert {'code_hash','code_hint','plan_id','status','duration_days','daily_lead_limit','device_limit','expires_at','is_lifetime','customer_id'}<=manual_cols
 
 db.execute("INSERT INTO manual_licenses(code_hash,code_hint,plan_id,status,duration_days,daily_lead_limit,device_limit,is_lifetime) VALUES('h','MHP-TEST','annual','unused',365,NULL,1,1)")
 row=db.execute("SELECT plan_id,duration_days,is_lifetime,expires_at FROM manual_licenses WHERE code_hash='h'").fetchone()
@@ -29,4 +30,4 @@ assert row==('annual',365,1,None),row
 usage_cols={row[1] for row in db.execute('PRAGMA table_info(manual_usage_events)')}
 assert {'request_id','manual_license_id','usage_date','amount'}<=usage_cols
 
-print('Current migration chain 0001..0010 passed with Lifetime compatibility')
+print('Current migration chain 0001..0011 passed with Lifetime + Admin Intelligence compatibility')
