@@ -4,7 +4,7 @@ from pathlib import Path
 root=Path(__file__).parents[1]/'extension'
 m=json.loads((root/'manifest.json').read_text())
 assert m['manifest_version']==3
-assert m['version']=='1.1.0'
+assert m['version']=='1.1.1'
 for ref in [m['background']['service_worker'],m['side_panel']['default_path'],*m['icons'].values()]:
     assert (root/ref).is_file(),ref
 permissions=set(m.get('permissions',[]))
@@ -17,6 +17,13 @@ for imported in re.findall(r'importScripts\(["\']([^"\']+)["\']\)',wrapper):
 assert 'contact-enrichment.js' in wrapper
 assert 'contact-extraction-fix.js' in wrapper
 assert 'state.enrichWebsites = true' in wrapper
+
+license_client=(root/'license-client.js').read_text()
+assert "https://mapshunterpro.com" in license_client
+assert "https://www.mapshunterpro.com" in license_client
+assert "Failed to reach activation server" in license_client
+assert "serverResponse" in license_client
+
 for file in root.rglob('*'):
     if file.suffix in {'.js','.html'}:
         text=file.read_text(errors='ignore')
