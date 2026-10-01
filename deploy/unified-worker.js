@@ -65,7 +65,7 @@ function localized(html,lang){
 
 async function handleSite(request,env){
   const u=new URL(request.url);
-  if(u.hostname==='www.mapshunterpro.com')return Response.redirect(`${PUBLIC_ORIGIN}${u.pathname}${u.search}`,301);
+  if(u.hostname==='www.mapshunterpro.com'&&!u.pathname.startsWith('/admin'))return Response.redirect(`${PUBLIC_ORIGIN}${u.pathname}${u.search}`,301);
   if(u.pathname==='/robots.txt')return new Response(`User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\nDisallow: /downloads/\nSitemap: ${PUBLIC_ORIGIN}/sitemap.xml\n`,{headers:{'content-type':'text/plain;charset=utf-8','cache-control':'public,max-age=3600'}});
   if(u.pathname==='/sitemap.xml'){
     const langAlternates=LANGS.map(x=>`<xhtml:link rel="alternate" hreflang="${x}" href="${PUBLIC_ORIGIN}/${x}" />`).join('')+`<xhtml:link rel="alternate" hreflang="x-default" href="${PUBLIC_ORIGIN}/en" />`;
