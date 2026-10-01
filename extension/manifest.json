@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Maps Hunter Pro",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Google Maps lead extraction with Maps + public website email discovery and tag-based searches.",
   "permissions": [
     "activeTab",
