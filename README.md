@@ -10,6 +10,33 @@ Production source for the Maps Hunter Pro Chrome extension, multilingual marketi
 - Payment: Binance ID / USDT TRC20 / RedotPay, verified manually through WhatsApp.
 - There is no customer website account/login flow in the current production model.
 
+## Admin Intelligence v1 — implementation log (2026-10-02)
+
+This section is the running change log for the professional Admin/Operations rebuild. Every implementation step must be recorded here before the branch is merged to `main`.
+
+1. **Created isolated development branch** `admin-intelligence-v1` from production `main`; production was not modified while the redesign was being built.
+2. **Reviewed the existing admin/backend data flow** and confirmed that `manual_usage_daily` already provides per-license daily accepted-lead counts, so customer usage analytics can be built without uploading business lead records.
+3. **Designed additive migration `0011_admin_intelligence.sql`** with `admin_customers`, `admin_sales`, and `admin_support_events`, plus nullable `manual_licenses.customer_id` linkage. Historical migrations remain untouched.
+4. **Recorded the three owner-provided historical sales as real transactions** rather than inferring revenue from current plan prices: Algeria USD 50, Palestine USD 20, Oman USD 20. Exact sale dates and license links are intentionally left unset until confirmed. Baseline recorded revenue is USD 90 across 3 sales/customers; average sale is USD 30.
+5. **Added customer/revenue/usage Admin API foundations**: total revenue, customer count, country count, sales count, average sale, all-time leads, leads today, seven-day usage, attention count, revenue by country, customer list/search, Customer 360 detail, sales list/create/update, customer create/update, and customer-license link/unlink actions.
+6. **Enhanced license reporting** so Admin queries can show linked customer, today usage, all-time accepted leads, last usage, device activity, and derived health state without receiving the customer's actual lead list.
+7. **Rebuilt the Admin UI as an Operations console** with Overview, Customers, Sales & Revenue, Licenses, Support Center, Owner Access, Settings, Audit Logs, and a Customer 360 drawer. The approved Maps Hunter Pro Paper/Stone/Coral/Black identity is retained.
+8. **Added support-health foundations**: `admin_support_events` stores only sanitized operational metadata when telemetry is enabled later; it is explicitly not designed to store business names, lead phones, lead emails, or extracted lead rows.
+9. **Added regression coverage** in `tests/test_admin_intelligence.py` to verify the new schema, the USD 90 historical revenue baseline, three seeded customers/sales, customer-license linking, and aggregate Today/All-time lead calculations.
+10. **Updated migration-chain coverage** through `0011` and added the Admin Intelligence regression test to GitHub release checks.
+11. **Local validation completed before commit**: JavaScript syntax checks for backend/admin passed; migration chain `0001..0011` passed; Admin Intelligence revenue/usage regression passed.
+12. **Corrected the stale README extension/data-model description** so documentation matches the current runtime: official public business websites may be fetched transiently in the service worker for public email/social enrichment, while lead rows remain local and are not uploaded to licensing/Admin.
+
+### Privacy invariant for Admin Intelligence
+
+The Operations console may store customer/admin metadata, license/device state, aggregate usage counts, sales transactions, and sanitized technical support events. The actual Google Maps/business lead dataset remains in `chrome.storage.local` and must not be uploaded merely to power Admin analytics.
+
+### Next Admin Intelligence steps
+
+- Link the three historical customer records to their actual production licenses after identifying the correct codes.
+- Add sanitized extension telemetry for scan/extraction/version/error events, with strict field allowlisting.
+- Add renewal/expiry workflows, acquisition-source tracking, release/version health and deeper support diagnostics after the Customer/Sales foundation is verified in production.
+
 ## Production build/deploy
 
 Cloudflare Workers Builds watches `main`.
@@ -81,6 +108,6 @@ Production upgrades are additive migrations under `backend/migrations/`; never r
 
 ## Extension/data model
 
-Google Maps result/detail data stays in `chrome.storage.local`. Email is extracted only when it is exposed directly by the selected Google Maps listing/detail content; business websites are not opened or fetched for contact enrichment. Lead data is not uploaded to the licensing API. The licensing service receives only activation/device/usage fields required to enforce access and product limits.
+Google Maps result/detail data stays in `chrome.storage.local`. Maps data is saved first; when Google Maps provides an official public business website, the current extension may fetch that site's public HTML transiently in the service worker to discover public business email/social links without opening visible website tabs. Raw website pages are not intentionally persisted. Lead data is not uploaded to the licensing/Admin API; those services receive activation/device/aggregate-usage fields and sanitized operational metadata required to enforce access, analytics and support.
 
 Read `PROJECT.md`, `DATA_FLOW.md`, `CHROME_WEB_STORE.md`, `privacy.html`, `terms.html`, and `docs/MAPS_HUNTER_PRO_MASTER_ROADMAP_AR.md` before changing production behavior.
