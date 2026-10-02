@@ -2,11 +2,15 @@ import backend from '../backend/src/entry.js';
 
 const PUBLIC_ORIGIN='https://mapshunterpro.com';
 const META={
-  en:{lang:'en',dir:'ltr',title:'Google Maps Scraper for B2B Leads | Maps Hunter Pro',description:'Scrape Google Maps business results into structured B2B lead lists with phones, websites, available emails and social links, then export clean data to Excel, CSV or JSON.',locale:'en_US'},
-  ar:{lang:'ar',dir:'rtl',title:'استخراج بيانات Google Maps والعملاء المحتملين | Maps Hunter Pro',description:'استخرج بيانات الأنشطة التجارية من Google Maps مثل الهاتف والموقع والبيانات المتاحة، ثم صدّر النتائج بشكل منظم إلى Excel أو CSV أو JSON.',locale:'ar_LY'},
-  ru:{lang:'ru',dir:'ltr',title:'Парсер Google Maps и сборщик лидов для Chrome | Maps Hunter Pro',description:'Собирайте структурированные данные компаний из Google Maps — телефоны, сайты, доступные email и соцсети — и экспортируйте результаты в Excel, CSV или JSON.',locale:'ru_RU'},
-  de:{lang:'de',dir:'ltr',title:'Google Maps Scraper für B2B-Leads | Maps Hunter Pro',description:'Google Maps Firmendaten strukturiert erfassen: Telefonnummern, Websites, verfügbare E-Mails und Social Links sammeln und sauber nach Excel, CSV oder JSON exportieren.',locale:'de_DE'},
-  es:{lang:'es',dir:'ltr',title:'Google Maps Scraper para Leads B2B | Maps Hunter Pro',description:'Extrae negocios de Google Maps en listas B2B estructuradas con teléfonos, sitios web, correos disponibles y redes sociales, y exporta a Excel, CSV o JSON.',locale:'es_ES'}
+  en:{lang:'en',hreflang:'en',dir:'ltr',title:'Google Maps Scraper for B2B Leads | Maps Hunter Pro',description:'Scrape Google Maps business results into structured B2B lead lists with phones, websites, available emails and social links, then export clean data to Excel, CSV or JSON.',locale:'en_US'},
+  us:{lang:'en-US',hreflang:'en-US',dir:'ltr',title:'Google Maps Scraper USA for B2B Leads | Maps Hunter Pro',description:'Research US businesses with a Google Maps scraper for B2B leads, phones, websites, available public emails and social links, then export to Excel, CSV or JSON.',locale:'en_US'},
+  uk:{lang:'en-GB',hreflang:'en-GB',dir:'ltr',title:'Google Maps Scraper UK for B2B Leads | Maps Hunter Pro',description:'Research UK businesses with a Google Maps scraper for B2B leads, phones, websites, available public emails and social links, then export to Excel, CSV or JSON.',locale:'en_GB'},
+  ca:{lang:'en-CA',hreflang:'en-CA',dir:'ltr',title:'Google Maps Scraper Canada for B2B Leads | Maps Hunter Pro',description:'Research Canadian businesses with a Google Maps scraper for B2B leads, phones, websites, available public emails and social links, then export to Excel, CSV or JSON.',locale:'en_CA'},
+  au:{lang:'en-AU',hreflang:'en-AU',dir:'ltr',title:'Google Maps Scraper Australia for B2B Leads | Maps Hunter Pro',description:'Research Australian businesses with a Google Maps scraper for B2B leads, phones, websites, available public emails and social links, then export to Excel, CSV or JSON.',locale:'en_AU'},
+  ar:{lang:'ar',hreflang:'ar',dir:'rtl',title:'استخراج بيانات Google Maps والعملاء المحتملين | Maps Hunter Pro',description:'استخرج بيانات الأنشطة التجارية من Google Maps مثل الهاتف والموقع والبيانات المتاحة، ثم صدّر النتائج بشكل منظم إلى Excel أو CSV أو JSON.',locale:'ar_LY'},
+  ru:{lang:'ru',hreflang:'ru',dir:'ltr',title:'Парсер Google Maps и сборщик лидов для Chrome | Maps Hunter Pro',description:'Собирайте структурированные данные компаний из Google Maps — телефоны, сайты, доступные email и соцсети — и экспортируйте результаты в Excel, CSV или JSON.',locale:'ru_RU'},
+  de:{lang:'de',hreflang:'de-DE',dir:'ltr',title:'Google Maps Scraper für B2B-Leads | Maps Hunter Pro',description:'Google Maps Firmendaten strukturiert erfassen: Telefonnummern, Websites, verfügbare E-Mails und Social Links sammeln und sauber nach Excel, CSV oder JSON exportieren.',locale:'de_DE'},
+  es:{lang:'es',hreflang:'es-ES',dir:'ltr',title:'Google Maps Scraper para Leads B2B | Maps Hunter Pro',description:'Extrae negocios de Google Maps en listas B2B estructuradas con teléfonos, sitios web, correos disponibles y redes sociales, y exporta a Excel, CSV o JSON.',locale:'es_ES'}
 };
 const LANGS=Object.keys(META);
 
@@ -46,7 +50,7 @@ async function assetText(env,path){
 function localized(html,lang){
   const m=META[lang]||META.en;
   const canonical=`${PUBLIC_ORIGIN}/${lang}`;
-  const alternates=LANGS.map(x=>`<link rel="alternate" hreflang="${x}" href="${PUBLIC_ORIGIN}/${x}" />`).join('')+`<link rel="alternate" hreflang="x-default" href="${PUBLIC_ORIGIN}/en" />`;
+  const alternates=LANGS.map(x=>`<link rel="alternate" hreflang="${META[x].hreflang||x}" href="${PUBLIC_ORIGIN}/${x}" />`).join('')+`<link rel="alternate" hreflang="x-default" href="${PUBLIC_ORIGIN}/en" />`;
   if(!html.includes('/assets/payment-icon-clean.css'))html=html.replace('</head>','<link rel="stylesheet" href="/assets/payment-icon-clean.css"></head>');
   if(!html.includes('/assets/multilingual-fix.css'))html=html.replace('</head>','<link rel="stylesheet" href="/assets/multilingual-fix.css"></head>');
   if(!html.includes('/assets/language-runtime-fix.js'))html=html.replace('</body>','<script src="/assets/language-runtime-fix.js" defer></script></body>');
@@ -60,6 +64,7 @@ function localized(html,lang){
     .replace(/<meta property="og:locale" content="[^"]*" \/>/,`<meta property="og:locale" content="${m.locale}" />`)
     .replace(/<meta name="twitter:title" content="[^"]*" \/>/,`<meta name="twitter:title" content="${m.title}" />`)
     .replace(/<meta name="twitter:description" content="[^"]*" \/>/,`<meta name="twitter:description" content="${m.description}" />`)
+    .replace(/"url":"https:\/\/mapshunterpro\.com\/en"/g,`"url":"${canonical}"`)
     .replace('<!-- Add an absolute canonical URL here after the production domain is connected. -->',`<link rel="canonical" href="${canonical}" />${alternates}<meta property="og:url" content="${canonical}" />`);
 }
 
@@ -68,9 +73,9 @@ async function handleSite(request,env){
   if(u.hostname==='www.mapshunterpro.com'&&!u.pathname.startsWith('/admin'))return Response.redirect(`${PUBLIC_ORIGIN}${u.pathname}${u.search}`,301);
   if(u.pathname==='/robots.txt')return new Response(`User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /api/\nDisallow: /downloads/\nSitemap: ${PUBLIC_ORIGIN}/sitemap.xml\n`,{headers:{'content-type':'text/plain;charset=utf-8','cache-control':'public,max-age=3600'}});
   if(u.pathname==='/sitemap.xml'){
-    const langAlternates=LANGS.map(x=>`<xhtml:link rel="alternate" hreflang="${x}" href="${PUBLIC_ORIGIN}/${x}" />`).join('')+`<xhtml:link rel="alternate" hreflang="x-default" href="${PUBLIC_ORIGIN}/en" />`;
+    const langAlternates=LANGS.map(x=>`<xhtml:link rel="alternate" hreflang="${META[x].hreflang||x}" href="${PUBLIC_ORIGIN}/${x}" />`).join('')+`<xhtml:link rel="alternate" hreflang="x-default" href="${PUBLIC_ORIGIN}/en" />`;
     const urls=[
-      ...LANGS.map(l=>`<url><loc>${PUBLIC_ORIGIN}/${l}</loc><lastmod>2026-09-26</lastmod>${langAlternates}<changefreq>weekly</changefreq><priority>${l==='en'?'1.0':'0.9'}</priority></url>`),
+      ...LANGS.map(l=>`<url><loc>${PUBLIC_ORIGIN}/${l}</loc><lastmod>2026-10-02</lastmod>${langAlternates}<changefreq>weekly</changefreq><priority>${l==='en'||['us','uk','ca','au'].includes(l)?'1.0':'0.9'}</priority></url>`),
       `<url><loc>${PUBLIC_ORIGIN}/blog/</loc><lastmod>2026-10-02</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>`,
       `<url><loc>${PUBLIC_ORIGIN}/blog/how-to-extract-business-leads-from-google-maps/</loc><lastmod>2026-09-18</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
       `<url><loc>${PUBLIC_ORIGIN}/blog/find-businesses-without-websites-on-google-maps/</loc><lastmod>2026-09-18</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
