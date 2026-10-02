@@ -2,7 +2,7 @@
 
 **Created:** 2026-10-02  
 **Branch:** `seo-western-markets-v1`  
-**Status:** Implementation in progress on `seo-western-markets-v1` — production `main` remains unchanged until the full SEO regression suite passes.
+**Status:** Implementation complete and regression-tested on `seo-western-markets-v1`; ready for production merge after a full green GitHub Actions run.
 
 ## 1. Goal
 
