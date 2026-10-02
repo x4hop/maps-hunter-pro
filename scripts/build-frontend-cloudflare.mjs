@@ -6,6 +6,9 @@ import {runInNewContext} from 'node:vm';
 const root=resolve(new URL('..',import.meta.url).pathname);
 const out=resolve(root,'dist/frontend');
 const langs=['en','ar','ru','de','es'];
+const routes=['en','us','uk','ca','au','ar','ru','de','es'];
+const ROUTE_LANG={us:'en',uk:'en',ca:'en',au:'en'};
+const HTML_LANG={us:'en-US',uk:'en-GB',ca:'en-CA',au:'en-AU'};
 const PUBLIC_ORIGIN='https://mapshunterpro.com';
 const GOOGLE_SITE_VERIFICATION='Rwt2LxDLsZnhc4H7unz17utjAmod8mHZ5AqVVtZCUoI';
 const CRITICAL_CSS_FILES=['styles.css','manual.css','payment-icon-clean.css','ui-polish.css','layout-polish.css'];
@@ -41,19 +44,37 @@ async function seoLocales(){
   return runInNewContext(`(${literal})`,Object.create(null),{timeout:1000});
 }
 
+async function regionalLocales(){
+  const source=await readFile(resolve(root,'assets/region-i18n.js'),'utf8');
+  const start=source.indexOf('const REGIONAL=');
+  const end=source.indexOf(';\nwindow.MHP_REGIONAL_LOCALES',start);
+  if(start<0||end<0)throw new Error('Unable to parse regional-i18n overrides');
+  const literal=source.slice(start+'const REGIONAL='.length,end);
+  return runInNewContext(`(${literal})`,Object.create(null),{timeout:1000});
+}
+
+const REGION_SECTIONS={
+  us:`<section id="regional-market"><div class="wrap"><div class="section-title"><h2>Google Maps Lead Research for the United States</h2><p>Build location-specific US prospect lists without creating one giant, unfocused database.</p></div><div class="features"><div class="card"><h3>Search by city, metro and ZIP context</h3><p>Combine a business category with a city, metro area, neighbourhood or ZIP-code context. Examples include roofers in Dallas, dentists in Chicago, HVAC companies in Phoenix and marketing agencies in Austin.</p></div><div class="card"><h3>Keep US contact data structured</h3><p>Use business name, category, address, phone, website, rating, review count, Google Maps URL and available public website contact fields to qualify companies before outreach.</p></div><div class="card"><h3>Export for real sales workflows</h3><p>Move reviewed records into Excel, CSV or JSON for filtering, account research and CRM preparation. Maps Hunter Pro is designed for focused B2B prospecting rather than anonymous bulk lists.</p></div></div></div></section>`,
+  uk:`<section id="regional-market"><div class="wrap"><div class="section-title"><h2>Google Maps Lead Research for the United Kingdom</h2><p>Create organised UK business lists using the locations and categories your team actually sells into.</p></div><div class="features"><div class="card"><h3>Search by city, town and postcode context</h3><p>Research plumbers in Manchester, estate agents in Leeds, dental practices in Birmingham or agencies in London. Use the geographic wording customers and sales teams use in the UK.</p></div><div class="card"><h3>Review the useful business fields</h3><p>Compare names, categories, addresses, phone numbers, websites, ratings, review counts and available public website contact details before deciding which businesses belong in a prospect list.</p></div><div class="card"><h3>Export an organised shortlist</h3><p>Export the records you want to keep to Excel, CSV or JSON so the next step is qualification and outreach rather than cleaning a mixed global dataset.</p></div></div></div></section>`,
+  ca:`<section id="regional-market"><div class="wrap"><div class="section-title"><h2>Google Maps Lead Research for Canada</h2><p>Research Canadian businesses by market, province and local category, then turn the results into a structured B2B list.</p></div><div class="features"><div class="card"><h3>Work market by market</h3><p>Examples include dentists in Toronto, contractors in Calgary, accountants in Vancouver and local agencies in Ottawa. Province, city and postal-code context can keep searches relevant.</p></div><div class="card"><h3>Combine Maps and public website data</h3><p>Use Maps business fields together with available public email and social links discovered from the official website when one is provided by the listing.</p></div><div class="card"><h3>Prepare data for qualification</h3><p>Export to Excel, CSV or JSON, filter by category or location, and review the companies before adding them to a sales or agency workflow.</p></div></div></div></section>`,
+  au:`<section id="regional-market"><div class="wrap"><div class="section-title"><h2>Google Maps Lead Research for Australia</h2><p>Build Australian prospect lists around the states, cities, suburbs and business categories that matter to your campaign.</p></div><div class="features"><div class="card"><h3>Use local search geography</h3><p>Research electricians in Sydney, clinics in Melbourne, builders in Brisbane or agencies in Perth. State, suburb and postcode context can help keep each research batch focused.</p></div><div class="card"><h3>Review business and contact signals</h3><p>Collect structured Maps fields and, when available, public email and social links from the official business website before deciding which records deserve follow-up.</p></div><div class="card"><h3>Export clean campaign inputs</h3><p>Move qualified results to Excel, CSV or JSON for filtering, account research and downstream sales work without mixing unrelated countries into the same list.</p></div></div></div></section>`
+};
+
 async function criticalCss(){
   const chunks=await Promise.all(CRITICAL_CSS_FILES.map(file=>readFile(resolve(root,'assets',file),'utf8')));
   return chunks.join('\n\n').replace(/<\/style/gi,'<\\/style');
 }
 
-function renderLocalizedHtml(source,lang,dictionary,criticalStyles){
+function renderLocalizedHtml(source,route,lang,dictionary,criticalStyles){
   const dir=lang==='ar'?'rtl':'ltr';
-  let html=source.replace('<html lang="en" dir="ltr">',`<html lang="${lang}" dir="${dir}">`);
+  const htmlLang=HTML_LANG[route]||lang;
+  let html=source.replace('<html lang="en" dir="ltr">',`<html lang="${htmlLang}" dir="${dir}">`);
   html=html.replace(/(<([a-z][a-z0-9-]*)\b[^>]*\bdata-i18n="([^"]+)"[^>]*>)([\s\S]*?)(<\/\2>)/gi,(full,open,tag,key,inner,close)=>{
     const value=dictionary[key];
     if(typeof value!=='string'||/<[a-z][\s\S]*>/i.test(inner))return full;
     return `${open}${escapeHtml(value)}${close}`;
   });
+  if(REGION_SECTIONS[route]&&!html.includes('id="regional-market"'))html=html.replace('<section id="pricing">',REGION_SECTIONS[route]+'<section id="pricing">');
   if(!html.includes('name="google-site-verification"'))html=html.replace('</head>',`<meta name="google-site-verification" content="${GOOGLE_SITE_VERIFICATION}" /></head>`);
   if(!html.includes('data-mhp-critical-css'))html=html.replace('</head>',`<style data-mhp-critical-css>\n${criticalStyles}\n</style></head>`);
   if(!html.includes('/assets/payment-language-fix.js'))html=html.replace('</body>','<script src="/assets/payment-language-fix.js" defer></script></body>');
@@ -189,11 +210,13 @@ await cp(resolve(root,'blog'),resolve(out,'blog'),{recursive:true});
 const source=await readFile(resolve(root,'index.html'),'utf8');
 const overrides=await manualLocales();
 const seoOverrides=await seoLocales();
+const regionalOverrides=await regionalLocales();
 const criticalStyles=await criticalCss();
-for(const lang of langs){
-  const dictionary={...(await baseLocale(lang)),...(overrides[lang]||{}),...(seoOverrides[lang]||{})};
-  const localized=renderLocalizedHtml(source,lang,dictionary,criticalStyles);
-  const dir=resolve(out,lang);
+for(const route of routes){
+  const lang=ROUTE_LANG[route]||route;
+  const dictionary={...(await baseLocale(lang)),...(overrides[lang]||{}),...(seoOverrides[lang]||{}),...(regionalOverrides[route]||{})};
+  const localized=renderLocalizedHtml(source,route,lang,dictionary,criticalStyles);
+  const dir=resolve(out,route);
   await mkdir(dir,{recursive:true});
   await writeFile(resolve(dir,'index.html'),localized,'utf8');
 }
