@@ -47,4 +47,29 @@ assert.match(worker, /google-maps-email-extractor/);
 assert.match(worker, /google-maps-scraper-api/);
 assert.match(worker, /best-google-maps-scraper/);
 
+
+const regional = read('assets/region-i18n.js');
+const build = read('scripts/build-frontend-cloudflare.mjs');
+const languageRuntime = read('assets/language-runtime-fix.js');
+
+for (const [route, hreflang, phrase] of [
+  ['us', 'en-US', 'Google Maps Scraper USA'],
+  ['uk', 'en-GB', 'Google Maps Scraper UK'],
+  ['ca', 'en-CA', 'Google Maps Scraper Canada'],
+  ['au', 'en-AU', 'Google Maps Scraper Australia'],
+]) {
+  assert.ok(worker.includes(route + ":{lang:'" + hreflang), route + ' worker route metadata');
+  assert.ok(worker.includes("hreflang:'" + hreflang + "'"), route + ' hreflang');
+  assert.ok(runtime.includes(route + ":['" + phrase), route + ' runtime metadata');
+  assert.ok(regional.includes(route + ':{'), route + ' regional copy');
+  assert.ok(build.includes("'" + route + "'"), route + ' build route');
+}
+assert.match(build, /REGION_SECTIONS/);
+assert.match(build, /Google Maps Lead Research for the United States/);
+assert.match(build, /Google Maps Lead Research for the United Kingdom/);
+assert.match(build, /Google Maps Lead Research for Canada/);
+assert.match(build, /Google Maps Lead Research for Australia/);
+assert.match(languageRuntime, /ROUTES=\['en','us','uk','ca','au'/);
+assert.match(worker, /META\[x\]\.hreflang/);
+
 console.log('Western-market SEO regression checks passed.');
