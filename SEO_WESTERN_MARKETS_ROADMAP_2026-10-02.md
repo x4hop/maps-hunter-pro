@@ -2,7 +2,7 @@
 
 **Created:** 2026-10-02  
 **Branch:** `seo-western-markets-v1`  
-**Status:** Implementation complete and regression-tested on `seo-western-markets-v1`; ready for production merge after a full green GitHub Actions run.
+**Status:** Published to production `main` on 2026-10-02 after a full green GitHub Actions + Cloudflare Workers validation run.
 
 ## 1. Goal
 
