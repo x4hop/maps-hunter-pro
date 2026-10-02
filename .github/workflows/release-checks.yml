@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - seo-western-markets-v1
   pull_request:
     branches:
       - main
@@ -53,6 +54,7 @@ jobs:
           node tests/test_payment_api.mjs
           node tests/test_single_device_policy.mjs
           node tests/test_frontend_regressions.mjs
+          node tests/test_seo_western_markets.mjs
       - name: Branded SVG icon regression check
         run: node tests/test_icon_system.mjs
       - name: Language switcher regression check
@@ -72,6 +74,10 @@ jobs:
       - name: Verify localized SEO and admin assets
         run: |
           test -f dist/frontend/en/index.html
+          test -f dist/frontend/us/index.html
+          test -f dist/frontend/uk/index.html
+          test -f dist/frontend/ca/index.html
+          test -f dist/frontend/au/index.html
           test -f dist/frontend/ar/index.html
           test -f dist/frontend/ru/index.html
           test -f dist/frontend/de/index.html
@@ -87,6 +93,13 @@ jobs:
           test -f dist/frontend/assets/maps-hunter-pro-icon.png
           test -f dist/frontend/assets/mhp-icons.svg
           grep -q 'mhp-icons.svg#map-search' dist/frontend/en/index.html
+          grep -q 'lang="en-US"' dist/frontend/us/index.html
+          grep -q 'Google Maps Lead Research for the United States' dist/frontend/us/index.html
+          grep -q 'Google Maps Lead Research for the United Kingdom' dist/frontend/uk/index.html
+          grep -q 'Google Maps Lead Research for Canada' dist/frontend/ca/index.html
+          grep -q 'Google Maps Lead Research for Australia' dist/frontend/au/index.html
+          grep -q 'maps_hunter_dallas_roofers.xlsx' dist/frontend/us/index.html
+          grep -q 'maps_hunter_manchester_plumbers.xlsx' dist/frontend/uk/index.html
           grep -q 'dir="rtl"' dist/frontend/ar/index.html
           grep -q 'name="google-site-verification" content="Rwt2LxDLsZnhc4H7unz17utjAmod8mHZ5AqVVtZCUoI"' dist/frontend/en/index.html
           grep -q 'data-mhp-critical-css' dist/frontend/en/index.html
