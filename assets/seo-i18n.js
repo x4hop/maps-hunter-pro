@@ -2,8 +2,8 @@
 const SEO={
   en:{
     hero_badge:'Chrome Extension • Google Maps lead research',
-    hero_title:'Google Maps Scraper & Lead Extractor for Faster B2B Prospecting',
-    hero_desc:'Turn Google Maps search results into clean business lead lists. Collect structured business data, format phone numbers internationally, and export professional Excel, CSV, JSON, or Results table files from one focused Chrome workflow.',
+    hero_title:'Google Maps Scraper for Faster B2B Lead Generation',
+    hero_desc:'Scrape Google Maps search results into clean B2B lead lists. Collect structured business data, format phone numbers internationally, discover available public email and social links, and export professional Excel, CSV or JSON files from one focused Chrome workflow.',
     how_title:'How to Extract Business Leads from Google Maps',
     how_desc:'A simple workflow from Google Maps search to clean, export-ready business data.',
     how_1:'1. Search Google Maps',how_1_desc:'Search for the business category and location you want to research.',
@@ -78,8 +78,8 @@ const SEO={
   },
   de:{
     hero_badge:'Chrome-Erweiterung • Google-Maps-Lead-Recherche',
-    hero_title:'Google Maps Leads schnell extrahieren und sauber exportieren',
-    hero_desc:'Verwandle Google-Maps-Suchergebnisse in saubere B2B-Leadlisten. Erfasse strukturierte Unternehmensdaten, formatiere Telefonnummern international und exportiere professionelle Excel-, CSV- oder JSON-Dateien direkt aus einem fokussierten Chrome-Workflow.',
+    hero_title:'Google Maps Scraper für B2B-Leads und Firmendaten',
+    hero_desc:'Sammle mit einem Google Maps Scraper strukturierte Firmendaten für B2B-Akquise. Erfasse Telefonnummern, Websites, verfügbare öffentliche E-Mails und Social Links und exportiere die Ergebnisse sauber nach Excel, CSV oder JSON.',
     how_title:'So extrahierst du Business-Leads aus Google Maps',
     how_desc:'Ein klarer Workflow von der Google-Maps-Suche bis zu strukturierten, exportbereiten Unternehmensdaten.',
     how_1:'1. Google Maps durchsuchen',how_1_desc:'Wähle Branche und Standort für deine Recherche.',
@@ -116,8 +116,8 @@ const SEO={
   },
   es:{
     hero_badge:'Extensión Chrome • Investigación de leads en Google Maps',
-    hero_title:'Extrae negocios y leads de Google Maps y expórtalos fácilmente',
-    hero_desc:'Convierte los resultados de Google Maps en listas de leads limpias. Recopila datos empresariales estructurados, normaliza teléfonos internacionales y exporta archivos profesionales a Excel, CSV o JSON desde un flujo sencillo en Chrome.',
+    hero_title:'Google Maps Scraper para Leads B2B y Datos de Empresas',
+    hero_desc:'Usa un Google Maps scraper para convertir resultados en listas B2B estructuradas. Recopila teléfonos, sitios web, correos públicos disponibles y redes sociales, y exporta resultados limpios a Excel, CSV o JSON desde Chrome.',
     how_title:'Cómo extraer leads de negocios desde Google Maps',
     how_desc:'Un flujo claro desde la búsqueda en Google Maps hasta datos empresariales organizados y listos para exportar.',
     how_1:'1. Busca en Google Maps',how_1_desc:'Elige la categoría y la ubicación que quieres investigar.',
