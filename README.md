@@ -112,3 +112,14 @@ Production upgrades are additive migrations under `backend/migrations/`; never r
 Google Maps result/detail data stays in `chrome.storage.local`. Maps data is saved first; when Google Maps provides an official public business website, the current extension may fetch that site's public HTML transiently in the service worker to discover public business email/social links without opening visible website tabs. Raw website pages are not intentionally persisted. Lead data is not uploaded to the licensing/Admin API; those services receive activation/device/aggregate-usage fields and sanitized operational metadata required to enforce access, analytics and support.
 
 Read `PROJECT.md`, `DATA_FLOW.md`, `CHROME_WEB_STORE.md`, `privacy.html`, `terms.html`, and `docs/MAPS_HUNTER_PRO_MASTER_ROADMAP_AR.md` before changing production behavior.
+
+## Western Markets SEO v1 — research log (2026-10-02)
+
+1. Created isolated branch `seo-western-markets-v1` from production `main`; no production SEO behavior was changed during the research phase.
+2. Audited the existing SEO architecture: localized build output, canonical/hreflang injection, sitemap/robots, structured data, current blog cluster and existing comparison pages.
+3. Used the requested Aseel GitHub connectors in **read-only mode**. No repository exposed by those connectors is literally named `worthandwhy`; direct lookup of `aseel90/worthandwhy` returned 404. No Aseel file or repository was modified.
+4. Used the requested browser connector **only for Noxtool / Semrush**. The current Noxtool session was logged out and the Semrush proxy session expired, so Volume/KD/CPC values were deliberately not invented. Exact Semrush metrics remain a validation step once that session is active.
+5. Reviewed current Google/SERP competitor patterns and identified the main architecture used by visible competitors: core product pages, email-extractor pages, Chrome-extension pages, export guides, use-case pages, comparison pages and substantive country pages.
+6. Defined target-market priority as United States, United Kingdom, Canada, Australia, Germany and France. India and Bangladesh are explicitly outside the SEO campaign target set; organic SEO will bias relevance toward selected markets rather than using IP-based manipulation or doorway pages.
+7. Added `SEO_WESTERN_MARKETS_ROADMAP_2026-10-02.md` with the keyword architecture, international URL/hreflang model, technical SEO work, content clusters, original-data strategy, link strategy, 90-day rollout, Semrush scoring model, KPIs and implementation guardrails.
+8. No production changes, Aseel-repository changes, or fabricated keyword metrics were made in this research stage.
