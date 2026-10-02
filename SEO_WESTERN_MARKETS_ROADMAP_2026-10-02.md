@@ -2,7 +2,7 @@
 
 **Created:** 2026-10-02  
 **Branch:** `seo-western-markets-v1`  
-**Status:** Research / planning only — no production SEO changes have been deployed from this branch yet.
+**Status:** Implementation in progress on `seo-western-markets-v1` — production `main` remains unchanged until the full SEO regression suite passes.
 
 ## 1. Goal
 
@@ -533,3 +533,13 @@ India/Bangladesh traffic can be segmented in reporting, but it should not be tre
 - Do not invent Semrush metrics.
 - Do not claim capabilities Maps Hunter Pro does not have.
 - Do not alter licensing, Admin, extraction, payment, or extension behavior as part of SEO unless separately approved.
+
+## 19. Implementation batch — Germany & Western Europe (2026-10-02)
+
+- Strengthen `/de` as a genuine Germany-focused commercial landing page, with German examples, regional research guidance and local internal links.
+- Add German resource hub and two substantive German guides rather than city doorway pages.
+- Strengthen `/es` with Spain-specific content and a Spanish resource hub/guide because Spain validated as another low-KD European opportunity.
+- Add the validated low-KD responsible-use guide for “is scraping google maps legal”.
+- Localize SoftwareApplication `inLanguage` and Open Graph locale alternates on regional landing pages.
+- Add all new assets to sitemap + Worker route handling and regression coverage.
+- Keep France/Italy/Netherlands as the next expansion wave after this first low-KD European batch earns indexation and query data; do not flood the site with thin machine-translated locales.

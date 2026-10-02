@@ -43,6 +43,28 @@ const REGIONAL={
     category_restaurants:'Category · Electricians',
     excel_filename:'maps_hunter_sydney_electricians.xlsx',
     faq2_a:'Yes. Australian phone numbers can be formatted consistently for the market and search location you are researching.'
+  },
+  de:{
+    hero_badge:'Chrome-Erweiterung • Google-Maps-Recherche für Deutschland',
+    hero_title:'Google Maps Scraper für B2B-Leads in Deutschland',
+    hero_desc:'Recherchiere Unternehmen in Deutschland direkt über Google Maps, strukturiere Firmendaten, finde verfügbare öffentliche E-Mails und Social Links auf offiziellen Websites und exportiere qualifizierte Listen nach Excel, CSV oder JSON.',
+    map_search:'Dachdecker in München, Deutschland',
+    keyword_restaurants:'Keyword · Dachdecker',
+    location_berlin:'Standort · München, Deutschland',
+    category_restaurants:'Kategorie · Dachdecker',
+    excel_filename:'maps_hunter_muenchen_dachdecker.xlsx',
+    faq2_a:'Ja. Deutsche Telefonnummern können passend zum Suchmarkt einheitlich formatiert werden, einschließlich +49 für Deutschland.'
+  },
+  es:{
+    hero_badge:'Extensión Chrome • Investigación de Google Maps en España',
+    hero_title:'Google Maps Scraper para Leads B2B en España',
+    hero_desc:'Investiga empresas locales de España en Google Maps, organiza datos de negocio, descubre correos públicos y enlaces sociales disponibles en sitios web oficiales y exporta listas limpias a Excel, CSV o JSON.',
+    map_search:'Dentistas en Madrid, España',
+    keyword_restaurants:'Keyword · Dentistas',
+    location_berlin:'Ubicación · Madrid, España',
+    category_restaurants:'Categoría · Dentistas',
+    excel_filename:'maps_hunter_madrid_dentistas.xlsx',
+    faq2_a:'Sí. Los teléfonos españoles pueden formatearse de forma coherente para el mercado y la ubicación de búsqueda, incluido +34 para España.'
   }
 };
 window.MHP_REGIONAL_LOCALES=REGIONAL;

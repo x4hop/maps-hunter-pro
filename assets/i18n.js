@@ -6,8 +6,8 @@ const MHP_META={
   au:['Google Maps Scraper Australia for B2B Leads | Maps Hunter Pro','Research Australian businesses with a Google Maps scraper for B2B leads, phones, websites, available public emails and social links, then export to Excel, CSV or JSON.'],
   ar:['استخراج بيانات Google Maps والعملاء المحتملين | Maps Hunter Pro','استخرج بيانات الأنشطة التجارية من Google Maps مثل الهاتف والموقع والبيانات المتاحة، ثم صدّر النتائج بشكل منظم إلى Excel أو CSV أو JSON.'],
   ru:['Парсер Google Maps и сборщик лидов для Chrome | Maps Hunter Pro','Собирайте структурированные данные компаний из Google Maps — телефоны, сайты, доступные email и соцсети — и экспортируйте результаты в Excel, CSV или JSON.'],
-  de:['Google Maps Scraper für B2B-Leads | Maps Hunter Pro','Google Maps Firmendaten strukturiert erfassen: Telefonnummern, Websites, verfügbare E-Mails und Social Links sammeln und sauber nach Excel, CSV oder JSON exportieren.'],
-  es:['Google Maps Scraper para Leads B2B | Maps Hunter Pro','Extrae negocios de Google Maps en listas B2B estructuradas con teléfonos, sitios web, correos disponibles y redes sociales, y exporta a Excel, CSV o JSON.']
+  de:['Google Maps Scraper Deutschland für B2B-Leads | Maps Hunter Pro','Google Maps Scraper für Deutschland: Firmendaten, Telefonnummern, Websites sowie verfügbare öffentliche E-Mails und Social Links recherchieren und nach Excel, CSV oder JSON exportieren.'],
+  es:['Google Maps Scraper España para Leads B2B | Maps Hunter Pro','Google Maps Scraper para España: investiga negocios, teléfonos, sitios web y correos públicos disponibles, y exporta listas B2B a Excel, CSV o JSON.']
 };
 const MHP_LANGS=['en','ar','ru','de','es'];
 const MHP_ROUTES=['en','us','uk','ca','au','ar','ru','de','es'];

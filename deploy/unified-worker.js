@@ -9,8 +9,8 @@ const META={
   au:{lang:'en-AU',hreflang:'en-AU',dir:'ltr',title:'Google Maps Scraper Australia for B2B Leads | Maps Hunter Pro',description:'Research Australian businesses with a Google Maps scraper for B2B leads, phones, websites, available public emails and social links, then export to Excel, CSV or JSON.',locale:'en_AU'},
   ar:{lang:'ar',hreflang:'ar',dir:'rtl',title:'استخراج بيانات Google Maps والعملاء المحتملين | Maps Hunter Pro',description:'استخرج بيانات الأنشطة التجارية من Google Maps مثل الهاتف والموقع والبيانات المتاحة، ثم صدّر النتائج بشكل منظم إلى Excel أو CSV أو JSON.',locale:'ar_LY'},
   ru:{lang:'ru',hreflang:'ru',dir:'ltr',title:'Парсер Google Maps и сборщик лидов для Chrome | Maps Hunter Pro',description:'Собирайте структурированные данные компаний из Google Maps — телефоны, сайты, доступные email и соцсети — и экспортируйте результаты в Excel, CSV или JSON.',locale:'ru_RU'},
-  de:{lang:'de',hreflang:'de-DE',dir:'ltr',title:'Google Maps Scraper für B2B-Leads | Maps Hunter Pro',description:'Google Maps Firmendaten strukturiert erfassen: Telefonnummern, Websites, verfügbare E-Mails und Social Links sammeln und sauber nach Excel, CSV oder JSON exportieren.',locale:'de_DE'},
-  es:{lang:'es',hreflang:'es-ES',dir:'ltr',title:'Google Maps Scraper para Leads B2B | Maps Hunter Pro',description:'Extrae negocios de Google Maps en listas B2B estructuradas con teléfonos, sitios web, correos disponibles y redes sociales, y exporta a Excel, CSV o JSON.',locale:'es_ES'}
+  de:{lang:'de-DE',hreflang:'de-DE',dir:'ltr',title:'Google Maps Scraper Deutschland für B2B-Leads | Maps Hunter Pro',description:'Google Maps Scraper für Deutschland: Firmendaten, Telefonnummern, Websites sowie verfügbare öffentliche E-Mails und Social Links recherchieren und nach Excel, CSV oder JSON exportieren.',locale:'de_DE'},
+  es:{lang:'es-ES',hreflang:'es-ES',dir:'ltr',title:'Google Maps Scraper España para Leads B2B | Maps Hunter Pro',description:'Google Maps Scraper para España: investiga negocios, teléfonos, sitios web y correos públicos disponibles, y exporta listas B2B a Excel, CSV o JSON.',locale:'es_ES'}
 };
 const LANGS=Object.keys(META);
 
@@ -51,6 +51,7 @@ function localized(html,lang){
   const m=META[lang]||META.en;
   const canonical=`${PUBLIC_ORIGIN}/${lang}`;
   const alternates=LANGS.map(x=>`<link rel="alternate" hreflang="${META[x].hreflang||x}" href="${PUBLIC_ORIGIN}/${x}" />`).join('')+`<link rel="alternate" hreflang="x-default" href="${PUBLIC_ORIGIN}/en" />`;
+  const ogAlternates=LANGS.filter(x=>x!==lang).map(x=>`<meta property="og:locale:alternate" content="${META[x].locale}" />`).join('');
   if(!html.includes('/assets/payment-icon-clean.css'))html=html.replace('</head>','<link rel="stylesheet" href="/assets/payment-icon-clean.css"></head>');
   if(!html.includes('/assets/multilingual-fix.css'))html=html.replace('</head>','<link rel="stylesheet" href="/assets/multilingual-fix.css"></head>');
   if(!html.includes('/assets/language-runtime-fix.js'))html=html.replace('</body>','<script src="/assets/language-runtime-fix.js" defer></script></body>');
@@ -61,10 +62,13 @@ function localized(html,lang){
     .replace(/<meta name="description" content="[^"]*" \/>/,`<meta name="description" content="${m.description}" />`)
     .replace(/<meta property="og:title" content="[^"]*" \/>/,`<meta property="og:title" content="${m.title}" />`)
     .replace(/<meta property="og:description" content="[^"]*" \/>/,`<meta property="og:description" content="${m.description}" />`)
-    .replace(/<meta property="og:locale" content="[^"]*" \/>/,`<meta property="og:locale" content="${m.locale}" />`)
+    .replace(/<meta property="og:locale:alternate" content="[^"]*" \/>/g,'')
+    .replace(/<meta property="og:locale" content="[^"]*" \/>/,`<meta property="og:locale" content="${m.locale}" />${ogAlternates}`)
     .replace(/<meta name="twitter:title" content="[^"]*" \/>/,`<meta name="twitter:title" content="${m.title}" />`)
     .replace(/<meta name="twitter:description" content="[^"]*" \/>/,`<meta name="twitter:description" content="${m.description}" />`)
     .replace(/"url":"https:\/\/mapshunterpro\.com\/en"/g,`"url":"${canonical}"`)
+    .replace(/"operatingSystem":"Chrome"/g,`"operatingSystem":"Chrome","inLanguage":"${m.lang}"`)
+    .replace(/"description":"Chrome extension for extracting structured business leads from Google Maps and exporting clean results to Excel, CSV, JSON, or a Results table\."/g,`"description":${JSON.stringify(m.description)}`)
     .replace('<!-- Add an absolute canonical URL here after the production domain is connected. -->',`<link rel="canonical" href="${canonical}" />${alternates}<meta property="og:url" content="${canonical}" />`);
 }
 
@@ -89,6 +93,12 @@ async function handleSite(request,env){
       `<url><loc>${PUBLIC_ORIGIN}/blog/maps-hunter-pro-vs-outscraper/</loc><lastmod>2026-10-02</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
       `<url><loc>${PUBLIC_ORIGIN}/blog/maps-hunter-pro-vs-phantombuster/</loc><lastmod>2026-09-18</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
       `<url><loc>${PUBLIC_ORIGIN}/blog/maps-hunter-pro-vs-scrapehero/</loc><lastmod>2026-09-18</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
+      `<url><loc>${PUBLIC_ORIGIN}/blog/is-scraping-google-maps-legal/</loc><lastmod>2026-10-02</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
+      `<url><loc>${PUBLIC_ORIGIN}/blog/de/</loc><lastmod>2026-10-02</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>`,
+      `<url><loc>${PUBLIC_ORIGIN}/blog/de/google-maps-scraper-deutschland/</loc><lastmod>2026-10-02</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
+      `<url><loc>${PUBLIC_ORIGIN}/blog/de/google-maps-daten-extrahieren/</loc><lastmod>2026-10-02</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
+      `<url><loc>${PUBLIC_ORIGIN}/blog/es/</loc><lastmod>2026-10-02</lastmod><changefreq>weekly</changefreq><priority>0.9</priority></url>`,
+      `<url><loc>${PUBLIC_ORIGIN}/blog/es/google-maps-scraper-espana/</loc><lastmod>2026-10-02</lastmod><changefreq>monthly</changefreq><priority>0.9</priority></url>`,
       `<url><loc>${PUBLIC_ORIGIN}/blog/ar/</loc><lastmod>2026-09-26</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`,
       `<url><loc>${PUBLIC_ORIGIN}/blog/ar/maps-hunter-pro-vs-outscraper/</loc><lastmod>2026-09-26</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>`,
       `<url><loc>${PUBLIC_ORIGIN}/blog/ar/maps-hunter-pro-vs-phantombuster/</loc><lastmod>2026-09-18</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>`,
@@ -115,6 +125,12 @@ async function handleSite(request,env){
   if(u.pathname==='/blog/how-to-extract-business-leads-from-google-maps'||u.pathname==='/blog/how-to-extract-business-leads-from-google-maps/')return asset(env,'/blog/how-to-extract-business-leads-from-google-maps/index.html',HTML_HEADERS);
   if(u.pathname==='/blog/find-businesses-without-websites-on-google-maps'||u.pathname==='/blog/find-businesses-without-websites-on-google-maps/')return asset(env,'/blog/find-businesses-without-websites-on-google-maps/index.html',HTML_HEADERS);
   if(u.pathname==='/blog/maps-hunter-pro-vs-phantombuster'||u.pathname==='/blog/maps-hunter-pro-vs-phantombuster/')return asset(env,'/blog/maps-hunter-pro-vs-phantombuster/index.html',HTML_HEADERS);
+  if(u.pathname==='/blog/is-scraping-google-maps-legal'||u.pathname==='/blog/is-scraping-google-maps-legal/')return asset(env,'/blog/is-scraping-google-maps-legal/index.html',HTML_HEADERS);
+  if(u.pathname==='/blog/de'||u.pathname==='/blog/de/')return asset(env,'/blog/de/index.html',HTML_HEADERS);
+  if(u.pathname==='/blog/de/google-maps-scraper-deutschland'||u.pathname==='/blog/de/google-maps-scraper-deutschland/')return asset(env,'/blog/de/google-maps-scraper-deutschland/index.html',HTML_HEADERS);
+  if(u.pathname==='/blog/de/google-maps-daten-extrahieren'||u.pathname==='/blog/de/google-maps-daten-extrahieren/')return asset(env,'/blog/de/google-maps-daten-extrahieren/index.html',HTML_HEADERS);
+  if(u.pathname==='/blog/es'||u.pathname==='/blog/es/')return asset(env,'/blog/es/index.html',HTML_HEADERS);
+  if(u.pathname==='/blog/es/google-maps-scraper-espana'||u.pathname==='/blog/es/google-maps-scraper-espana/')return asset(env,'/blog/es/google-maps-scraper-espana/index.html',HTML_HEADERS);
   if(u.pathname==='/blog/ar'||u.pathname==='/blog/ar/')return asset(env,'/blog/ar/index.html',HTML_HEADERS);
   if(u.pathname==='/blog/ar/maps-hunter-pro-vs-phantombuster'||u.pathname==='/blog/ar/maps-hunter-pro-vs-phantombuster/')return asset(env,'/blog/ar/maps-hunter-pro-vs-phantombuster/index.html',HTML_HEADERS);
 

@@ -57,6 +57,8 @@ for (const [route, hreflang, phrase] of [
   ['uk', 'en-GB', 'Google Maps Scraper UK'],
   ['ca', 'en-CA', 'Google Maps Scraper Canada'],
   ['au', 'en-AU', 'Google Maps Scraper Australia'],
+  ['de', 'de-DE', 'Google Maps Scraper Deutschland'],
+  ['es', 'es-ES', 'Google Maps Scraper España'],
 ]) {
   assert.ok(worker.includes(route + ":{lang:'" + hreflang), route + ' worker route metadata');
   assert.ok(worker.includes("hreflang:'" + hreflang + "'"), route + ' hreflang');
@@ -73,3 +75,19 @@ assert.match(languageRuntime, /ROUTES=\['en','us','uk','ca','au'/);
 assert.match(worker, /META\[x\]\.hreflang/);
 
 console.log('Western-market SEO regression checks passed.');
+for (const [path, keyword, canonical] of [
+  ['blog/de/google-maps-scraper-deutschland/index.html','Google Maps Scraper Deutschland','/blog/de/google-maps-scraper-deutschland/'],
+  ['blog/de/google-maps-daten-extrahieren/index.html','Google-Maps-Daten extrahieren','/blog/de/google-maps-daten-extrahieren/'],
+  ['blog/es/google-maps-scraper-espana/index.html','Google Maps Scraper España','/blog/es/google-maps-scraper-espana/'],
+  ['blog/is-scraping-google-maps-legal/index.html','Is Scraping Google Maps Legal?','/blog/is-scraping-google-maps-legal/'],
+]) {
+  const html=read(path);
+  assert.equal((html.match(/<h1\b/gi)||[]).length,1,path+' must have one H1');
+  assert.ok(html.includes('rel="canonical" href="https://mapshunterpro.com'+canonical+'"'),path+' canonical');
+  assert.ok(html.toLowerCase().includes(keyword.toLowerCase()),path+' target phrase');
+  assert.ok(worker.includes(canonical),path+' sitemap/route');
+}
+assert.match(build,/Google Maps Lead-Recherche für Deutschland/);
+assert.match(build,/Investigación de leads de Google Maps para España/);
+assert.match(worker,/inLanguage/);
+assert.match(worker,/og:locale:alternate/);
