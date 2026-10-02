@@ -17,7 +17,7 @@ This section is the running change log for the professional Admin/Operations reb
 1. **Created isolated development branch** `admin-intelligence-v1` from production `main`; production was not modified while the redesign was being built.
 2. **Reviewed the existing admin/backend data flow** and confirmed that `manual_usage_daily` already provides per-license daily accepted-lead counts, so customer usage analytics can be built without uploading business lead records.
 3. **Designed additive migration `0011_admin_intelligence.sql`** with `admin_customers`, `admin_sales`, and `admin_support_events`, plus nullable `manual_licenses.customer_id` linkage. Historical migrations remain untouched.
-4. **Recorded the three owner-provided historical sales as real transactions** rather than inferring revenue from current plan prices: Algeria USD 50, Palestine USD 20, Oman USD 20. Exact sale dates and license links are intentionally left unset until confirmed. Baseline recorded revenue is USD 90 across 3 sales/customers; average sale is USD 30.
+4. **Recorded the three owner-provided historical sales as real transactions** under neutral customer labels rather than inferring revenue from current plan prices: Customer 001 · Algeria · USD 50, Customer 002 · Palestine · USD 20, Customer 003 · Oman · USD 20. Exact sale dates and license links are intentionally left unset. Baseline recorded revenue is USD 90 across 3 sales/customers; average sale is USD 30. Customer lead counters start from the new Admin baseline unless a license is explicitly linked later.
 5. **Added customer/revenue/usage Admin API foundations**: total revenue, customer count, country count, sales count, average sale, all-time leads, leads today, seven-day usage, attention count, revenue by country, customer list/search, Customer 360 detail, sales list/create/update, customer create/update, and customer-license link/unlink actions.
 6. **Enhanced license reporting** so Admin queries can show linked customer, today usage, all-time accepted leads, last usage, device activity, and derived health state without receiving the customer's actual lead list.
 7. **Rebuilt the Admin UI as an Operations console** with Overview, Customers, Sales & Revenue, Licenses, Support Center, Owner Access, Settings, Audit Logs, and a Customer 360 drawer. The approved Maps Hunter Pro Paper/Stone/Coral/Black identity is retained.
@@ -26,6 +26,8 @@ This section is the running change log for the professional Admin/Operations reb
 10. **Updated migration-chain coverage** through `0011` and added the Admin Intelligence regression test to GitHub release checks.
 11. **Local validation completed before commit**: JavaScript syntax checks for backend/admin passed; migration chain `0001..0011` passed; Admin Intelligence revenue/usage regression passed.
 12. **Corrected the stale README extension/data-model description** so documentation matches the current runtime: official public business websites may be fetched transiently in the service worker for public email/social enrichment, while lead rows remain local and are not uploaded to licensing/Admin.
+13. **Adjusted the launch baseline before production** so the three existing buyers are stored as Customer 001/002/003 with country + paid amount, without requiring license linkage. Their customer-level lead counters start at zero until future usage is explicitly associated with them; existing license-level usage remains available separately in the Licenses view.
+14. **Prepared production publication** after the owner confirmed that this Operations console is private/internal. The launch baseline therefore keeps customer identities neutral, preserves the USD 90 historical revenue total, and does not require historical license mapping before the first production trial.
 
 ### Privacy invariant for Admin Intelligence
 
@@ -33,7 +35,6 @@ The Operations console may store customer/admin metadata, license/device state, 
 
 ### Next Admin Intelligence steps
 
-- Link the three historical customer records to their actual production licenses after identifying the correct codes.
 - Add sanitized extension telemetry for scan/extraction/version/error events, with strict field allowlisting.
 - Add renewal/expiry workflows, acquisition-source tracking, release/version health and deeper support diagnostics after the Customer/Sales foundation is verified in production.
 
