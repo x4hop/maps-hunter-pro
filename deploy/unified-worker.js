@@ -2,11 +2,11 @@ import backend from '../backend/src/entry.js';
 
 const PUBLIC_ORIGIN='https://mapshunterpro.com';
 const META={
-  en:{lang:'en',dir:'ltr',title:'Google Maps Scraper & Lead Extractor for Chrome | Maps Hunter Pro',description:'Extract structured business leads from Google Maps, including phones, websites, available emails and social links, then export clean data to Excel, CSV or JSON.',locale:'en_US'},
+  en:{lang:'en',dir:'ltr',title:'Google Maps Scraper for B2B Leads | Maps Hunter Pro',description:'Scrape Google Maps business results into structured B2B lead lists with phones, websites, available emails and social links, then export clean data to Excel, CSV or JSON.',locale:'en_US'},
   ar:{lang:'ar',dir:'rtl',title:'استخراج بيانات Google Maps والعملاء المحتملين | Maps Hunter Pro',description:'استخرج بيانات الأنشطة التجارية من Google Maps مثل الهاتف والموقع والبيانات المتاحة، ثم صدّر النتائج بشكل منظم إلى Excel أو CSV أو JSON.',locale:'ar_LY'},
   ru:{lang:'ru',dir:'ltr',title:'Парсер Google Maps и сборщик лидов для Chrome | Maps Hunter Pro',description:'Собирайте структурированные данные компаний из Google Maps — телефоны, сайты, доступные email и соцсети — и экспортируйте результаты в Excel, CSV или JSON.',locale:'ru_RU'},
-  de:{lang:'de',dir:'ltr',title:'Google Maps Scraper & Lead-Extractor für Chrome | Maps Hunter Pro',description:'Extrahiere strukturierte Unternehmensdaten aus Google Maps – Telefonnummern, Websites, verfügbare E-Mails und Social Links – und exportiere sie in Excel, CSV oder JSON.',locale:'de_DE'},
-  es:{lang:'es',dir:'ltr',title:'Google Maps Scraper y Extractor de Leads | Maps Hunter Pro',description:'Extrae datos estructurados de negocios desde Google Maps, como teléfonos, sitios web, correos disponibles y redes sociales, y expórtalos a Excel, CSV o JSON.',locale:'es_ES'}
+  de:{lang:'de',dir:'ltr',title:'Google Maps Scraper für B2B-Leads | Maps Hunter Pro',description:'Google Maps Firmendaten strukturiert erfassen: Telefonnummern, Websites, verfügbare E-Mails und Social Links sammeln und sauber nach Excel, CSV oder JSON exportieren.',locale:'de_DE'},
+  es:{lang:'es',dir:'ltr',title:'Google Maps Scraper para Leads B2B | Maps Hunter Pro',description:'Extrae negocios de Google Maps en listas B2B estructuradas con teléfonos, sitios web, correos disponibles y redes sociales, y exporta a Excel, CSV o JSON.',locale:'es_ES'}
 };
 const LANGS=Object.keys(META);
 
