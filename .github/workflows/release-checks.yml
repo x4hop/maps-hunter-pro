@@ -52,7 +52,7 @@ jobs:
           node tests/test_payment_safety.mjs
           node tests/test_payment_api.mjs
           node tests/test_single_device_policy.mjs
-          node tests/test_frontend_regressions.mjs
+          node tests/test_frontend_regressions.mjs\n          node tests/test_seo_western_markets.mjs
       - name: Branded SVG icon regression check
         run: node tests/test_icon_system.mjs
       - name: Language switcher regression check
