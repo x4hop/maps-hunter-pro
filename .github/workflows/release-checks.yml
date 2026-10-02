@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - seo-western-markets-v1
   pull_request:
     branches:
       - main
