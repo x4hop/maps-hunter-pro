@@ -137,3 +137,4 @@ Read `PROJECT.md`, `DATA_FLOW.md`, `CHROME_WEB_STORE.md`, `privacy.html`, `terms
 19. **Added the validated informational quick win** `/blog/is-scraping-google-maps-legal/`, written as a responsible-use guide that separates technical access, platform terms, privacy and outreach rules and explicitly avoids presenting itself as legal advice.
 20. **Improved international structured metadata** so the SoftwareApplication schema receives the route language and Open Graph emits locale alternates for the regional landing set.
 21. **Expanded sitemap, Worker routes, resource-hub discovery and SEO regression tests** to cover the German, Spanish and responsible-use content.
+22. **Fixed the first Germany-batch CI regression**: the product code and syntax checks were healthy; the failing assertion still expected the old German/Spanish meta titles. Updated the SEO regression expectations to the new Germany/Spain titles before any production merge.

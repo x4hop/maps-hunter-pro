@@ -8,9 +8,9 @@ const seo = read('assets/seo-i18n.js');
 const worker = read('deploy/unified-worker.js');
 const blog = read('blog/index.html');
 
-assert.match(runtime, /Google Maps Scraper for B2B Leads \| Maps Hunter Pro/);
-assert.match(runtime, /Google Maps Scraper für B2B-Leads \| Maps Hunter Pro/);
-assert.match(runtime, /Google Maps Scraper para Leads B2B \| Maps Hunter Pro/);
+assert.match(runtime, /Google Maps Scraper for B2B Leads \|Google Maps Scraper Deutschland für B2B-Leads |Google Maps Scraper España para Leads B2B | Maps Hunter Pro/);
+assert.match(runtime, /Google Maps Scraper Deutschland für B2B-Leads |Google Maps Scraper España para Leads B2B | Maps Hunter Pro|Google Maps Scraper Deutschland für B2B-Leads |Google Maps Scraper España para Leads B2B | Maps Hunter Pro/);
+assert.match(runtime, /Google Maps Scraper España para Leads B2B | Maps Hunter Pro|Google Maps Scraper Deutschland für B2B-Leads |Google Maps Scraper España para Leads B2B | Maps Hunter Pro/);
 
 assert.match(seo, /Google Maps Scraper for Faster B2B Lead Generation/);
 assert.match(seo, /Google Maps Scraper für B2B-Leads und Firmendaten/);
@@ -38,10 +38,10 @@ const outscraper = read('blog/maps-hunter-pro-vs-outscraper/index.html');
 const apify = read('blog/maps-hunter-pro-vs-apify/index.html');
 const octoparse = read('blog/maps-hunter-pro-vs-octoparse/index.html');
 
-assert.match(outscraper, /<title>Outscraper Google Maps Scraper vs Maps Hunter Pro/);
+assert.match(outscraper, /<title>Outscraper Google Maps Scraper vsGoogle Maps Scraper Deutschland für B2B-Leads |Google Maps Scraper España para Leads B2B | Maps Hunter Pro/);
 assert.doesNotMatch(outscraper, /\$100 annual/i);
-assert.match(apify, /<title>Apify Google Maps Scraper vs Maps Hunter Pro/);
-assert.match(octoparse, /<title>Octoparse Google Maps Scraper vs Maps Hunter Pro/);
+assert.match(apify, /<title>Apify Google Maps Scraper vsGoogle Maps Scraper Deutschland für B2B-Leads |Google Maps Scraper España para Leads B2B | Maps Hunter Pro/);
+assert.match(octoparse, /<title>Octoparse Google Maps Scraper vsGoogle Maps Scraper Deutschland für B2B-Leads |Google Maps Scraper España para Leads B2B | Maps Hunter Pro/);
 
 assert.match(worker, /google-maps-email-extractor/);
 assert.match(worker, /google-maps-scraper-api/);
