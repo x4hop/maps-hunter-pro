@@ -140,6 +140,31 @@ async function extensionRoutes(r,e,url){
   }
   return json({ok:true,valid:true,license:{expiresAt:l.expires_at}});
 }
+function adminHealth(row){
+  const licenses=Number(row?.license_count||0),active=Number(row?.active_license_count||0);
+  if(!licenses)return 'needs-link';
+  if(!active)return 'problem';
+  if(row?.next_expiry){
+    const t=Date.parse(String(row.next_expiry).includes('T')?row.next_expiry:String(row.next_expiry)+'Z');
+    if(Number.isFinite(t)&&t-Date.now()<=3*86400000)return 'attention';
+  }
+  return 'healthy';
+}
+async function customerRows(e,where='1=1',params=[]){
+  const data=await rows(e,`SELECT c.*,
+    COALESCE((SELECT SUM(s.amount_cents) FROM admin_sales s WHERE s.customer_id=c.id AND s.status='paid'),0) revenue_cents,
+    COALESCE((SELECT COUNT(*) FROM admin_sales s WHERE s.customer_id=c.id AND s.status='paid'),0) sales_count,
+    COALESCE((SELECT COUNT(*) FROM manual_licenses l WHERE l.customer_id=c.id),0) license_count,
+    COALESCE((SELECT COUNT(*) FROM manual_licenses l WHERE l.customer_id=c.id AND l.status='active' AND (l.is_lifetime=1 OR julianday(l.expires_at)>julianday('now'))),0) active_license_count,
+    COALESCE((SELECT SUM(u.leads_processed) FROM manual_usage_daily u JOIN manual_licenses l ON l.id=u.manual_license_id WHERE l.customer_id=c.id),0) total_leads,
+    COALESCE((SELECT SUM(u.leads_processed) FROM manual_usage_daily u JOIN manual_licenses l ON l.id=u.manual_license_id WHERE l.customer_id=c.id AND u.usage_date=date('now')),0) leads_today,
+    (SELECT MAX(l.last_validated_at) FROM manual_licenses l WHERE l.customer_id=c.id) last_validated_at,
+    (SELECT MAX(d.last_seen_at) FROM manual_license_devices d JOIN manual_licenses l ON l.id=d.manual_license_id WHERE l.customer_id=c.id) device_last_seen_at,
+    (SELECT MAX(u.usage_date) FROM manual_usage_daily u JOIN manual_licenses l ON l.id=u.manual_license_id WHERE l.customer_id=c.id) last_usage_date,
+    (SELECT MIN(l.expires_at) FROM manual_licenses l WHERE l.customer_id=c.id AND l.status='active' AND l.is_lifetime=0 AND l.expires_at IS NOT NULL) next_expiry
+    FROM admin_customers c WHERE ${where} ORDER BY c.id DESC`,...params);
+  return data.map(x=>({...x,health:adminHealth(x)}));
+}
 async function adminRoutes(r,e,url){
   const p=url.pathname,m=r.method;
   if(p==='/api/admin/login'&&m==='POST'){
@@ -150,10 +175,99 @@ async function adminRoutes(r,e,url){
   if(!p.startsWith('/api/admin/'))return null;
   const admin=await adminSession(r,e), s=await settings(e);
   if(p==='/api/admin/logout'&&m==='POST'){await run(e,'DELETE FROM admin_sessions WHERE id=?',admin.id);return json({ok:true})}
+
   if(p==='/api/admin/summary'&&m==='GET'){
-    const c=async q=>Number((await first(e,q)).c||0);
-    return json({ok:true,summary:{unusedCodes:await c("SELECT count(*) c FROM manual_licenses WHERE status='unused'"),activeLicenses:await c("SELECT count(*) c FROM manual_licenses WHERE status='active' AND (is_lifetime=1 OR julianday(expires_at)>julianday('now'))"),expiredLicenses:await c("SELECT count(*) c FROM manual_licenses WHERE status='expired' OR (status='active' AND is_lifetime=0 AND julianday(expires_at)<=julianday('now'))"),expiringSoon:await c("SELECT count(*) c FROM manual_licenses WHERE status='active' AND is_lifetime=0 AND julianday(expires_at)>julianday('now') AND julianday(expires_at)<=julianday('now','+3 days')"),leadsToday:await c("SELECT coalesce(sum(leads_processed),0) c FROM manual_usage_daily WHERE usage_date=date('now')")}})
+    const c=async(q,...args)=>Number((await first(e,q,...args))?.c||0);
+    const revenue=await c("SELECT coalesce(sum(amount_cents),0) c FROM admin_sales WHERE status='paid'");
+    const sales=await c("SELECT count(*) c FROM admin_sales WHERE status='paid'");
+    const customers=await c("SELECT count(*) c FROM admin_customers WHERE status<>'archived'");
+    const countryRevenue=await rows(e,"SELECT c.country_name country,coalesce(sum(s.amount_cents),0) revenue_cents,count(s.id) sales FROM admin_sales s JOIN admin_customers c ON c.id=s.customer_id WHERE s.status='paid' GROUP BY c.country_name ORDER BY revenue_cents DESC LIMIT 10");
+    const customerHealth=await customerRows(e,"c.status<>'archived'");
+    return json({ok:true,summary:{
+      totalRevenueCents:revenue,salesCount:sales,customersCount:customers,countriesCount:await c("SELECT count(DISTINCT country_code) c FROM admin_customers WHERE status<>'archived' AND coalesce(country_code,'')<>''"),averageSaleCents:sales?Math.round(revenue/sales):0,
+      unusedCodes:await c("SELECT count(*) c FROM manual_licenses WHERE status='unused'"),
+      activeLicenses:await c("SELECT count(*) c FROM manual_licenses WHERE status='active' AND (is_lifetime=1 OR julianday(expires_at)>julianday('now'))"),
+      expiredLicenses:await c("SELECT count(*) c FROM manual_licenses WHERE status='expired' OR (status='active' AND is_lifetime=0 AND julianday(expires_at)<=julianday('now'))"),
+      expiringSoon:await c("SELECT count(*) c FROM manual_licenses WHERE status='active' AND is_lifetime=0 AND julianday(expires_at)>julianday('now') AND julianday(expires_at)<=julianday('now','+3 days')"),
+      leadsToday:await c("SELECT coalesce(sum(leads_processed),0) c FROM manual_usage_daily WHERE usage_date=date('now')"),
+      leads7d:await c("SELECT coalesce(sum(leads_processed),0) c FROM manual_usage_daily WHERE usage_date>=date('now','-6 days')"),
+      totalLeads:await c("SELECT coalesce(sum(leads_processed),0) c FROM manual_usage_daily"),
+      attentionCustomers:customerHealth.filter(x=>x.health!=='healthy').length
+    },countryRevenue,recentCustomers:customerHealth.slice(0,6)});
   }
+
+  if(p==='/api/admin/customers'&&m==='GET'){
+    const q=String(url.searchParams.get('q')||'').trim().slice(0,120);
+    const where=q?"c.status<>'archived' AND (c.display_name LIKE ? OR coalesce(c.country_name,'') LIKE ? OR coalesce(c.contact,'') LIKE ? OR coalesce(c.note,'') LIKE ?)":"c.status<>'archived'";
+    const params=q?Array(4).fill('%'+q+'%'):[];
+    return json({ok:true,customers:await customerRows(e,where,params)});
+  }
+  if(p==='/api/admin/customers'&&m==='POST'){
+    const x=await body(r),name=String(x.displayName||'').trim().slice(0,120); if(!name)fail('CUSTOMER_NAME_REQUIRED');
+    const result=await run(e,'INSERT INTO admin_customers(display_name,country_code,country_name,contact,note) VALUES(?,?,?,?,?)',name,String(x.countryCode||'').trim().toUpperCase().slice(0,8)||null,String(x.countryName||'').trim().slice(0,80)||null,String(x.contact||'').trim().slice(0,160)||null,String(x.note||'').trim().slice(0,1000)||null);
+    const id=Number(result.meta?.last_row_id||0); await audit(e,'CUSTOMER_CREATED','customer',id,{displayName:name});
+    return json({ok:true,customer:(await customerRows(e,'c.id=?',[id]))[0]},201);
+  }
+  let cm=p.match(/^\/api\/admin\/customers\/(\d+)$/);
+  if(cm&&m==='GET'){
+    const id=Number(cm[1]),customer=(await customerRows(e,'c.id=?',[id]))[0]; if(!customer)fail('CUSTOMER_NOT_FOUND',404);
+    const licenses=await rows(e,`SELECT l.*,
+      (SELECT count(*) FROM manual_license_devices d WHERE d.manual_license_id=l.id AND d.status='trusted') device_count,
+      COALESCE((SELECT sum(u.leads_processed) FROM manual_usage_daily u WHERE u.manual_license_id=l.id),0) total_leads,
+      COALESCE((SELECT sum(u.leads_processed) FROM manual_usage_daily u WHERE u.manual_license_id=l.id AND u.usage_date=date('now')),0) used_today,
+      (SELECT max(d.last_seen_at) FROM manual_license_devices d WHERE d.manual_license_id=l.id) device_last_seen_at
+      FROM manual_licenses l WHERE l.customer_id=? ORDER BY l.id DESC`,id);
+    const salesRows=await rows(e,'SELECT * FROM admin_sales WHERE customer_id=? ORDER BY coalesce(sold_at,created_at) DESC,id DESC',id);
+    const usage=await rows(e,"SELECT u.usage_date,sum(u.leads_processed) leads FROM manual_usage_daily u JOIN manual_licenses l ON l.id=u.manual_license_id WHERE l.customer_id=? GROUP BY u.usage_date ORDER BY u.usage_date DESC LIMIT 90",id);
+    const support=await rows(e,'SELECT * FROM admin_support_events WHERE customer_id=? OR manual_license_id IN (SELECT id FROM manual_licenses WHERE customer_id=?) ORDER BY id DESC LIMIT 100',id,id);
+    const today=new Date(),cut7=new Date(today.getTime()-6*86400000).toISOString().slice(0,10),cut30=new Date(today.getTime()-29*86400000).toISOString().slice(0,10);
+    const leads7d=usage.filter(x=>x.usage_date>=cut7).reduce((a,x)=>a+Number(x.leads||0),0),leads30d=usage.filter(x=>x.usage_date>=cut30).reduce((a,x)=>a+Number(x.leads||0),0),peak=usage.reduce((a,x)=>Math.max(a,Number(x.leads||0)),0);
+    return json({ok:true,customer,licenses,sales:salesRows,usage,metrics:{leads7d,leads30d,peakDay:peak,activeDays:usage.length},support});
+  }
+  if(cm&&m==='PATCH'){
+    const id=Number(cm[1]); if(!(await first(e,'SELECT id FROM admin_customers WHERE id=?',id)))fail('CUSTOMER_NOT_FOUND',404);
+    const x=await body(r),sets=[],vals=[];
+    const fields=[['displayName','display_name',120],['countryCode','country_code',8],['countryName','country_name',80],['contact','contact',160],['note','note',1000],['status','status',16]];
+    for(const [key,col,max] of fields)if(Object.prototype.hasOwnProperty.call(x,key)){let v=String(x[key]??'').trim().slice(0,max)||null;if(key==='countryCode'&&v)v=v.toUpperCase();if(key==='status'&&!['active','inactive','archived'].includes(v))fail('INVALID_CUSTOMER_STATUS');sets.push(`${col}=?`);vals.push(v)}
+    if(!sets.length)fail('NO_CHANGES'); vals.push(id); await run(e,`UPDATE admin_customers SET ${sets.join(',')},updated_at=CURRENT_TIMESTAMP WHERE id=?`,...vals); await audit(e,'CUSTOMER_UPDATED','customer',id,{fields:sets.map(x=>x.split('=')[0])});
+    return json({ok:true,customer:(await customerRows(e,'c.id=?',[id]))[0]});
+  }
+  let cl=p.match(/^\/api\/admin\/customers\/(\d+)\/(link-license|unlink-license)$/);
+  if(cl&&m==='POST'){
+    const customerId=Number(cl[1]),action=cl[2],x=await body(r),licenseId=Number(x.licenseId||0); if(!licenseId)fail('LICENSE_REQUIRED');
+    if(!(await first(e,'SELECT id FROM admin_customers WHERE id=?',customerId)))fail('CUSTOMER_NOT_FOUND',404);
+    if(!(await first(e,'SELECT id FROM manual_licenses WHERE id=?',licenseId)))fail('LICENSE_NOT_FOUND',404);
+    if(action==='link-license')await run(e,'UPDATE manual_licenses SET customer_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?',customerId,licenseId); else await run(e,'UPDATE manual_licenses SET customer_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND customer_id=?',licenseId,customerId);
+    await audit(e,action==='link-license'?'CUSTOMER_LICENSE_LINKED':'CUSTOMER_LICENSE_UNLINKED','manual_license',licenseId,{customerId}); return json({ok:true});
+  }
+
+  if(p==='/api/admin/sales'&&m==='GET'){
+    const q=String(url.searchParams.get('q')||'').trim().slice(0,120),like='%'+q+'%';
+    const salesRows=await rows(e,`SELECT s.*,c.display_name customer_name,c.country_name,l.code_hint license_hint FROM admin_sales s JOIN admin_customers c ON c.id=s.customer_id LEFT JOIN manual_licenses l ON l.id=s.manual_license_id WHERE ?='' OR c.display_name LIKE ? OR coalesce(c.country_name,'') LIKE ? OR coalesce(s.transaction_reference,'') LIKE ? ORDER BY coalesce(s.sold_at,s.created_at) DESC,s.id DESC LIMIT 200`,q,like,like,like);
+    return json({ok:true,sales:salesRows});
+  }
+  if(p==='/api/admin/sales'&&m==='POST'){
+    const x=await body(r),customerId=Number(x.customerId||0),licenseId=x.manualLicenseId?Number(x.manualLicenseId):null;
+    if(!(await first(e,'SELECT id FROM admin_customers WHERE id=?',customerId)))fail('CUSTOMER_NOT_FOUND',404);
+    if(licenseId&&!(await first(e,'SELECT id FROM manual_licenses WHERE id=?',licenseId)))fail('LICENSE_NOT_FOUND',404);
+    const amountCents=Number.isInteger(Number(x.amountCents))?Number(x.amountCents):Math.round(Number(x.amountUsd||0)*100); if(!Number.isInteger(amountCents)||amountCents<0)fail('INVALID_AMOUNT');
+    const soldAt=String(x.soldAt||'').trim()||null;
+    const result=await run(e,'INSERT INTO admin_sales(customer_id,manual_license_id,amount_cents,currency,plan_label,payment_method,transaction_reference,status,sold_at,note) VALUES(?,?,?,?,?,?,?,?,?,?)',customerId,licenseId,amountCents,String(x.currency||'USD').trim().toUpperCase().slice(0,8),String(x.planLabel||'').trim().slice(0,80)||null,String(x.paymentMethod||'Manual').trim().slice(0,80)||null,String(x.transactionReference||'').trim().slice(0,180)||null,'paid',soldAt,String(x.note||'').trim().slice(0,1000)||null);
+    const id=Number(result.meta?.last_row_id||0); await audit(e,'SALE_CREATED','sale',id,{customerId,amountCents,licenseId}); return json({ok:true,id},201);
+  }
+  let sm=p.match(/^\/api\/admin\/sales\/(\d+)$/);
+  if(sm&&m==='PATCH'){
+    const id=Number(sm[1]),sale=await first(e,'SELECT id FROM admin_sales WHERE id=?',id); if(!sale)fail('SALE_NOT_FOUND',404); const x=await body(r),sets=[],vals=[];
+    if(Object.prototype.hasOwnProperty.call(x,'status')){if(!['paid','refunded','void'].includes(x.status))fail('INVALID_SALE_STATUS');sets.push('status=?');vals.push(x.status)}
+    if(Object.prototype.hasOwnProperty.call(x,'amountCents')){const n=Number(x.amountCents);if(!Number.isInteger(n)||n<0)fail('INVALID_AMOUNT');sets.push('amount_cents=?');vals.push(n)}
+    for(const [key,col,max] of [['planLabel','plan_label',80],['paymentMethod','payment_method',80],['transactionReference','transaction_reference',180],['note','note',1000],['soldAt','sold_at',40]])if(Object.prototype.hasOwnProperty.call(x,key)){sets.push(`${col}=?`);vals.push(String(x[key]??'').trim().slice(0,max)||null)}
+    if(!sets.length)fail('NO_CHANGES');vals.push(id);await run(e,`UPDATE admin_sales SET ${sets.join(',')},updated_at=CURRENT_TIMESTAMP WHERE id=?`,...vals);await audit(e,'SALE_UPDATED','sale',id,{fields:sets.map(x=>x.split('=')[0])});return json({ok:true});
+  }
+
+  if(p==='/api/admin/support-events'&&m==='GET'){
+    const data=await rows(e,`SELECT se.*,c.display_name customer_name,l.code_hint license_hint FROM admin_support_events se LEFT JOIN admin_customers c ON c.id=se.customer_id LEFT JOIN manual_licenses l ON l.id=se.manual_license_id ORDER BY se.id DESC LIMIT 200`); return json({ok:true,events:data});
+  }
+
   if(p==='/api/admin/settings'&&m==='GET')return json({ok:true,settings:await rows(e,'SELECT key,value,updated_at FROM settings ORDER BY key')});
   if(p==='/api/admin/settings'&&m==='PATCH'){
     const x=await body(r), allowed=new Set(['monthly_price_usd','lifetime_price_usd','annual_price_usd','monthly_daily_limit','allowed_devices','usdt_network','usdt_address','redotpay_id','support_contact','extension_version','extension_download_url','public_site_url']);
@@ -165,16 +279,24 @@ async function adminRoutes(r,e,url){
     const x=await body(r), pl=plan(s,x.planId), count=clamp(Number(x.count||1),1,50), out=[];
     for(let i=0;i<count;i++){
       const raw=makeCode(), h=await hash(raw), hint=codeHint(raw);
-      await run(e,'INSERT INTO manual_licenses(code_hash,code_hint,plan_id,duration_days,daily_lead_limit,device_limit,note,is_lifetime) VALUES(?,?,?,?,?,?,?,?)',h,hint,pl.storagePlanId,pl.storageDurationDays,pl.dailyLeadLimit,s.allowed_devices,String(x.note||'').slice(0,500)||null,pl.isLifetime?1:0);
+      await run(e,'INSERT INTO manual_licenses(code_hash,code_hint,plan_id,duration_days,daily_lead_limit,device_limit,note,is_lifetime,customer_id) VALUES(?,?,?,?,?,?,?,?,?)',h,hint,pl.storagePlanId,pl.storageDurationDays,pl.dailyLeadLimit,s.allowed_devices,String(x.note||'').slice(0,500)||null,pl.isLifetime?1:0,x.customerId?Number(x.customerId):null);
       out.push(raw);
     }
-    await audit(e,'MANUAL_CODES_CREATED','manual_license',String(count),{planId:pl.id,count}); return json({ok:true,codes:out},201);
+    await audit(e,'MANUAL_CODES_CREATED','manual_license',String(count),{planId:pl.id,count,customerId:x.customerId||null}); return json({ok:true,codes:out},201);
   }
   if(p==='/api/admin/manual-licenses'&&m==='GET'){
-    const q=String(url.searchParams.get('q')||'').trim(), limit=clamp(Number(url.searchParams.get('limit')||50),1,100), offset=Math.max(0,Number(url.searchParams.get('offset')||0));
+    const q=String(url.searchParams.get('q')||'').trim(), limit=clamp(Number(url.searchParams.get('limit')||100),1,200), offset=Math.max(0,Number(url.searchParams.get('offset')||0));
+    const base=`SELECT l.*,c.display_name customer_name,c.country_name,
+      (SELECT count(*) FROM manual_license_devices d WHERE d.manual_license_id=l.id AND d.status='trusted') device_count,
+      COALESCE((SELECT leads_processed FROM manual_usage_daily u WHERE u.manual_license_id=l.id AND u.usage_date=date('now')),0) used_today,
+      COALESCE((SELECT sum(leads_processed) FROM manual_usage_daily u WHERE u.manual_license_id=l.id),0) total_leads,
+      (SELECT max(usage_date) FROM manual_usage_daily u WHERE u.manual_license_id=l.id) last_usage_date,
+      (SELECT max(last_seen_at) FROM manual_license_devices d WHERE d.manual_license_id=l.id) device_last_seen_at
+      FROM manual_licenses l LEFT JOIN admin_customers c ON c.id=l.customer_id`;
     let data;
-    if(q.toUpperCase().startsWith('MHP-'))data=await rows(e,"SELECT l.*,(SELECT count(*) FROM manual_license_devices d WHERE d.manual_license_id=l.id AND d.status='trusted') device_count,COALESCE((SELECT leads_processed FROM manual_usage_daily u WHERE u.manual_license_id=l.id AND u.usage_date=date('now')),0) used_today FROM manual_licenses l WHERE code_hash=? ORDER BY id DESC LIMIT ? OFFSET ?",await hash(q.toUpperCase()),limit,offset);
-    else data=await rows(e,"SELECT l.*,(SELECT count(*) FROM manual_license_devices d WHERE d.manual_license_id=l.id AND d.status='trusted') device_count,COALESCE((SELECT leads_processed FROM manual_usage_daily u WHERE u.manual_license_id=l.id AND u.usage_date=date('now')),0) used_today FROM manual_licenses l WHERE code_hint LIKE ? OR coalesce(note,'') LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?",'%'+q+'%','%'+q+'%',limit,offset);
+    if(q.toUpperCase().startsWith('MHP-'))data=await rows(e,base+" WHERE l.code_hash=? ORDER BY l.id DESC LIMIT ? OFFSET ?",await hash(q.toUpperCase()),limit,offset);
+    else data=await rows(e,base+" WHERE l.code_hint LIKE ? OR coalesce(l.note,'') LIKE ? OR coalesce(c.display_name,'') LIKE ? OR coalesce(c.country_name,'') LIKE ? ORDER BY l.id DESC LIMIT ? OFFSET ?",'%'+q+'%','%'+q+'%','%'+q+'%','%'+q+'%',limit,offset);
+    data=data.map(x=>({...x,health:adminHealth({license_count:1,active_license_count:x.status==='active'&&(Number(x.is_lifetime)===1||!x.expires_at||Date.parse(x.expires_at+'Z')>Date.now())?1:0,next_expiry:Number(x.is_lifetime)===1?null:x.expires_at})}));
     return json({ok:true,licenses:data});
   }
   let mm=p.match(/^\/api\/admin\/manual-licenses\/(\d+)\/(revoke|extend|reset-devices)$/);
@@ -195,7 +317,7 @@ async function adminRoutes(r,e,url){
     const code='MHP-OWNER-'+random(32).toUpperCase(); await run(e,"INSERT INTO owner_access(id,code_hash,status) VALUES(1,?,'active') ON CONFLICT(id) DO UPDATE SET code_hash=excluded.code_hash,status='active',updated_at=CURRENT_TIMESTAMP",await hash(code)); await audit(e,'OWNER_CODE_ROTATED','owner_access','1'); return json({ok:true,code,expiresAt:null},201);
   }
   if(p==='/api/admin/owner-access/revoke'&&m==='POST'){await run(e,"UPDATE owner_access SET status='revoked',updated_at=CURRENT_TIMESTAMP WHERE id=1");await audit(e,'OWNER_CODE_REVOKED','owner_access','1');return json({ok:true})}
-  if(p==='/api/admin/logs'&&m==='GET'){const q='%'+String(url.searchParams.get('q')||'').slice(0,120)+'%';return json({ok:true,logs:await rows(e,"SELECT * FROM audit_logs WHERE event_type LIKE ? OR coalesce(target_id,'') LIKE ? ORDER BY id DESC LIMIT 100",q,q)})}
+  if(p==='/api/admin/logs'&&m==='GET'){const q='%'+String(url.searchParams.get('q')||'').slice(0,120)+'%';return json({ok:true,logs:await rows(e,"SELECT * FROM audit_logs WHERE event_type LIKE ? OR coalesce(target_id,'') LIKE ? ORDER BY id DESC LIMIT 150",q,q)})}
   return null;
 }
 async function maintenance(e){
